@@ -1,13 +1,19 @@
 [package]
 name = "libpd-rs"
 version = "0.1.0"
+authors = ["alisomay <alisomay@runbox.com>"]
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+license = "MIT"
+description = "Safe Rust abstractions over libpd"
+readme = "README.md"
+homepage = "https://github.com/alisomay/libpd-rs"
+repository = "https://github.com/alisomay/libpd-rs"
+documentation = "https://github.com/alisomay/libpd-rs#readme"
+keywords = ["puredata", "libpd", "audio", "midi", "bindings"]
+categories = ["multimedia"]
 
 [dependencies]
-libpd-sys = { path = "../libpd-sys" }
+libpd-sys = { git = "https://github.com/alisomay/libpd-sys" }
 thiserror = "1.0.30"
 ffi_helpers= "0.3.0"
-# libffi = { version = "2.0.0", features = ["system"] }
 libffi = "2.0.0"
