@@ -9,14 +9,20 @@ use crate::types::{Atom, PatchFileHandle};
 use libffi::high::{Closure1, Closure2, Closure3, Closure4};
 use std::ffi::{CStr, CString};
 
-/// initialize libpd; it is safe to call this more than once
-/// returns 0 on success or -1 if libpd was already initialized
-/// note: sets SIGFPE handler to keep bad pd patches from crashing due to divide
-///       by 0, set any custom handling after calling this function
+/// Initializes libpd.
+///
+/// Support for multi instances of pd is not implemented yet.
+/// This function should be called before any other in this crate.
+/// It initializes libpd globally and it lives for 'static lifetime.
+/// A second call to this function will return an error.
+///
+/// # Example
+/// ```rust
+/// assert_eq!(libpd_rs::init().is_ok(), true);
+/// assert_eq!(libpd_rs::init().is_err(), true);
+/// ```
 pub fn init() -> Result<(), InitializationError> {
     unsafe {
-        // What if this function throws a runtime error?
-        // TODO: Find out idiomatic Rust way to handle this.
         match libpd_sys::libpd_init() {
             0 => Ok(()),
             -1 => Err(InitializationError::AlreadyInitialized),
@@ -25,21 +31,24 @@ pub fn init() -> Result<(), InitializationError> {
     }
 }
 
-// TODO: Queued init and release should i implement?
+// TODO: Queued functions are not implemented yet. Find out if they are necessary.
 // pub use libpd_sys::libpd_queued_init;
 // pub use libpd_sys::libpd_queued_release;
 
-/// clear the libpd search path for abstractions and externals
-/// note: this is called by libpd_init()
+// TODO: Reference init function in a right way.
+/// Clears all the paths where libpd searches for patches and assets.
+///
+/// This function is also called by `init`.
 pub fn clear_search_paths() {
     unsafe {
         libpd_sys::libpd_clear_search_path();
     }
 }
 
-/// add a path to the libpd search paths
-/// relative paths are relative to the current working directory
-/// unlike desktop pd, *no* search paths are set by default (ie. extra)
+/// Adds a path to the list of paths where libpd searches for patches and assets.
+///
+/// Relative paths are relative to the current working directory.
+/// Unlike the desktop pd application, **no** search paths are set by default.
 pub fn add_to_search_paths(path: &std::path::Path) {
     unsafe {
         let c_path = CString::new(&*path.to_string_lossy()).unwrap();
@@ -47,8 +56,15 @@ pub fn add_to_search_paths(path: &std::path::Path) {
     }
 }
 
-/// open a patch by filename and parent dir path
-/// returns an opaque patch handle pointer or NULL on failure
+/// Opens a pd patch.
+///
+/// It would be useful to keep the return value of this function.
+/// It can be used later to close it.
+///
+/// # Example
+/// ```rust
+/// let patch_handle = libpd_rs::open_patch("test.pd").unwrap();
+/// ```
 pub fn open_patch(path_to_patch: &std::path::Path) -> Result<PatchFileHandle, IoError> {
     if let Some(file_name) = path_to_patch.file_name() {
         if let Some(file_name) = file_name.to_str() {
@@ -78,7 +94,13 @@ pub fn open_patch(path_to_patch: &std::path::Path) -> Result<PatchFileHandle, Io
     }
 }
 
-/// close a patch by patch handle pointer
+/// Closes a pd patch.
+///
+/// # Example
+/// ```rust
+/// let patch_handle = libpd_rs::open_patch("test.pd").unwrap();
+/// libpd_rs::close_patch(patch_handle);
+/// ```
 pub fn close_patch(handle: PatchFileHandle) {
     unsafe {
         // TODO: Can this file handle ever be null or invalidated?
@@ -87,21 +109,28 @@ pub fn close_patch(handle: PatchFileHandle) {
     }
 }
 
-/// get the $0 id of the patch handle pointer
-/// returns $0 value or 0 if the patch is non-existent
+// TODO: This function shouldn't consume PatchFileHandle.
+// PatchFileHandle should be a smart pointer.
+
+/// Get the `$0` id of the running patch.
+///
+/// `$0` id in pd could be thought as a auto generated unique identifier for the patch.
 pub fn get_dollar_zero(handle: PatchFileHandle) {
     unsafe {
         libpd_sys::libpd_getdollarzero(handle.into_inner());
     }
 }
 
-/// return pd's fixed block size: the number of sample frames per 1 pd tick
+// TODO: Maybe explain what a pd tick is?
+
+/// Return pd's fixed block size
+///
+/// The number of sample frames per 1 pd tick
 pub fn block_size() -> i32 {
     unsafe { libpd_sys::libpd_blocksize() }
 }
 
-/// initialize audio rendering
-/// returns 0 on success
+/// Initialize audio rendering
 pub fn initialize_audio(
     input_channels: i32,
     output_channels: i32,

@@ -162,6 +162,7 @@ impl From<&str> for Atom {
     }
 }
 
+// TODO: This type has to be a smart pointer.
 pub struct PatchFileHandle {
     inner: *mut std::os::raw::c_void,
 }
