@@ -1,7 +1,7 @@
 pub mod error;
 pub mod pd;
 pub mod types;
-use error::SubscriptionError;
+use error::{SizeError, SubscriptionError};
 use types::ReceiverHandle;
 
 use crate::error::{InitializationError, IoError, SendError};
@@ -32,8 +32,8 @@ pub fn init() -> Result<(), InitializationError> {
 }
 
 // TODO: Queued functions are not implemented yet. Find out if they are necessary.
-// pub use libpd_sys::libpd_queued_init;
-// pub use libpd_sys::libpd_queued_release;
+// libpd_sys::libpd_queued_init;
+// libpd_sys::libpd_queued_release;
 
 // TODO: Reference init function in a right way.
 /// Clears all the paths where libpd searches for patches and assets.
@@ -144,15 +144,25 @@ pub fn initialize_audio(
     }
 }
 
-/// process interleaved float samples from inBuffer -> libpd -> outBuffer
-/// buffer sizes are based on # of ticks and channels where:
-///     size = ticks * libpd_blocksize() * (in/out)channels
-/// returns 0 on success
+// TODO: Handle return? returns 0 on success
+// TODO: Re-check formula
+// TODO: Write an example
+// TODO: Then write doc for all process functions accordingly.
+
+/// Process the audio buffer in place through the loaded pd patch
+///
+/// Processes `f32` interleaved audio buffers.
+/// The processing order is like the following, input_buffer -> libpd -> output_buffer
+/// You may calculate the ticks argument with the following formula:
+/// `(output_buffer.len() / block_size()) / channels`
+/// `size = ticks * libpd_blocksize() * (in/out)channel`
 pub fn process_float(ticks: i32, input_buffer: &[f32], output_buffer: &mut [f32]) {
     unsafe {
         libpd_sys::libpd_process_float(ticks, input_buffer.as_ptr(), output_buffer.as_mut_ptr());
     }
 }
+
+// TODO: Document
 
 /// process interleaved short samples from inBuffer -> libpd -> outBuffer
 /// buffer sizes are based on # of ticks and channels where:
@@ -167,6 +177,8 @@ pub fn process_short(ticks: i32, input_buffer: &[i16], output_buffer: &mut [i16]
     }
 }
 
+// TODO: Document
+
 /// process interleaved double samples from inBuffer -> libpd -> outBuffer
 /// buffer sizes are based on # of ticks and channels where:
 ///     size = ticks * libpd_blocksize() * (in/out)channels
@@ -176,6 +188,8 @@ pub fn process_double(ticks: i32, input_buffer: &[f64], output_buffer: &mut [f64
         libpd_sys::libpd_process_double(ticks, input_buffer.as_ptr(), output_buffer.as_mut_ptr());
     }
 }
+
+// TODO: Document
 
 /// process non-interleaved float samples from inBuffer -> libpd -> outBuffer
 /// copies buffer contents to/from libpd without striping
@@ -187,6 +201,8 @@ pub fn process_raw(input_buffer: &[f32], output_buffer: &mut [f32]) {
         libpd_sys::libpd_process_raw(input_buffer.as_ptr(), output_buffer.as_mut_ptr());
     }
 }
+
+// TODO: Document
 
 /// process non-interleaved short samples from inBuffer -> libpd -> outBuffer
 /// copies buffer contents to/from libpd without striping
@@ -202,6 +218,8 @@ pub fn process_raw_short(input_buffer: &[i16], output_buffer: &mut [i16]) {
     }
 }
 
+// TODO: Document
+
 /// process non-interleaved double samples from inBuffer -> libpd -> outBuffer
 /// copies buffer contents to/from libpd without striping
 /// buffer sizes are based on a single tick and # of channels where:
@@ -214,6 +232,8 @@ pub fn process_raw_double(input_buffer: &[f64], output_buffer: &mut [f64]) {
 }
 
 // TODO: Implement array utilities!
+// TODO: Document
+
 // /* array access */
 // /// get the size of an array by name
 // /// returns size or negative error code if non-existent
@@ -236,10 +256,21 @@ pub fn process_raw_double(input_buffer: &[f64], output_buffer: &mut [f64]) {
 // EXTERN int libpd_write_array(const char *name, int offset,
 // 	const float *src, int n);
 
-/// send a bang to a destination receiver
-/// ex: libpd_bang("foo") will send a bang to [s foo] on the next tick
-/// returns 0 on success or -1 if receiver name is non-existent
-pub fn send_bang<T: AsRef<str>>(receiver: T) -> Result<(), SendError> {
+/// Sends a `bang` to the pd receiver object specified in `receiver` the argument
+///
+/// `send_bang_to("foo")` will send a bang to `|s foo|` on the next tick.
+/// The `bang` can be received from a `|r foo|` object in the loaded pd patch.
+///
+/// # Example
+/// ```rust
+/// // Handle the error if the receiver object is not found
+/// send_bang_to("foo").unwrap_or_else(|err| {
+///   println!("{}", err);
+/// });
+/// // or don't care..
+/// let _ = send_bang_to("foo");
+/// ```
+pub fn send_bang_to<T: AsRef<str>>(receiver: T) -> Result<(), SendError> {
     let recv = CString::new(receiver.as_ref()).unwrap();
     unsafe {
         match libpd_sys::libpd_bang(recv.as_ptr()) {
@@ -249,10 +280,24 @@ pub fn send_bang<T: AsRef<str>>(receiver: T) -> Result<(), SendError> {
     }
 }
 
-/// send a float to a destination receiver
-/// ex: libpd_float("foo", 1) will send a 1.0 to [s foo] on the next tick
-/// returns 0 on success or -1 if receiver name is non-existent
-pub fn send_float<T: AsRef<str>>(receiver: T, value: f32) -> Result<(), SendError> {
+// TODO: This function takes a float instead of a double.
+// TODO: Does pd also support doubles?
+
+/// Sends a float value to the pd receiver object specified in the `receiver` argument
+///
+/// `send_float_to("foo", 1.0)` will send the float value to `|s foo|` on the next tick.
+/// The value can be received from a `|r foo|` object in the loaded pd patch.
+///
+/// # Example
+/// ```rust
+/// // Handle the error if the receiver object is not found
+/// send_float_to("foo", 1.0).unwrap_or_else(|err| {
+///   println!("{}", err);
+/// });
+/// // or don't care..
+/// let _ = send_float_to("foo", 1.0);
+/// ```
+pub fn send_float_to<T: AsRef<str>>(receiver: T, value: f32) -> Result<(), SendError> {
     let recv = CString::new(receiver.as_ref()).unwrap();
     unsafe {
         match libpd_sys::libpd_float(recv.as_ptr(), value) {
@@ -262,12 +307,26 @@ pub fn send_float<T: AsRef<str>>(receiver: T, value: f32) -> Result<(), SendErro
     }
 }
 
-/// send a symbol to a destination receiver
-/// ex: libpd_symbol("foo", "bar") will send "bar" to [s foo] on the next tick
-/// returns 0 on success or -1 if receiver name is non-existent
-pub fn send_symbol<T: AsRef<str>>(receiver: T, symbol: T) -> Result<(), SendError> {
+/// Sends a symbol to the pd receiver object specified in the `receiver` argument
+///
+/// `send_symbol_to("foo", "bar")` will send the symbol value to `|s foo|` on the next tick.
+/// The value can be received from a `|r foo|` object in the loaded pd patch.
+///
+/// # Example
+/// ```rust
+/// // Handle the error if the receiver object is not found
+/// send_symbol_to("foo", "bar").unwrap_or_else(|err| {
+///   println!("{}", err);
+/// });
+/// // or don't care..
+/// let _ = send_symbol_to("foo", "bar");
+/// ```
+pub fn send_symbol_to<T: AsRef<str>, S: AsRef<str>>(
+    receiver: T,
+    value: S,
+) -> Result<(), SendError> {
     let recv = CString::new(receiver.as_ref()).unwrap();
-    let sym = CString::new(symbol.as_ref()).unwrap();
+    let sym = CString::new(value.as_ref()).unwrap();
     unsafe {
         match libpd_sys::libpd_symbol(recv.as_ptr(), sym.as_ptr()) {
             0 => Ok(()),
@@ -276,24 +335,59 @@ pub fn send_symbol<T: AsRef<str>>(receiver: T, symbol: T) -> Result<(), SendErro
     }
 }
 
-/// start composition of a new list or typed message of up to max element length
-/// messages can be of a smaller length as max length is only an upper bound
-/// note: no cleanup is required for unfinished messages
-/// returns 0 on success or nonzero if the length is too large
-pub fn start_message(length: i32) {
+/// Start composition of a new list or typed message of up to max **element** length
+///
+/// Messages can be of a smaller length as max length is only an upper bound.
+/// No cleanup is required for unfinished messages.
+/// Returns error if the length is too large.
+///
+/// # Example
+/// ```rust
+/// // Arbitrary length
+/// let message_length = 4;
+/// if start_message(message_length).is_ok() {
+///   // Add some values to the message..
+/// }
+/// ```
+pub fn start_message(length: i32) -> Result<(), SizeError> {
     unsafe {
-        libpd_sys::libpd_start_message(length);
+        match libpd_sys::libpd_start_message(length) {
+            0 => Ok(()),
+            _ => Err(SizeError::TooLarge),
+        }
     }
 }
 
-/// add a float to the current message in progress
+// TODO: Find what happens if you add a float to a maxed out message
+
+/// Add a float to the current message in the progress of composition
+///
+/// # Example
+/// ```rust
+/// // Arbitrary length
+/// let message_length = 4;
+/// if start_message(message_length).is_ok() {
+///   add_float_to_started_message(42.0);
+/// }
+/// ```
 pub fn add_float_to_started_message(value: f32) {
     unsafe {
         libpd_sys::libpd_add_float(value);
     }
 }
 
-/// add a symbol to the current message in progress
+// TODO: Find what happens if you add a symbol to a maxed out message
+
+/// Add a symbol to the current message in the progress of composition
+///
+/// # Example
+/// ```rust
+/// // Arbitrary length
+/// let message_length = 4;
+/// if start_message(message_length).is_ok() {
+///   add_symbol_to_started_message("foo");
+/// }
+/// ```
 pub fn add_symbol_to_started_message<T: AsRef<str>>(value: T) {
     let sym = CString::new(value.as_ref()).unwrap();
     unsafe {
@@ -301,15 +395,24 @@ pub fn add_symbol_to_started_message<T: AsRef<str>>(value: T) {
     }
 }
 
-/// finish current message and send as a list to a destination receiver
-/// returns 0 on success or -1 if receiver name is non-existent
-/// ex: send [list 1 2 bar( to [s foo] on the next tick with:
-///     libpd_start_message(3);
-///     libpd_add_float(1);
-///     libpd_add_float(2);
-///     libpd_add_symbol("bar");
-///     libpd_finish_list("foo");
-pub fn finish_message_as_list_and_send<T: AsRef<str>>(receiver: T) -> Result<(), SendError> {
+/// Finish the current message and send as a list to a receiver in the loaded pd patch
+///
+/// The following example will send a list `42.0 bar` to `|s foo|` on the next tick.
+/// The list can be received from a `|r foo|` object in the loaded pd patch.
+///
+/// # Example
+/// ```rust
+/// // Arbitrary length
+/// let message_length = 2;
+/// if start_message(message_length).is_ok() {
+///   add_float_to_started_message(42.0);
+///   add_symbol_to_started_message("bar");
+///   finish_message_as_list_and_send_to("foo").unwrap_or_else(|err| {
+///      println!("{}", err);
+///   });
+/// }
+/// ```
+pub fn finish_message_as_list_and_send_to<T: AsRef<str>>(receiver: T) -> Result<(), SendError> {
     let recv = CString::new(receiver.as_ref()).unwrap();
     unsafe {
         match libpd_sys::libpd_finish_list(recv.as_ptr()) {
@@ -319,20 +422,30 @@ pub fn finish_message_as_list_and_send<T: AsRef<str>>(receiver: T) -> Result<(),
     }
 }
 
-/// finish current message and send as a typed message to a destination receiver
-/// note: typed message handling currently only supports up to 4 elements
-///       internally, additional elements may be ignored
-/// returns 0 on success or -1 if receiver name is non-existent
-/// ex: send [; pd dsp 1( on the next tick with:
-///     libpd_start_message(1);
-///     libpd_add_float(1);
-///     libpd_finish_message("pd", "dsp");
-pub fn finish_message_as_message_and_send<T: AsRef<str>>(
+/// Finish the current message and send as a typed message to a receiver in the loaded pd patch
+///
+/// Typed message handling currently only supports up to 4 elements
+/// internally in pd, **additional elements may be ignored.**
+///
+/// The following example will send a message `; pd dsp 1` on the next tick.
+///
+/// # Example
+/// ```rust
+/// // Arbitrary length
+/// let message_length = 1;
+/// if start_message(message_length).is_ok() {
+///   add_float_to_started_message(1.0);
+///   finish_message_as_typed_message_and_send_to("pd","dsp").unwrap_or_else(|err| {
+///      println!("{}", err);
+///   });
+/// }
+/// ```
+pub fn finish_message_as_typed_message_and_send_to<T: AsRef<str>, S: AsRef<str>>(
     receiver: T,
-    message: T,
+    message_header: S,
 ) -> Result<(), SendError> {
     let recv = CString::new(receiver.as_ref()).unwrap();
-    let msg = CString::new(message.as_ref()).unwrap();
+    let msg = CString::new(message_header.as_ref()).unwrap();
     unsafe {
         match libpd_sys::libpd_finish_message(recv.as_ptr(), msg.as_ptr()) {
             0 => Ok(()),
@@ -341,25 +454,46 @@ pub fn finish_message_as_message_and_send<T: AsRef<str>>(
     }
 }
 
-/// send an atom array of a given length as a list to a destination receiver
-/// returns 0 on success or -1 if receiver name is non-existent
-/// ex: send [list 1 2 bar( to [r foo] on the next tick with:
-///     t_atom v[3];
-///     libpd_set_float(v, 1);
-///     libpd_set_float(v + 1, 2);
-///     libpd_set_symbol(v + 2, "bar");
-///     libpd_list("foo", 3, v);
-pub fn send_list<T: AsRef<str>>(receiver: T, list: &[Atom]) -> Result<(), SendError> {
+// TODO: Implementation might be wrong, re-visit doc
+
+/// Finish the current message and send as a list to a receiver in the loaded pd patch
+///
+/// The following example will send a list `42.0 bar` to `|s foo|` on the next tick.
+/// The list can be received from a `|r foo|` object in the loaded pd patch.
+///
+/// # Example
+/// ```rust
+/// use libpd_rs::types::Atom;
+/// let list = vec![Atom::from(42.0), Atom::from("bar")]
+/// // Handle the error if the receiver object is not found
+/// send_list_to("foo", &list).unwrap_or_else(|err| {
+///   println!("{}", err);
+/// });
+/// // or don't care..
+/// let _ = send_list_to("foo", &list);
+/// ```
+pub fn send_list_to<T: AsRef<str>>(receiver: T, list: &[Atom]) -> Result<(), SendError> {
     let recv = CString::new(receiver.as_ref()).unwrap();
     unsafe {
         // First element should give the start of the list hopefully. :)
         // TODO: Revisit and test this implementation.
+
+        // TODO: Probably the implementation is wrong./
+        // TODO: Really re-visit
+        // ex: send [list 1 2 bar( to [r foo] on the next tick with:
+        //     t_atom v[3];
+        //     libpd_set_float(v, 1);
+        //     libpd_set_float(v + 1, 2);
+        //     libpd_set_symbol(v + 2, "bar");
+        //     libpd_list("foo", 3, v);
         match libpd_sys::libpd_list(recv.as_ptr(), list.len() as i32, list[0].as_mut_ptr()) {
             0 => Ok(()),
             _ => Err(SendError::MissingDestination(receiver.as_ref().to_owned())),
         }
     }
 }
+
+// TODO: Correct this after re-visiting list implementation
 
 /// send a atom array of a given length as a typed message to a destination
 /// receiver, returns 0 on success or -1 if receiver name is non-existent
@@ -389,12 +523,29 @@ pub fn send_message<T: AsRef<str>>(
     }
 }
 
-/// subscribe to messages sent to a source receiver
-/// ex: libpd_bind("foo") adds a "virtual" [r foo] which forwards messages to
-///     the libpd message hooks
-/// returns an opaque receiver pointer or NULL on failure
+/// Subscribes to messages sent to a receiver in the loaded pd patch
+///
+/// `start_listening_from("foo")` would add a **virtual** `|r foo|` which would
+/// forward messages to the libpd message listeners
+///
+/// # Example
+/// ```rust
+/// use std::collections::HashMap;
+/// let sources = vec!["foo", "bar"];
+/// // Maybe you would like to use the receiver handles later..
+/// let handles: Hashmap<String, ReceiverHandle> = HashMap::new();
+/// for source in sources {
+///     match start_listening_from(&source) {
+///         // Start listening from a source and keep the handle for later
+///         Ok(handle) => Hashmap::insert(source.to_owned(), handle),
+///         // Handle the error if there is no source to listen from
+///         Err(err) => println!("{}", err),
+///     }
+/// }
+/// ```
 pub fn start_listening_from<T: AsRef<str>>(sender: T) -> Result<ReceiverHandle, SubscriptionError> {
     let send = CString::new(sender.as_ref()).unwrap();
+
     unsafe {
         let handle = libpd_sys::libpd_bind(send.as_ptr());
         if handle.is_null() {
@@ -407,10 +558,21 @@ pub fn start_listening_from<T: AsRef<str>>(sender: T) -> Result<ReceiverHandle, 
     }
 }
 
-/// unsubscribe and free a source receiver object created by libpd_bind()
+/// Unsubscribes from messages sent to the receiver in the loaded pd patch
+///
+/// `stop_listening_from("foo")` would remove the virtual `|r foo|`.
+///  Messages can not be received from this receiver anymore.
+///
+/// # Example
+/// ```rust
+/// let receiver_handle = start_listening_from("foo").unwrap();
+/// stop_listening_from(receiver_handle);
+/// ```
 pub fn stop_listening_from(source: ReceiverHandle) {
     let handle = source.into_inner();
     if handle.is_null() {
+        // TODO: Actually handle shouldn't be null in any case!
+        // TODO: Check if this assumption is correct, if so remove this check
         return;
     }
     unsafe {
@@ -418,8 +580,16 @@ pub fn stop_listening_from(source: ReceiverHandle) {
     }
 }
 
-/// check if a source receiver object exists with a given name
-/// returns 1 if the receiver exists, otherwise 0
+/// Check if a source to listen from exists
+///
+/// # Example
+/// ```rust
+/// if source_to_listen_from_exists("foo") {
+///   if let receiver_handle = start_listening_from("foo") {
+///     // Do something with the handle..
+///   }
+/// }
+/// ```
 pub fn source_to_listen_from_exists<T: AsRef<str>>(sender: T) -> bool {
     let send = CString::new(sender.as_ref()).unwrap();
     unsafe { matches!(libpd_sys::libpd_exists(send.as_ptr()), 1) }
@@ -427,6 +597,17 @@ pub fn source_to_listen_from_exists<T: AsRef<str>>(sender: T) -> bool {
 
 // Hooks / queued hooks / print hook utils
 
+/// Sets a closure to be called when a message is written to the pd console.
+///
+/// There is also no prior call to `start_listening_from` to listen from pd console.
+///  Do not register this listener while pd DSP is running.
+///
+/// # Example
+/// ```rust
+/// on_print(|msg: &str| {
+///  println!("pd is printing: {msg}");
+/// });
+/// ```
 pub fn on_print<F: Fn(&str) + Send + Sync + 'static>(user_provided_closure: F) {
     let closure: &'static _ = Box::leak(Box::new(move |out: *const std::os::raw::c_char| {
         let out = unsafe { CStr::from_ptr(out).to_str().unwrap() };
@@ -437,12 +618,29 @@ pub fn on_print<F: Fn(&str) + Send + Sync + 'static>(user_provided_closure: F) {
     let ptr: &_ = unsafe { std::mem::transmute(code) };
     std::mem::forget(callback);
     unsafe {
-        // Concatenate by default
+        // Always concatenate
         libpd_sys::libpd_set_printhook(Some(libpd_sys::libpd_print_concatenator));
         libpd_sys::libpd_set_concatenated_printhook(Some(*ptr));
     };
 }
 
+/// Sets a closure to be called when a bang is received from a subscribed receiver
+///
+/// Do not register this listener while pd DSP is running.
+///
+/// # Example
+/// ```rust
+/// // This is an example, handle the result properly here..
+/// let foo_receiver_handle = start_listening_from("foo").unwrap();
+/// let bar_receiver_handle = start_listening_from("bar").unwrap();
+/// on_bang(|source: &str| {
+///   match source {
+///     "foo" => println!("bang from foo"),   
+///     "bar" => println!("bang from bar"),
+///      _ => unreachable!(),
+///   }
+/// });
+/// ```
 pub fn on_bang<F: Fn(&str) + Send + Sync + 'static>(user_provided_closure: F) {
     let closure: &'static _ = Box::leak(Box::new(move |source: *const std::os::raw::c_char| {
         let source = unsafe { CStr::from_ptr(source).to_str().unwrap() };
@@ -455,6 +653,23 @@ pub fn on_bang<F: Fn(&str) + Send + Sync + 'static>(user_provided_closure: F) {
     unsafe { libpd_sys::libpd_set_banghook(Some(*ptr)) };
 }
 
+/// Sets a closure to be called when a float is received from a subscribed receiver
+///
+/// Do not register this listener while pd DSP is running.
+///
+/// # Example
+/// ```rust
+/// // This is an example, handle the result properly here..
+/// let foo_receiver_handle = start_listening_from("foo").unwrap();
+/// let bar_receiver_handle = start_listening_from("bar").unwrap();
+/// on_float(|source: &str, value: f32| {
+///   match source {
+///     "foo" => println!("Received a float from foo, value is: {value}"),   
+///     "bar" => println!("Received a float from bar, value is: {value}"),
+///      _ => unreachable!(),
+///   }
+/// });
+/// ```
 pub fn on_float<F: Fn(&str, f32) + Send + Sync + 'static>(user_provided_closure: F) {
     let closure: &'static _ = Box::leak(Box::new(
         move |source: *const std::os::raw::c_char, float: f32| {
@@ -469,6 +684,23 @@ pub fn on_float<F: Fn(&str, f32) + Send + Sync + 'static>(user_provided_closure:
     unsafe { libpd_sys::libpd_set_floathook(Some(*ptr)) };
 }
 
+/// Sets a closure to be called when a symbol is received from a subscribed receiver
+///
+/// Do not register this listener while pd DSP is running.
+///
+/// # Example
+/// ```rust
+/// // This is an example, handle the result properly here..
+/// let foo_receiver_handle = start_listening_from("foo").unwrap();
+/// let bar_receiver_handle = start_listening_from("bar").unwrap();
+/// on_symbol(|source: &str, value: &str| {
+///   match source {
+///     "foo" => println!("Received a float from foo, value is: {value}"),   
+///     "bar" => println!("Received a float from bar, value is: {value}"),
+///      _ => unreachable!(),
+///   }
+/// });
+/// ```
 pub fn on_symbol<F: Fn(&str, &str) + Send + Sync + 'static>(user_provided_closure: F) {
     let closure: &'static _ = Box::leak(Box::new(
         move |source: *const std::os::raw::c_char, symbol: *const std::os::raw::c_char| {
@@ -484,6 +716,7 @@ pub fn on_symbol<F: Fn(&str, &str) + Send + Sync + 'static>(user_provided_closur
     unsafe { libpd_sys::libpd_set_symbolhook(Some(*ptr)) };
 }
 
+// TODO: Re-document and check this after re-visiting atom list implementation.
 pub fn on_list<F: Fn(&str, i32, &[Atom]) + Send + Sync + 'static>(user_provided_closure: F) {
     let closure: &'static _ = Box::leak(Box::new(
         move |source: *const std::os::raw::c_char,
@@ -506,6 +739,7 @@ pub fn on_list<F: Fn(&str, i32, &[Atom]) + Send + Sync + 'static>(user_provided_
     unsafe { libpd_sys::libpd_set_listhook(Some(*ptr)) };
 }
 
+// TODO: Re-document and check this after re-visiting atom list implementation.
 pub fn on_message<F: Fn(&str, &str, i32, &[Atom]) + Send + Sync + 'static>(
     user_provided_closure: F,
 ) {
@@ -532,17 +766,16 @@ pub fn on_message<F: Fn(&str, &str, i32, &[Atom]) + Send + Sync + 'static>(
     unsafe { libpd_sys::libpd_set_messagehook(Some(*ptr)) };
 }
 
-// TODO: Find out if there is a necessity to implement the queued ones?
+// TODO: Find out if there is a necessity to implement the queued ones, currently don't see any need.
 
-// pub use libpd_sys::libpd_set_queued_banghook;
-// pub use libpd_sys::libpd_set_queued_listhook;
-// pub use libpd_sys::libpd_set_queued_messagehook;
-// pub use libpd_sys::libpd_set_queued_printhook;
-// pub use libpd_sys::libpd_set_queued_symbolhook;
+// libpd_sys::libpd_set_queued_banghook;
+// libpd_sys::libpd_set_queued_listhook;
+// libpd_sys::libpd_set_queued_messagehook;
+// libpd_sys::libpd_set_queued_printhook;
+// libpd_sys::libpd_set_queued_symbolhook;
+// libpd_sys::libpd_queued_receive_pd_messages;
 
-// pub use libpd_sys::libpd_queued_receive_pd_messages;
-
-// TODO: MIDI senders
+// @attention Stayed here..
 
 /// send a MIDI note on message to [notein] objects
 /// channel is 0-indexed, pitch is 0-127, and velocity is 0-127
@@ -730,17 +963,16 @@ pub fn on_midi_byte<F: Fn(i32, i32) + Send + Sync + 'static>(user_provided_closu
     unsafe { libpd_sys::libpd_set_midibytehook(Some(*ptr)) };
 }
 
-// TODO: Find out if there is a necessity to implement the queued ones?
+// TODO: Find out if there is a necessity to implement the queued ones, currently don't see any need.
 
-// pub use libpd_sys::libpd_set_queued_aftertouchhook;
-// pub use libpd_sys::libpd_set_queued_controlchangehook;
-// pub use libpd_sys::libpd_set_queued_midibytehook;
-// pub use libpd_sys::libpd_set_queued_noteonhook;
-// pub use libpd_sys::libpd_set_queued_pitchbendhook;
-// pub use libpd_sys::libpd_set_queued_polyaftertouchhook;
-// pub use libpd_sys::libpd_set_queued_programchangehook;
-
-// pub use libpd_sys::libpd_queued_receive_midi_messages;
+// libpd_sys::libpd_set_queued_aftertouchhook;
+// libpd_sys::libpd_set_queued_controlchangehook;
+// libpd_sys::libpd_set_queued_midibytehook;
+// libpd_sys::libpd_set_queued_noteonhook;
+// libpd_sys::libpd_set_queued_pitchbendhook;
+// libpd_sys::libpd_set_queued_polyaftertouchhook;
+// libpd_sys::libpd_set_queued_programchangehook;
+// libpd_sys::libpd_queued_receive_midi_messages;
 
 // TODO: Gui utils
 
@@ -774,11 +1006,70 @@ pub fn poll_gui() {
     unsafe { libpd_sys::libpd_poll_gui() };
 }
 
-// TODO: Multi instance functions
+// @attention Multi instance features implementation is scheduled for later.
+// @attention If there is a necessity emerges, I'll give time to implement.
 
-// Will implement later..
+/* multiple instance functions in z_libpd.h */
 
-/// set verbose print state: 0 or 1
+/// create a new pd instance
+/// returns new instance or NULL when libpd is not compiled with PDINSTANCE
+// EXTERN t_pdinstance *libpd_new_instance(void);
+
+/// set the current pd instance
+/// subsequent libpd calls will affect this instance only
+/// does nothing when libpd is not compiled with PDINSTANCE
+// EXTERN void libpd_set_instance(t_pdinstance *p);
+
+/// free a pd instance
+/// does nothing when libpd is not compiled with PDINSTANCE
+// EXTERN void libpd_free_instance(t_pdinstance *p);
+
+/// get the current pd instance
+// EXTERN t_pdinstance *libpd_this_instance(void);
+
+/// get a pd instance by index
+/// returns NULL if index is out of bounds or "this" instance when libpd is not
+/// compiled with PDINSTANCE
+// EXTERN t_pdinstance *libpd_get_instance(int index);
+
+/// get the number of pd instances
+/// returns number or 1 when libpd is not compiled with PDINSTANCE
+// EXTERN int libpd_num_instances(void);
+
+/* bindings for multiple instance functions */
+// extern "C" {
+//     #[doc = " create a new pd instance"]
+//     #[doc = " returns new instance or NULL when libpd is not compiled with PDINSTANCE"]
+//     pub fn libpd_new_instance() -> *mut _pdinstance;
+// }
+// extern "C" {
+//     #[doc = " set the current pd instance"]
+//     #[doc = " subsequent libpd calls will affect this instance only"]
+//     #[doc = " does nothing when libpd is not compiled with PDINSTANCE"]
+//     pub fn libpd_set_instance(p: *mut _pdinstance);
+// }
+// extern "C" {
+//     #[doc = " free a pd instance"]
+//     #[doc = " does nothing when libpd is not compiled with PDINSTANCE"]
+//     pub fn libpd_free_instance(p: *mut _pdinstance);
+// }
+// extern "C" {
+//     #[doc = " get the current pd instance"]
+//     pub fn libpd_this_instance() -> *mut _pdinstance;
+// }
+// extern "C" {
+//     #[doc = " get a pd instance by index"]
+//     #[doc = " returns NULL if index is out of bounds or \"this\" instance when libpd is not"]
+//     #[doc = " compiled with PDINSTANCE"]
+//     pub fn libpd_get_instance(index: ::std::os::raw::c_int) -> *mut _pdinstance;
+// }
+// extern "C" {
+//     #[doc = " get the number of pd instances"]
+//     #[doc = " returns number or 1 when libpd is not compiled with PDINSTANCE"]
+//     pub fn libpd_num_instances() -> ::std::os::raw::c_int;
+// }
+
+/// Sets the status of verbose printing to the pd console
 pub fn verbose_print_state(active: bool) {
     match active {
         true => unsafe { libpd_sys::libpd_set_verbose(1) },
@@ -786,7 +1077,7 @@ pub fn verbose_print_state(active: bool) {
     }
 }
 
-/// get the verbose print state: 0 or 1
+/// Checks if verbose printing to the pd console is active
 pub fn verbose_print_state_active() -> bool {
     unsafe { libpd_sys::libpd_get_verbose() == 1 }
 }
@@ -818,7 +1109,7 @@ mod tests {
         assert!(init().is_err());
         start_message(1);
         add_float_to_started_message(1.0);
-        let result = finish_message_as_message_and_send("pd", "dsp");
+        let result = finish_message_as_typed_message_and_send_to("pd", "dsp");
         assert!(result.is_ok());
         let project_root = std::env::current_dir().unwrap();
         let result = open_patch(&project_root.join("simple.pd"));

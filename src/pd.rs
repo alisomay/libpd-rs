@@ -1,7 +1,7 @@
 use crate::error::{IoError, SendError};
 use crate::types::{Atom, PatchFileHandle};
 use crate::{
-    add_float_to_started_message, close_patch, finish_message_as_message_and_send, init,
+    add_float_to_started_message, close_patch, finish_message_as_typed_message_and_send_to, init,
     open_patch, start_message,
 };
 
@@ -38,7 +38,7 @@ impl Pd {
     pub fn dsp_on(&mut self) -> Result<(), SendError> {
         start_message(1);
         add_float_to_started_message(1.0);
-        if finish_message_as_message_and_send("pd", "dsp").is_ok() {
+        if finish_message_as_typed_message_and_send_to("pd", "dsp").is_ok() {
             self.active = true;
             Ok(())
         } else {
@@ -48,7 +48,7 @@ impl Pd {
     pub fn dsp_off(&mut self) -> Result<(), SendError> {
         start_message(1);
         add_float_to_started_message(0.0);
-        if finish_message_as_message_and_send("pd", "dsp").is_ok() {
+        if finish_message_as_typed_message_and_send_to("pd", "dsp").is_ok() {
             self.active = false;
             Ok(())
         } else {

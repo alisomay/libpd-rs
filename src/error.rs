@@ -30,3 +30,10 @@ pub enum SubscriptionError {
     FailedToSubscribeToSender(String),
     // Add more errors here..
 }
+
+#[derive(Error, Debug)]
+pub enum SizeError {
+    #[error("The maximum size specified is too large.")]
+    TooLarge,
+    // Add more errors here..
+}
