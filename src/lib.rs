@@ -1500,14 +1500,19 @@ pub fn receive_midi_messages_from_pd() {
 /// requires the path to pd's main folder that contains bin/, tcl/, etc
 /// for a macOS .app bundle: /path/to/Pd-#.#-#.app/Contents/Resources
 /// returns 0 on success
-pub fn start_gui(path_to_pd: &std::path::Path) {
-    // TODO: Check if path is valid
-    // If it exists
-    // Return result
-    // Open the path
-    // Return unit type on success
-    // const char *path the sys function expects
-    todo!()
+pub fn start_gui(path_to_pd: &std::path::Path) -> Result<(), IoError> {
+    if path_to_pd.exists() {
+        let path_to_pd = path_to_pd.to_string_lossy();
+        let path_to_pd = CString::new(path_to_pd.as_ref()).unwrap();
+        unsafe {
+            match libpd_sys::libpd_start_gui(path_to_pd.as_ptr()) {
+                0 => return Ok(()),
+                // TODO: This can be a different error.
+                _ => return Err(IoError::FailedToOpenGui),
+            }
+        }
+    }
+    Err(IoError::FailedToOpenGui)
 }
 
 /// stop the pd vanilla GUI
@@ -1521,9 +1526,13 @@ pub fn stop_gui() {
 ///       useful to call repeatedly when idle for more throughput
 /// returns 1 if the poll found something, in which case it might be desirable
 /// to poll again, up to some reasonable limit
-pub fn poll_gui() {
-    // TODO: Implement Option return
-    unsafe { libpd_sys::libpd_poll_gui() };
+pub fn poll_gui() -> Option<()> {
+    unsafe {
+        match libpd_sys::libpd_poll_gui() {
+            1 => Some(()),
+            _ => None,
+        }
+    }
 }
 
 // @attention Multi instance features implementation is scheduled for later.

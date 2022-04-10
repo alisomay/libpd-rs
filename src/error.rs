@@ -30,6 +30,8 @@ pub enum IoError {
     FailedToOpenPatch,
     #[error("Failed to close patch, because the handle provided is null.")]
     FailedToClosePatch,
+    #[error("Failed to open gui, please provide a valid path to the pd binary.")]
+    FailedToOpenGui,
     // Add more errors here..
 }
 
