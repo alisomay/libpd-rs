@@ -32,24 +32,40 @@ use std::ffi::{CStr, CString};
 //     pub w_index: ::std::os::raw::c_int,
 // }
 
-pub enum PdType {
+#[derive(Debug, Clone)]
+pub enum Atom {
     Float(f32),
     Symbol(String),
-    // Pointer,
-    // Array,
-    // Binbuf,
-    // Index,
+    Double(f64),
 }
 
-pub struct Atom {
-    inner: libpd_sys::t_atom,
+impl From<f32> for Atom {
+    fn from(f: f32) -> Self {
+        Atom::Float(f)
+    }
+}
+impl From<f64> for Atom {
+    fn from(d: f64) -> Self {
+        Atom::Double(d)
+    }
+}
+impl From<String> for Atom {
+    fn from(s: String) -> Self {
+        Atom::Symbol(s)
+    }
+}
+impl From<&str> for Atom {
+    fn from(s: &str) -> Self {
+        Atom::Symbol(s.to_owned())
+    }
 }
 
 impl std::fmt::Display for Atom {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
-        match self.get_value() {
-            PdType::Float(float) => write!(f, "{}", float),
-            PdType::Symbol(symbol) => write!(f, "{}", symbol),
+        match self {
+            Atom::Float(float) => write!(f, "{}", float),
+            Atom::Symbol(s) => write!(f, "{}", s),
+            Atom::Double(d) => write!(f, "{}", d),
             // PdType::Pointer => write!(f, "Pointer"),
             // PdType::Array => write!(f, "Array"),
             // PdType::Binbuf => write!(f, "Binbuf"),
@@ -59,122 +75,123 @@ impl std::fmt::Display for Atom {
 }
 
 impl Atom {
-    fn into_inner(self) -> libpd_sys::t_atom {
-        self.inner
-    }
-    pub fn as_mut_ptr(&self) -> *mut libpd_sys::t_atom {
-        &self.inner as *const libpd_sys::t_atom as *mut libpd_sys::t_atom
-    }
-    pub fn get_value(&self) -> PdType {
-        match self.inner.a_type {
-            libpd_sys::t_atomtype_A_FLOAT => {
-                let ptr_to_inner =
-                    &self.inner as *const libpd_sys::t_atom as *mut libpd_sys::t_atom;
-                let f: f32 = unsafe { libpd_sys::libpd_get_float(ptr_to_inner) };
-                PdType::Float(f)
-            }
-            libpd_sys::t_atomtype_A_SYMBOL => {
-                let ptr_to_inner =
-                    &self.inner as *const libpd_sys::t_atom as *mut libpd_sys::t_atom;
-                let sym: *const std::os::raw::c_char =
-                    unsafe { libpd_sys::libpd_get_symbol(ptr_to_inner) };
-                let result = unsafe { CStr::from_ptr(sym) };
-                PdType::Symbol(result.to_str().unwrap().to_owned())
-            }
-            _ => todo!(),
-        }
-    }
+    // pub(crate) fn as_mut_ptr(&self) -> *mut libpd_sys::t_atom {
+    //     match self {
+    //         Atom::Float(f) => {}
+    //         Atom::Symbol(s) => {}
+    //         Atom::Double(d) => {}
+    //     }
+    // }
+    // pub fn get_value(&self) -> PdType {
+    //     match self.inner.a_type {
+    //         libpd_sys::t_atomtype_A_FLOAT => {
+    //             let ptr_to_inner =
+    //                 &self.inner as *const libpd_sys::t_atom as *mut libpd_sys::t_atom;
+    //             let f: f32 = unsafe { libpd_sys::libpd_get_float(ptr_to_inner) };
+    //             PdType::Float(f)
+    //         }
+    //         libpd_sys::t_atomtype_A_SYMBOL => {
+    //             let ptr_to_inner =
+    //                 &self.inner as *const libpd_sys::t_atom as *mut libpd_sys::t_atom;
+    //             let sym: *const std::os::raw::c_char =
+    //                 unsafe { libpd_sys::libpd_get_symbol(ptr_to_inner) };
+    //             let result = unsafe { CStr::from_ptr(sym) };
+    //             PdType::Symbol(result.to_str().unwrap().to_owned())
+    //         }
+    //         _ => todo!(),
+    //     }
+    // }
 
-    pub fn set_value(&mut self, value: PdType) {
-        match value {
-            PdType::Float(val) => self.set_float(val),
-            PdType::Symbol(sym) => self.set_symbol(sym),
-            _ => todo!(),
-        }
-    }
+    // pub fn set_value(&mut self, value: PdType) {
+    //     match value {
+    //         PdType::Float(val) => self.set_float(val),
+    //         PdType::Symbol(sym) => self.set_symbol(sym),
+    //         _ => todo!(),
+    //     }
+    // }
 
-    /// write a float value to the given atom
-    fn set_float(&mut self, value: f32) {
-        unsafe {
-            libpd_sys::libpd_set_float(
-                &self.inner as *const libpd_sys::t_atom as *mut libpd_sys::t_atom,
-                value,
-            );
-        }
-    }
+    // /// write a float value to the given atom
+    // fn set_float(&mut self, value: f32) {
+    //     unsafe {
+    //         libpd_sys::libpd_set_float(
+    //             &self.inner as *const libpd_sys::t_atom as *mut libpd_sys::t_atom,
+    //             value,
+    //         );
+    //     }
+    // }
 
-    /// write a symbol value to the given atom
-    fn set_symbol<T: AsRef<str>>(&mut self, value: T) {
-        let val = CString::new(value.as_ref()).unwrap();
-        unsafe {
-            libpd_sys::libpd_set_symbol(
-                &self.inner as *const libpd_sys::t_atom as *mut libpd_sys::t_atom,
-                val.as_ptr(),
-            );
-        }
-    }
+    // /// write a symbol value to the given atom
+    // fn set_symbol<T: AsRef<str>>(&mut self, value: T) {
+    //     let val = CString::new(value.as_ref()).unwrap();
+    //     unsafe {
+    //         libpd_sys::libpd_set_symbol(
+    //             &self.inner as *const libpd_sys::t_atom as *mut libpd_sys::t_atom,
+    //             val.as_ptr(),
+    //         );
+    //     }
+    // }
 
     // TODO: Maybe implement get float and get symbol separately also with result types?
 }
 
-impl From<libpd_sys::t_atom> for Atom {
-    fn from(atom: libpd_sys::t_atom) -> Self {
-        Atom { inner: atom }
-    }
-}
+// impl From<libpd_sys::t_atom> for Atom {
+//     fn from(atom: libpd_sys::t_atom) -> Self {
+//         Atom { inner: atom }
+//     }
+// }
 
-impl From<f32> for Atom {
-    fn from(value: f32) -> Self {
-        Self {
-            inner: libpd_sys::t_atom {
-                a_type: libpd_sys::t_atomtype_A_FLOAT,
-                a_w: libpd_sys::word { w_float: value },
-            },
-        }
-    }
-}
+// impl From<f32> for Atom {
+//     fn from(value: f32) -> Self {
+//         Self {
+//             inner: libpd_sys::t_atom {
+//                 a_type: libpd_sys::t_atomtype_A_FLOAT,
+//                 a_w: libpd_sys::word { w_float: value },
+//             },
+//         }
+//     }
+// }
 
-impl From<String> for Atom {
-    fn from(value: String) -> Self {
-        let val = CString::new(&*value).unwrap();
-        Self {
-            inner: libpd_sys::t_atom {
-                a_type: libpd_sys::t_atomtype_A_SYMBOL,
-                a_w: libpd_sys::word {
-                    w_symbol: unsafe { libpd_sys::gensym(val.as_ptr()) },
-                },
-            },
-        }
-    }
-}
+// impl From<String> for Atom {
+//     fn from(value: String) -> Self {
+//         let val = CString::new(&*value).unwrap();
+//         Self {
+//             inner: libpd_sys::t_atom {
+//                 a_type: libpd_sys::t_atomtype_A_SYMBOL,
+//                 a_w: libpd_sys::word {
+//                     w_symbol: unsafe { libpd_sys::gensym(val.as_ptr()) },
+//                 },
+//             },
+//         }
+//     }
+// }
 
-impl From<&String> for Atom {
-    fn from(value: &String) -> Self {
-        let val = CString::new(&**value).unwrap();
-        Self {
-            inner: libpd_sys::t_atom {
-                a_type: libpd_sys::t_atomtype_A_SYMBOL,
-                a_w: libpd_sys::word {
-                    w_symbol: unsafe { libpd_sys::gensym(val.as_ptr()) },
-                },
-            },
-        }
-    }
-}
+// impl From<&String> for Atom {
+//     fn from(value: &String) -> Self {
+//         let val = CString::new(&**value).unwrap();
+//         Self {
+//             inner: libpd_sys::t_atom {
+//                 a_type: libpd_sys::t_atomtype_A_SYMBOL,
+//                 a_w: libpd_sys::word {
+//                     w_symbol: unsafe { libpd_sys::gensym(val.as_ptr()) },
+//                 },
+//             },
+//         }
+//     }
+// }
 
-impl From<&str> for Atom {
-    fn from(value: &str) -> Self {
-        let val = CString::new(value).unwrap();
-        Self {
-            inner: libpd_sys::t_atom {
-                a_type: libpd_sys::t_atomtype_A_SYMBOL,
-                a_w: libpd_sys::word {
-                    w_symbol: unsafe { libpd_sys::gensym(val.as_ptr()) },
-                },
-            },
-        }
-    }
-}
+// impl From<&str> for Atom {
+//     fn from(value: &str) -> Self {
+//         let val = CString::new(value).unwrap();
+//         Self {
+//             inner: libpd_sys::t_atom {
+//                 a_type: libpd_sys::t_atomtype_A_SYMBOL,
+//                 a_w: libpd_sys::word {
+//                     w_symbol: unsafe { libpd_sys::gensym(val.as_ptr()) },
+//                 },
+//             },
+//         }
+//     }
+// }
 
 // TODO: The thing is one needs to find a way to either
 // cast this to a type which is equivalent memory wise or do the same thing :)

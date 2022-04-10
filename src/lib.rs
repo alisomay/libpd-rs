@@ -10,6 +10,71 @@ use libffi::high::{ClosureMut1, ClosureMut2, ClosureMut3, ClosureMut4};
 use std::ffi::{CStr, CString};
 use std::path::PathBuf;
 
+// TODO: Finish covering cases for these macros.
+macro_rules! make_t_atom_list_from_atom_list {
+    ($list: expr) => {
+        $list
+            .into_iter()
+            .map(|atom_variant| {
+                match atom_variant {
+                    // TODO:
+                    // There is only float in the atom type.
+                    // Probably precision changes depending on pd compilation float size.
+                    // Cover for that here.
+                    Atom::Float(value) => libpd_sys::t_atom {
+                        a_type: libpd_sys::t_atomtype_A_FLOAT,
+                        a_w: libpd_sys::word { w_float: *value },
+                    },
+                    Atom::Symbol(value) => libpd_sys::t_atom {
+                        a_type: libpd_sys::t_atomtype_A_SYMBOL,
+                        a_w: libpd_sys::word {
+                            w_symbol: libpd_sys::gensym(
+                                CString::new(value.to_owned()).unwrap().as_ptr(),
+                            ),
+                        },
+                    },
+                    Atom::Double(value) => {
+                        libpd_sys::t_atom {
+                            a_type: libpd_sys::t_atomtype_A_FLOAT,
+                            a_w: libpd_sys::word {
+                                // TODO: This is wrong.
+                                // Please find a better strategy here.
+                                w_float: *value as f32,
+                            },
+                        }
+                    }
+                }
+            })
+            .collect::<Vec<libpd_sys::t_atom>>()
+    };
+}
+
+macro_rules! make_atom_list_from_t_atom_list {
+    ($list: expr) => {
+        $list
+            .into_iter()
+            .map(|atom_type| match atom_type.a_type {
+                libpd_sys::t_atomtype_A_FLOAT => {
+                    let ptr_to_inner =
+                        atom_type as *const libpd_sys::t_atom as *mut libpd_sys::t_atom;
+                    let f: f32 = unsafe { libpd_sys::libpd_get_float(ptr_to_inner) };
+                    Atom::Float(f)
+                }
+                libpd_sys::t_atomtype_A_SYMBOL => {
+                    let ptr_to_inner =
+                        atom_type as *const libpd_sys::t_atom as *mut libpd_sys::t_atom;
+                    let sym: *const std::os::raw::c_char =
+                        unsafe { libpd_sys::libpd_get_symbol(ptr_to_inner) };
+                    let result = unsafe { CStr::from_ptr(sym) };
+                    Atom::Symbol(result.to_str().unwrap().to_owned())
+                }
+                // TODO: Also missing double.. lets see how to cover these.
+                _ => unimplemented!(),
+            })
+            .collect::<Vec<Atom>>()
+    };
+}
+
 // TODO: Mention why only queued versions are implemented in the main doc.
 
 /// Initializes libpd.
@@ -166,7 +231,6 @@ pub fn open_patch(path_to_patch: &std::path::Path) -> Result<PatchFileHandle, Io
         let directory = CString::new(directory).unwrap();
         dbg!(&name, &directory);
         let file_handle = libpd_sys::libpd_openfile(name.as_ptr(), directory.as_ptr())
-            // TODO: Change this once PatchFileHandle is updated.
             as *mut std::os::raw::c_void;
         if file_handle.is_null() {
             return Err(IoError::FailedToOpenPatch);
@@ -477,55 +541,6 @@ pub fn process_raw_double(input_buffer: &[f64], output_buffer: &mut [f64]) {
         libpd_sys::libpd_process_raw_double(input_buffer.as_ptr(), output_buffer.as_mut_ptr());
     }
 }
-
-// TODO: CHECK IF WE NEED THIS?
-/* sending compound messages: atom array */
-
-// /// write a float value to the given atom
-// EXTERN void libpd_set_float(t_atom *a, float x);
-
-// /// write a double value to the given atom
-// /// note: only full-precision when compiled with PD_FLOATSIZE=64
-// EXTERN void libpd_set_double(t_atom *v, double x);
-
-// /// write a symbol value to the given atom
-// EXTERN void libpd_set_symbol(t_atom *a, const char *symbol);
-
-// /// send an atom array of a given length as a list to a destination receiver
-// /// returns 0 on success or -1 if receiver name is non-existent
-// /// ex: send [list 1 2 bar( to [r foo] on the next tick with:
-// ///     t_atom v[3];
-// ///     libpd_set_float(v, 1);
-// ///     libpd_set_float(v + 1, 2);
-// ///     libpd_set_symbol(v + 2, "bar");
-// ///     libpd_list("foo", 3, v);
-// EXTERN int libpd_list(const char *recv, int argc, t_atom *argv);
-
-// /// send a atom array of a given length as a typed message to a destination
-// /// receiver, returns 0 on success or -1 if receiver name is non-existent
-// /// ex: send [; pd dsp 1( on the next tick with:
-// ///     t_atom v[1];
-// ///     libpd_set_float(v, 1);
-// ///     libpd_message("pd", "dsp", 1, v);
-// EXTERN int libpd_message(const char *recv, const char *msg,
-//                          int argc, t_atom *argv);
-
-// /// get the float value of an atom
-// /// note: no NULL or type checks are performed
-// EXTERN float libpd_get_float(t_atom *a);
-
-// /// returns the double value of an atom
-// /// note: no NULL or type checks are performed
-// /// note: only full-precision when compiled with PD_FLOATSIZE=64
-// EXTERN double libpd_get_double(t_atom *a);
-
-// /// returns the symbol value of an atom
-// /// note: no NULL or type checks are performed
-// EXTERN const char *libpd_get_symbol(t_atom *a);
-
-// /// increment to the next atom in an atom vector
-// /// returns next atom or NULL, assuming the atom vector is NULL-terminated
-// EXTERN t_atom *libpd_next_atom(t_atom *a);
 
 /* Array access */
 
@@ -913,8 +928,6 @@ pub fn finish_message_as_typed_message_and_send_to<T: AsRef<str>, S: AsRef<str>>
     }
 }
 
-// TODO: Implementation might be wrong, re-visit doc
-
 /// Finish the current message and send as a list to a receiver in the loaded pd patch
 ///
 /// The following example will send a list `42.0 bar` to `|s foo|` on the next tick.
@@ -934,32 +947,20 @@ pub fn finish_message_as_typed_message_and_send_to<T: AsRef<str>, S: AsRef<str>>
 pub fn send_list_to<T: AsRef<str>>(receiver: T, list: &[Atom]) -> Result<(), SendError> {
     let recv = CString::new(receiver.as_ref()).unwrap();
     unsafe {
-        // First element should give the start of the list hopefully. :)
-        // TODO: Revisit and test this implementation.
-
-        // TODO: Probably the implementation is wrong./
-        // TODO: Really re-visit
-        // ex: send [list 1 2 bar( to [r foo] on the next tick with:
-        //     t_atom v[3];
-        //     libpd_set_float(v, 1);
-        //     libpd_set_float(v + 1, 2);
-        //     libpd_set_symbol(v + 2, "bar");
-        //     libpd_list("foo", 3, v);
-        match libpd_sys::libpd_list(recv.as_ptr(), list.len() as i32, list[0].as_mut_ptr()) {
+        let mut atom_list: Vec<libpd_sys::t_atom> = make_t_atom_list_from_atom_list!(list);
+        let atom_list_slice = atom_list.as_mut_slice();
+        match libpd_sys::libpd_list(
+            recv.as_ptr(),
+            list.len() as i32,
+            atom_list_slice.as_mut_ptr(),
+        ) {
             0 => Ok(()),
             _ => Err(SendError::MissingDestination(receiver.as_ref().to_owned())),
         }
     }
 }
 
-// TODO: Correct this after re-visiting list implementation
-
-/// send a atom array of a given length as a typed message to a destination
-/// receiver, returns 0 on success or -1 if receiver name is non-existent
-/// ex: send [; pd dsp 1( on the next tick with:
-///     t_atom v[1];
-///     libpd_set_float(v, 1);
-///     libpd_message("pd", "dsp", 1, v);
+// TODO: Document
 pub fn send_message<T: AsRef<str>>(
     receiver: T,
     message: T,
@@ -968,13 +969,13 @@ pub fn send_message<T: AsRef<str>>(
     let recv = CString::new(receiver.as_ref()).unwrap();
     let msg = CString::new(message.as_ref()).unwrap();
     unsafe {
-        // First element should give the start of the list hopefully. :)
-        // TODO: Revisit and test this implementation.
+        let mut atom_list: Vec<libpd_sys::t_atom> = make_t_atom_list_from_atom_list!(list);
+        let atom_list_slice = atom_list.as_mut_slice();
         match libpd_sys::libpd_message(
             recv.as_ptr(),
             msg.as_ptr(),
             list.len() as i32,
-            list[0].as_mut_ptr(),
+            atom_list_slice.as_mut_ptr(),
         ) {
             0 => Ok(()),
             _ => Err(SendError::MissingDestination(receiver.as_ref().to_owned())),
@@ -1031,8 +1032,6 @@ pub fn start_listening_from<T: AsRef<str>>(sender: T) -> Result<ReceiverHandle, 
 pub fn stop_listening_from(source: ReceiverHandle) {
     let handle = source.into_inner();
     if handle.is_null() {
-        // TODO: Actually handle shouldn't be null in any case!
-        // TODO: Check if this assumption is correct, if so remove this check
         return;
     }
     unsafe {
@@ -1214,20 +1213,16 @@ pub fn on_symbol<F: FnMut(&str, &str) + Send + Sync + 'static>(mut user_provided
     unsafe { libpd_sys::libpd_set_queued_symbolhook(Some(*ptr)) };
 }
 
-// TODO: Re-document and check this after re-visiting atom list implementation.
-pub fn on_list<F: FnMut(&str, i32, &[Atom]) + Send + Sync + 'static>(mut user_provided_closure: F) {
+// TODO: Document
+pub fn on_list<F: FnMut(&str, &[Atom]) + Send + Sync + 'static>(mut user_provided_closure: F) {
     let closure: &'static mut _ = Box::leak(Box::new(
         move |source: *const std::os::raw::c_char,
               list_length: i32,
               atom_list: *mut libpd_sys::t_atom| {
             let source = unsafe { CStr::from_ptr(source).to_str().unwrap() };
-            unsafe {
-                let mut atoms: Vec<Atom> = vec![];
-                for index in 0..list_length {
-                    atoms.push(Atom::from(*atom_list.offset(index as isize)));
-                }
-                user_provided_closure(source, list_length, &atoms);
-            };
+            let atom_list = unsafe { std::slice::from_raw_parts(atom_list, list_length as usize) };
+            let atoms = make_atom_list_from_t_atom_list!(atom_list);
+            user_provided_closure(source, &atoms);
         },
     ));
     let callback = ClosureMut3::new(closure);
@@ -1237,8 +1232,8 @@ pub fn on_list<F: FnMut(&str, i32, &[Atom]) + Send + Sync + 'static>(mut user_pr
     unsafe { libpd_sys::libpd_set_queued_listhook(Some(*ptr)) };
 }
 
-// TODO: Re-document and check this after re-visiting atom list implementation.
-pub fn on_message<F: FnMut(&str, &str, i32, &[Atom]) + Send + Sync + 'static>(
+// TODO: Document
+pub fn on_message<F: FnMut(&str, &str, &[Atom]) + Send + Sync + 'static>(
     mut user_provided_closure: F,
 ) {
     let closure: &'static mut _ = Box::leak(Box::new(
@@ -1248,13 +1243,9 @@ pub fn on_message<F: FnMut(&str, &str, i32, &[Atom]) + Send + Sync + 'static>(
               atom_list: *mut libpd_sys::t_atom| {
             let source = unsafe { CStr::from_ptr(source).to_str().unwrap() };
             let message = unsafe { CStr::from_ptr(message).to_str().unwrap() };
-            unsafe {
-                let atoms: Vec<libpd_sys::t_atom> =
-                    Vec::from_raw_parts(atom_list, list_length as usize, list_length as usize);
-                let wrapped_atoms: Vec<Atom> =
-                    atoms.iter().map(|t_atom| Atom::from(*t_atom)).collect();
-                user_provided_closure(source, message, list_length, &wrapped_atoms);
-            };
+            let atom_list = unsafe { std::slice::from_raw_parts(atom_list, list_length as usize) };
+            let atoms = make_atom_list_from_t_atom_list!(atom_list);
+            user_provided_closure(source, message, &atoms);
         },
     ));
     let callback = ClosureMut4::new(closure);
@@ -1484,8 +1475,6 @@ pub fn on_midi_byte<F: FnMut(i32, i32) + Send + Sync + 'static>(mut user_provide
     std::mem::forget(callback);
     unsafe { libpd_sys::libpd_set_queued_midibytehook(Some(*ptr)) };
 }
-
-// TODO: Find out if there is a necessity to implement the queued ones, currently don't see any need.
 
 /// Receive messages from pd midi message queue.
 ///

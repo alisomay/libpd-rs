@@ -22,11 +22,19 @@ fn main() {
         let a = v.clone();
         libpd_rs::on_float(move |src, val| {
             a.lock().unwrap().push(val);
-            dbg!("This", val);
+            dbg!("This", src, val);
         });
 
         libpd_rs::on_float(move |src, val| {
-            dbg!("Other", val);
+            dbg!("Other", src, val);
+        });
+
+        libpd_rs::on_list(move |src, val| {
+            dbg!("Atoms!", src, val);
+        });
+
+        libpd_rs::on_symbol(move |src, val| {
+            dbg!("SYM!", src, val);
         });
 
         // Then init queued
@@ -57,6 +65,9 @@ fn main() {
         }
         // Bind
         let r = libpd_rs::start_listening_from("simple_float");
+        let r = libpd_rs::start_listening_from("listy");
+        let r = libpd_rs::start_listening_from("list_loopback_float");
+        let r = libpd_rs::start_listening_from("list_loopback_symbol");
 
         // Run
         use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
@@ -118,6 +129,7 @@ fn main() {
 
         // loop {}
         // 44100
+        let mut cnt = 0;
         loop {
             std::thread::sleep(std::time::Duration::from_millis(1));
             // std::thread::sleep(std::time::Duration::from_millis(1000));
@@ -125,6 +137,13 @@ fn main() {
             // dbg!(libpd_sys::libpd_exists(send.as_ptr()));
             libpd_rs::receive_messages_from_pd();
             // dbg!(v.lock().unwrap());
+            if cnt % 2000 == 0 {
+                let list = vec![
+                    libpd_rs::types::Atom::Float(33.5),
+                    libpd_rs::types::Atom::Symbol("hello".to_owned()),
+                ];
+                libpd_rs::send_list_to("from_rust", &list);
+            }
 
             // println!("Available: {}", r);
 
@@ -134,6 +153,7 @@ fn main() {
             //     input_buffer[..].as_ptr(),
             //     output_buffer[..].as_mut_ptr(),
             // );
+            cnt += 1;
         }
     }
 }

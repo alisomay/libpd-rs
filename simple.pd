@@ -15,6 +15,10 @@
 -1 -1;
 #X obj 149 314 r simple_float;
 #X obj 15 145 metro 2000;
+#X obj 389 64 r from_rust;
+#X obj 450 162 s list_loopback_symbol;
+#X obj 341 133 s list_loopback_float;
+#X obj 390 97 unpack 0 s;
 #X connect 1 0 2 0;
 #X connect 1 0 3 0;
 #X connect 2 0 0 0;
@@ -29,3 +33,6 @@
 #X connect 14 0 10 0;
 #X connect 14 0 12 0;
 #X connect 14 0 7 0;
+#X connect 15 0 18 0;
+#X connect 18 0 17 0;
+#X connect 18 1 16 0;
