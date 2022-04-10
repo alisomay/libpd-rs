@@ -1,3 +1,5 @@
+// TODO: Remove this in the end.
+#![allow(clippy::wildcard_imports)]
 use crate::error::{FileSystemError, SizeError, SubscriptionError};
 use crate::types::ReceiverHandle;
 
@@ -8,30 +10,42 @@ use libffi::high::{ClosureMut1, ClosureMut2, ClosureMut3, ClosureMut4};
 use std::ffi::{CStr, CString};
 use std::path::PathBuf;
 
+// TODO: Currently panicing is enough since this is a rare case, but may be improved later with a dedicated error.
+const C_STRING_FAILURE: &str =
+    "Provided an invalid CString, check if your string contains null bytes in the middle.";
+const C_STR_FAILURE: &str = "Converting a CStr to an &str is failed.";
+
 /// Initializes libpd.
 ///
 /// Support for multi instances of pd is not implemented yet.
 /// This function should be called before any other in this crate.
 /// It initializes libpd globally and also initializes ring buffers for internal message passing.
 /// Sets internal hooks. Then initializes `libpd` by calling the underlying
-/// C function which which is `libpd_init`.
-/// See `libpd_queued_init` function in (`z_queued.c`)[TODO: link here] to
-/// assess what it is doing.
-/// A second call to this function will return an error.
+/// C function which is [`libpd_init`](https://github.com/libpd/libpd/blob/master/libpd_wrapper/z_libpd.c#L68).
+/// See [`libpd_queued_init`](https://github.com/libpd/libpd/blob/master/libpd_wrapper/util/z_queued.c#L308) to
+/// explore what it is doing.
 ///
+/// A second call to this function will return an error.
 ///
 /// # Example
 /// ```rust
-/// assert_eq!(libpd_rs::init_with_queue().is_ok(), true);
-/// assert_eq!(libpd_rs::init_with_queue().is_err(), true);
+/// # use libpd_rs::mirror::*;
+/// assert_eq!(init().is_ok(), true);
+/// assert_eq!(init().is_err(), true);
 /// ```
-pub fn init() -> Result<(), InitializationError> {
+pub fn init() -> Result<(), LibpdError> {
     unsafe {
         match libpd_sys::libpd_queued_init() {
             0 => Ok(()),
-            -1 => Err(InitializationError::AlreadyInitialized),
-            -2 => Err(InitializationError::RingBufferInitializationError),
-            _ => Err(InitializationError::InitializationFailed),
+            -1 => Err(LibpdError::InitializationError(
+                InitializationError::AlreadyInitialized,
+            )),
+            -2 => Err(LibpdError::InitializationError(
+                InitializationError::RingBufferInitializationError,
+            )),
+            _ => Err(LibpdError::InitializationError(
+                InitializationError::InitializationFailed,
+            )),
         }
     }
 }
@@ -49,7 +63,7 @@ fn release_internal_queues() {
 
 /// Clears all the paths where libpd searches for patches and assets.
 ///
-/// This function is also called by `init`.
+/// This function is also called by [`init`].
 pub fn clear_search_paths() {
     unsafe {
         libpd_sys::libpd_clear_search_path();
@@ -60,14 +74,14 @@ pub fn clear_search_paths() {
 ///
 /// Relative paths are relative to the current working directory.
 /// Unlike the desktop pd application, **no** search paths are set by default.
-pub fn add_to_search_paths(path: &std::path::Path) -> Result<(), FileSystemError> {
+pub fn add_to_search_paths(path: &std::path::Path) -> Result<(), LibpdError> {
     if !path.exists() {
-        return Err(FileSystemError::PathDoesNotExist(
-            path.to_string_lossy().to_string(),
+        return Err(LibpdError::FileSystemError(
+            FileSystemError::PathDoesNotExist(path.to_string_lossy().to_string()),
         ));
     }
     unsafe {
-        let c_path = CString::new(&*path.to_string_lossy()).unwrap();
+        let c_path = CString::new(&*path.to_string_lossy()).expect(C_STRING_FAILURE);
         libpd_sys::libpd_add_to_search_path(c_path.as_ptr());
         Ok(())
     }
@@ -84,7 +98,9 @@ pub fn add_to_search_paths(path: &std::path::Path) -> Result<(), FileSystemError
 /// Tha function **first** checks the executable directory and **then** the manifest directory.
 ///
 /// # Example
-/// ```rust
+/// ```no_run
+/// # use libpd_rs::mirror::*;
+/// # use std::path::PathBuf;
 /// let mut absolute_path = PathBuf::new();
 /// let mut relative_path = PathBuf::new();
 /// let mut patch_name = PathBuf::new();
@@ -93,14 +109,13 @@ pub fn add_to_search_paths(path: &std::path::Path) -> Result<(), FileSystemError
 /// relative_path.push("../my_patch.pd");
 /// patch_name.push("my_patch.pd");
 ///
-/// let patch_handle = libpd_rs::open_patch(&absolute_path).unwrap();
-/// let patch_handle = libpd_rs::open_patch(&relative_path).unwrap();
-/// let patch_handle = libpd_rs::open_patch(&patch_name).unwrap();
+/// let patch_handle = open_patch(&patch_name).unwrap();
+/// // or others..
 /// ```
-pub fn open_patch(path_to_patch: &std::path::Path) -> Result<PatchFileHandle, IoError> {
+pub fn open_patch(path_to_patch: &std::path::Path) -> Result<PatchFileHandle, LibpdError> {
     let file_name = path_to_patch
         .file_name()
-        .ok_or(IoError::FailedToOpenPatch)?;
+        .ok_or(LibpdError::IoError(IoError::FailedToOpenPatch))?;
     let file_name = file_name.to_string_lossy();
     let file_name = file_name.as_ref();
     let parent_path = path_to_patch
@@ -113,34 +128,36 @@ pub fn open_patch(path_to_patch: &std::path::Path) -> Result<PatchFileHandle, Io
 
     // "../some.pd" --> prepend working directory
     if parent_path.is_relative() {
-        let mut app_dir = std::env::current_exe().map_err(|_| IoError::FailedToOpenPatch)?;
+        let mut app_dir =
+            std::env::current_exe().map_err(|_| LibpdError::IoError(IoError::FailedToOpenPatch))?;
         app_dir.pop();
         app_dir.push(parent_path);
         let parent_path_str = app_dir.to_string_lossy();
 
-        if !app_dir.exists() {
+        if app_dir.exists() {
+            directory = parent_path_str.into();
+        } else {
             let mut manifest_dir = PathBuf::new();
             manifest_dir.push(&std::env!("CARGO_MANIFEST_DIR"));
             manifest_dir.push(parent_path);
             // Try manifest dir.
             let manifest_dir_str = manifest_dir.to_string_lossy();
             directory = manifest_dir_str.into();
-        } else {
-            directory = parent_path_str.into();
         }
     }
     // "some.pd" --> prepend working directory
     if parent_path_string.is_empty() {
-        let mut app_dir = std::env::current_exe().map_err(|_| IoError::FailedToOpenPatch)?;
+        let mut app_dir =
+            std::env::current_exe().map_err(|_| LibpdError::IoError(IoError::FailedToOpenPatch))?;
         app_dir.pop();
         app_dir.push(file_name);
         let parent_path_str = app_dir.to_string_lossy();
 
-        if !app_dir.exists() {
+        if app_dir.exists() {
+            directory = parent_path_str.into();
+        } else {
             // Try manifest dir.
             directory = std::env!("CARGO_MANIFEST_DIR").into();
-        } else {
-            directory = parent_path_str.into();
         }
     }
 
@@ -150,7 +167,7 @@ pub fn open_patch(path_to_patch: &std::path::Path) -> Result<PatchFileHandle, Io
     calculated_patch_path.push(file_name);
 
     if !calculated_patch_path.exists() {
-        return Err(IoError::FailedToOpenPatch);
+        return Err(LibpdError::IoError(IoError::FailedToOpenPatch));
         // TODO: Update returned errors when umbrella error type is in action.
         // return Err(FileSystemError::PathDoesNotExist(
         //     path.to_string_lossy().to_string(),
@@ -158,13 +175,13 @@ pub fn open_patch(path_to_patch: &std::path::Path) -> Result<PatchFileHandle, Io
     }
     // All good.
     unsafe {
-        let name = CString::new(file_name).unwrap();
-        let directory = CString::new(directory).unwrap();
+        let name = CString::new(file_name).expect(C_STRING_FAILURE);
+        let directory = CString::new(directory).expect(C_STRING_FAILURE);
         dbg!(&name, &directory);
-        let file_handle = libpd_sys::libpd_openfile(name.as_ptr(), directory.as_ptr())
-            as *mut std::os::raw::c_void;
+        let file_handle =
+            libpd_sys::libpd_openfile(name.as_ptr(), directory.as_ptr()).cast::<std::ffi::c_void>();
         if file_handle.is_null() {
-            return Err(IoError::FailedToOpenPatch);
+            return Err(LibpdError::IoError(IoError::FailedToOpenPatch));
         }
         Ok(file_handle.into())
     }
@@ -172,16 +189,23 @@ pub fn open_patch(path_to_patch: &std::path::Path) -> Result<PatchFileHandle, Io
 
 /// Closes a pd patch.
 ///
+/// Handle needs to point to a valid opened patch file.
+///
 /// # Example
-/// ```rust
-/// let patch_handle = libpd_rs::open_patch("test.pd").unwrap();
-/// libpd_rs::close_patch(patch_handle);
+/// ```no_run
+/// # use std::path::PathBuf;
+/// # use libpd_rs::mirror::*;
+/// let mut patch = PathBuf::new();
+/// patch.push("my_patch.pd");
+/// let patch_handle = open_patch(&patch).unwrap();
+///
+/// assert!(close_patch(patch_handle).is_ok());
 /// ```
-pub fn close_patch(handle: PatchFileHandle) -> Result<(), IoError> {
+pub fn close_patch(handle: PatchFileHandle) -> Result<(), LibpdError> {
     unsafe {
         let ptr: *mut std::os::raw::c_void = handle.into();
         if ptr.is_null() {
-            Err(IoError::FailedToClosePatch)
+            Err(LibpdError::IoError(IoError::FailedToClosePatch))
         } else {
             libpd_sys::libpd_closefile(ptr);
             Ok(())
@@ -211,6 +235,7 @@ pub fn get_dollar_zero(handle: &PatchFileHandle) {
 /// # Examples
 ///
 /// ```rust
+/// # use libpd_rs::mirror::*;
 /// let block_size = block_size();
 /// let output_channels = 2;
 /// let buffer_size = 1024;
@@ -218,12 +243,9 @@ pub fn get_dollar_zero(handle: &PatchFileHandle) {
 /// // Calculate pd ticks according to the upper information
 /// let pd_ticks = buffer_size / (block_size * output_channels);
 ///
-/// // If we would have known about pd_ticks, then we could also calculate the buffer size,
-/// assert_eq!(buffer_size, pd_ticks * (block_size() * output_channels));
+/// // If we know about pd_ticks, then we can also calculate the buffer size,
+/// assert_eq!(buffer_size, pd_ticks * (block_size * output_channels));
 /// ```
-///
-///
-///
 pub fn block_size() -> i32 {
     unsafe { libpd_sys::libpd_blocksize() }
 }
@@ -233,11 +255,13 @@ pub fn initialize_audio(
     input_channels: i32,
     output_channels: i32,
     sample_rate: i32,
-) -> Result<(), InitializationError> {
+) -> Result<(), LibpdError> {
     unsafe {
         match libpd_sys::libpd_init_audio(input_channels, output_channels, sample_rate) {
             0 => Ok(()),
-            _ => Err(InitializationError::AudioInitializationFailed),
+            _ => Err(LibpdError::InitializationError(
+                InitializationError::AudioInitializationFailed,
+            )),
         }
     }
 }
@@ -251,25 +275,24 @@ pub fn initialize_audio(
 /// Call this in your **audio callback**.
 ///
 /// # Examples
-/// ```rust
+/// ```no_run
+/// # use libpd_rs::mirror::*;
+/// let output_channels = 2;
+/// // ...
+/// // After initializing audio and opening a patch file then in the audio callback..
 ///
+/// // We can imagine that these are the buffers which has been handed to us by the audio callback.
 /// let input_buffer = [0.0_f32; 512];
 /// let mut output_buffer = [0.0_f32; 1024];
 ///
-/// let block_size = block_size();
-/// let output_channels = 2;
-/// let buffer_size = output_buffer.len();
-///  
-/// // In the audio callback,
-/// // Calculate pd ticks according to the upper information
-/// let pd_ticks = buffer_size / (block_size * output_channels);
-/// process_float(pd_ticks, &input_buffer, &mut output_buffer)
+/// let buffer_size = output_buffer.len() as i32;
+/// let pd_ticks: i32 = buffer_size / (block_size() * output_channels);
 ///
+/// process_float(pd_ticks, &input_buffer, &mut output_buffer);
 /// // Or if you wish,
 /// // the input buffer can also be an empty slice if you're not going to use any inputs.
-/// process_float(pd_ticks, &[], &mut output_buffer)
+/// process_float(pd_ticks, &[], &mut output_buffer);
 /// ```
-///
 /// # Panics
 ///
 /// This function may panic for multiple reasons,
@@ -295,25 +318,24 @@ pub fn process_float(ticks: i32, input_buffer: &[f32], output_buffer: &mut [f32]
 /// Call this in your **audio callback**.
 ///
 /// # Examples
-/// ```rust
+/// ```no_run
+/// # use libpd_rs::mirror::*;
+/// let output_channels = 2;
+/// // ...
+/// // After initializing audio and opening a patch file then in the audio callback..
 ///
+/// // We can imagine that these are the buffers which has been handed to us by the audio callback.
 /// let input_buffer = [0_i16; 512];
 /// let mut output_buffer = [0_i16; 1024];
 ///
-/// let block_size = block_size();
-/// let output_channels = 2;
-/// let buffer_size = output_buffer.len();
-///  
-/// // In the audio callback,
-/// // Calculate pd ticks according to the upper information
-/// let pd_ticks = buffer_size / (block_size * output_channels);
-/// process_short(pd_ticks, &input_buffer, &mut output_buffer)
+/// let buffer_size = output_buffer.len() as i32;
+/// let pd_ticks: i32 = buffer_size / (block_size() * output_channels);
 ///
+/// process_short(pd_ticks, &input_buffer, &mut output_buffer);
 /// // Or if you wish,
 /// // the input buffer can also be an empty slice if you're not going to use any inputs.
-/// process_short(pd_ticks, &[], &mut output_buffer)
+/// process_short(pd_ticks, &[], &mut output_buffer);
 /// ```
-///
 /// # Panics
 ///
 /// This function may panic for multiple reasons,
@@ -335,25 +357,24 @@ pub fn process_short(ticks: i32, input_buffer: &[i16], output_buffer: &mut [i16]
 /// Call this in your **audio callback**.
 ///
 /// # Examples
-/// ```rust
+/// ```no_run
+/// # use libpd_rs::mirror::*;
+/// let output_channels = 2;
+/// // ...
+/// // After initializing audio and opening a patch file then in the audio callback..
 ///
+/// // We can imagine that these are the buffers which has been handed to us by the audio callback.
 /// let input_buffer = [0.0_f64; 512];
 /// let mut output_buffer = [0.0_f64; 1024];
 ///
-/// let block_size = block_size();
-/// let output_channels = 2;
-/// let buffer_size = output_buffer.len();
-///  
-/// // In the audio callback,
-/// // Calculate pd ticks according to the upper information
-/// let pd_ticks = buffer_size / (block_size * output_channels);
-/// process_double(pd_ticks, &input_buffer, &mut output_buffer)
+/// let buffer_size = output_buffer.len() as i32;
+/// let pd_ticks: i32 = buffer_size / (block_size() * output_channels);
 ///
+/// process_double(pd_ticks, &input_buffer, &mut output_buffer);
 /// // Or if you wish,
 /// // the input buffer can also be an empty slice if you're not going to use any inputs.
-/// process_double(pd_ticks, &[], &mut output_buffer)
+/// process_double(pd_ticks, &[], &mut output_buffer);
 /// ```
-///
 /// # Panics
 ///
 /// This function may panic for multiple reasons,
@@ -375,19 +396,19 @@ pub fn process_double(ticks: i32, input_buffer: &[f64], output_buffer: &mut [f64
 /// Call this in your **audio callback**.
 ///
 /// # Examples
-/// ```rust
+/// ```no_run
+/// # use libpd_rs::mirror::*;
+/// // After initializing audio and opening a patch file then in the audio callback..
 ///
+/// // We can imagine that these are the buffers which has been handed to us by the audio callback.
 /// let input_buffer = [0.0_f32; 512];
 /// let mut output_buffer = [0.0_f32; 1024];
-///  
-/// // In the audio callback,
-/// process_raw(&input_buffer, &mut output_buffer)
 ///
+/// process_raw(&input_buffer, &mut output_buffer);
 /// // Or if you wish,
 /// // the input buffer can also be an empty slice if you're not going to use any inputs.
-/// process_raw(&[], &mut output_buffer)
+/// process_raw(&[], &mut output_buffer);
 /// ```
-///
 /// # Panics
 ///
 /// This function may panic for multiple reasons,
@@ -414,19 +435,19 @@ pub fn process_raw(input_buffer: &[f32], output_buffer: &mut [f32]) {
 /// Call this in your **audio callback**.
 ///
 /// # Examples
-/// ```rust
+/// ```no_run
+/// # use libpd_rs::mirror::*;
+/// // After initializing audio and opening a patch file then in the audio callback..
 ///
+/// // We can imagine that these are the buffers which has been handed to us by the audio callback.
 /// let input_buffer = [0_i16; 512];
 /// let mut output_buffer = [0_i16; 1024];
-///  
-/// // In the audio callback,
-/// process_raw_short(&input_buffer, &mut output_buffer)
 ///
+/// process_raw_short(&input_buffer, &mut output_buffer);
 /// // Or if you wish,
 /// // the input buffer can also be an empty slice if you're not going to use any inputs.
-/// process_raw_short(&[], &mut output_buffer)
+/// process_raw_short(&[], &mut output_buffer);
 /// ```
-///
 /// # Panics
 ///
 /// This function may panic for multiple reasons,
@@ -449,19 +470,19 @@ pub fn process_raw_short(input_buffer: &[i16], output_buffer: &mut [i16]) {
 /// Call this in your **audio callback**.
 ///
 /// # Examples
-/// ```rust
+/// ```no_run
+/// # use libpd_rs::mirror::*;
+/// // After initializing audio and opening a patch file then in the audio callback..
 ///
+/// // We can imagine that these are the buffers which has been handed to us by the audio callback.
 /// let input_buffer = [0.0_f64; 512];
 /// let mut output_buffer = [0.0_f64; 1024];
-///  
-/// // In the audio callback,
-/// process_raw_double(&input_buffer, &mut output_buffer)
 ///
+/// process_raw_double(&input_buffer, &mut output_buffer);
 /// // Or if you wish,
 /// // the input buffer can also be an empty slice if you're not going to use any inputs.
-/// process_raw_double(&[], &mut output_buffer)
+/// process_raw_double(&[], &mut output_buffer);
 /// ```
-///
 /// # Panics
 ///
 /// This function may panic for multiple reasons,
@@ -478,18 +499,19 @@ pub fn process_raw_double(input_buffer: &[f64], output_buffer: &mut [f64]) {
 /// Gets the size of an array by name in the pd patch which is running.
 ///
 /// # Example
-/// ```rust
+/// ```no_run
+/// # use libpd_rs::mirror::*;
 /// let size = array_size("my_array").unwrap();
 /// ```
-pub fn array_size<T: AsRef<str>>(name: T) -> Result<i32, SizeError> {
+pub fn array_size<T: AsRef<str>>(name: T) -> Result<i32, LibpdError> {
     unsafe {
-        let name = CString::new(name.as_ref()).unwrap();
+        let name = CString::new(name.as_ref()).expect(C_STRING_FAILURE);
         // Returns size or negative error code if non-existent
         let result = libpd_sys::libpd_arraysize(name.as_ptr());
         if result >= 0 {
             return Ok(result);
         }
-        Err(SizeError::CouldNotDetermine)
+        Err(LibpdError::SizeError(SizeError::CouldNotDetermine))
     }
 }
 
@@ -498,20 +520,23 @@ pub fn array_size<T: AsRef<str>>(name: T) -> Result<i32, SizeError> {
 /// Sizes <= 0 are clipped to 1
 ///
 /// # Example
-/// ```rust
+/// ```no_run
+/// # use libpd_rs::mirror::*;
 /// resize_array("my_array", 1024).unwrap();
+/// let size = array_size("my_array").unwrap();
+/// assert_eq!(size, 1024);
 ///
 /// resize_array("my_array", 0).unwrap();
 /// let size = array_size("my_array").unwrap();
 /// assert_eq!(size, 1);
 /// ```
-pub fn resize_array<T: AsRef<str>>(name: T, size: i64) -> Result<(), SizeError> {
+pub fn resize_array<T: AsRef<str>>(name: T, size: i64) -> Result<(), LibpdError> {
     unsafe {
-        let name = CString::new(name.as_ref()).unwrap();
+        let name = CString::new(name.as_ref()).expect(C_STRING_FAILURE);
         // returns 0 on success or negative error code if non-existent
         match libpd_sys::libpd_resize_array(name.as_ptr(), size) {
             0 => Ok(()),
-            _ => Err(SizeError::CouldNotDetermine),
+            _ => Err(LibpdError::SizeError(SizeError::CouldNotDetermine)),
         }
     }
 }
@@ -529,7 +554,7 @@ pub fn read_float_array_from<T: AsRef<str>>(
 ) {
     // TODO: Error handling and documentation.
     unsafe {
-        let name = CString::new(source_name.as_ref()).unwrap();
+        let name = CString::new(source_name.as_ref()).expect(C_STRING_FAILURE);
         libpd_sys::libpd_read_array(
             destination.as_mut_ptr(),
             name.as_ptr(),
@@ -553,7 +578,7 @@ pub fn write_float_array_to<T: AsRef<str>>(
 ) {
     unsafe {
         // TODO: Error handling and documentation.
-        let name = CString::new(source_name.as_ref()).unwrap();
+        let name = CString::new(source_name.as_ref()).expect(C_STRING_FAILURE);
         libpd_sys::libpd_write_array(
             name.as_ptr(),
             source_offset,
@@ -578,7 +603,7 @@ pub fn read_double_array_from<T: AsRef<str>>(
 ) {
     // TODO: Error handling and documentation.
     unsafe {
-        let name = CString::new(source_name.as_ref()).unwrap();
+        let name = CString::new(source_name.as_ref()).expect(C_STRING_FAILURE);
         libpd_sys::libpd_read_array_double(
             destination.as_mut_ptr(),
             name.as_ptr(),
@@ -603,7 +628,7 @@ pub fn write_double_array_to<T: AsRef<str>>(
 ) {
     unsafe {
         // TODO: Error handling and documentation.
-        let name = CString::new(source_name.as_ref()).unwrap();
+        let name = CString::new(source_name.as_ref()).expect(C_STRING_FAILURE);
         libpd_sys::libpd_write_array_double(
             name.as_ptr(),
             source_offset,
@@ -619,7 +644,8 @@ pub fn write_double_array_to<T: AsRef<str>>(
 /// The `bang` can be received from a `|r foo|` object in the loaded pd patch.
 ///
 /// # Example
-/// ```rust
+/// ```no_run
+/// # use libpd_rs::mirror::*;
 /// // Handle the error if the receiver object is not found
 /// send_bang_to("foo").unwrap_or_else(|err| {
 ///   println!("{}", err);
@@ -627,12 +653,14 @@ pub fn write_double_array_to<T: AsRef<str>>(
 /// // or don't care..
 /// let _ = send_bang_to("foo");
 /// ```
-pub fn send_bang_to<T: AsRef<str>>(receiver: T) -> Result<(), SendError> {
-    let recv = CString::new(receiver.as_ref()).unwrap();
+pub fn send_bang_to<T: AsRef<str>>(receiver: T) -> Result<(), LibpdError> {
+    let recv = CString::new(receiver.as_ref()).expect(C_STRING_FAILURE);
     unsafe {
         match libpd_sys::libpd_bang(recv.as_ptr()) {
             0 => Ok(()),
-            _ => Err(SendError::MissingDestination(receiver.as_ref().to_owned())),
+            _ => Err(LibpdError::SendError(SendError::MissingDestination(
+                receiver.as_ref().to_owned(),
+            ))),
         }
     }
 }
@@ -643,20 +671,23 @@ pub fn send_bang_to<T: AsRef<str>>(receiver: T) -> Result<(), SendError> {
 /// The value can be received from a `|r foo|` object in the loaded pd patch.
 ///
 /// # Example
-/// ```rust
+/// ```no_run
+/// # use libpd_rs::mirror::*;
 /// // Handle the error if the receiver object is not found
 /// send_float_to("foo", 1.0).unwrap_or_else(|err| {
-///   println!("{}", err);
+///   dbg!("{}", err);
 /// });
 /// // or don't care..
 /// let _ = send_float_to("foo", 1.0);
 /// ```
-pub fn send_float_to<T: AsRef<str>>(receiver: T, value: f32) -> Result<(), SendError> {
-    let recv = CString::new(receiver.as_ref()).unwrap();
+pub fn send_float_to<T: AsRef<str>>(receiver: T, value: f32) -> Result<(), LibpdError> {
+    let recv = CString::new(receiver.as_ref()).expect(C_STRING_FAILURE);
     unsafe {
         match libpd_sys::libpd_float(recv.as_ptr(), value) {
             0 => Ok(()),
-            _ => Err(SendError::MissingDestination(receiver.as_ref().to_owned())),
+            _ => Err(LibpdError::SendError(SendError::MissingDestination(
+                receiver.as_ref().to_owned(),
+            ))),
         }
     }
 }
@@ -667,20 +698,23 @@ pub fn send_float_to<T: AsRef<str>>(receiver: T, value: f32) -> Result<(), SendE
 /// The value can be received from a `|r foo|` object in the loaded pd patch.
 ///
 /// # Example
-/// ```rust
+/// ```no_run
+/// # use libpd_rs::mirror::*;
 /// // Handle the error if the receiver object is not found
 /// send_double_to("foo", 1.0).unwrap_or_else(|err| {
-///   println!("{}", err);
+///   dbg!("{err}");
 /// });
 /// // or don't care..
 /// let _ = send_double_to("foo", 1.0);
 /// ```
-pub fn send_double_to<T: AsRef<str>>(receiver: T, value: f64) -> Result<(), SendError> {
-    let recv = CString::new(receiver.as_ref()).unwrap();
+pub fn send_double_to<T: AsRef<str>>(receiver: T, value: f64) -> Result<(), LibpdError> {
+    let recv = CString::new(receiver.as_ref()).expect(C_STRING_FAILURE);
     unsafe {
         match libpd_sys::libpd_double(recv.as_ptr(), value) {
             0 => Ok(()),
-            _ => Err(SendError::MissingDestination(receiver.as_ref().to_owned())),
+            _ => Err(LibpdError::SendError(SendError::MissingDestination(
+                receiver.as_ref().to_owned(),
+            ))),
         }
     }
 }
@@ -691,10 +725,11 @@ pub fn send_double_to<T: AsRef<str>>(receiver: T, value: f64) -> Result<(), Send
 /// The value can be received from a `|r foo|` object in the loaded pd patch.
 ///
 /// # Example
-/// ```rust
+/// ```no_run
+/// # use libpd_rs::mirror::*;
 /// // Handle the error if the receiver object is not found
 /// send_symbol_to("foo", "bar").unwrap_or_else(|err| {
-///   println!("{}", err);
+///   dbg!("{err}");
 /// });
 /// // or don't care..
 /// let _ = send_symbol_to("foo", "bar");
@@ -702,13 +737,15 @@ pub fn send_double_to<T: AsRef<str>>(receiver: T, value: f64) -> Result<(), Send
 pub fn send_symbol_to<T: AsRef<str>, S: AsRef<str>>(
     receiver: T,
     value: S,
-) -> Result<(), SendError> {
-    let recv = CString::new(receiver.as_ref()).unwrap();
-    let sym = CString::new(value.as_ref()).unwrap();
+) -> Result<(), LibpdError> {
+    let recv = CString::new(receiver.as_ref()).expect(C_STRING_FAILURE);
+    let sym = CString::new(value.as_ref()).expect(C_STRING_FAILURE);
     unsafe {
         match libpd_sys::libpd_symbol(recv.as_ptr(), sym.as_ptr()) {
             0 => Ok(()),
-            _ => Err(SendError::MissingDestination(receiver.as_ref().to_owned())),
+            _ => Err(LibpdError::SendError(SendError::MissingDestination(
+                receiver.as_ref().to_owned(),
+            ))),
         }
     }
 }
@@ -721,6 +758,8 @@ pub fn send_symbol_to<T: AsRef<str>, S: AsRef<str>>(
 ///
 /// # Example
 /// ```rust
+/// # use libpd_rs::mirror::*;
+/// # init();
 /// // Arbitrary length
 /// let message_length = 4;
 /// if start_message(message_length).is_ok() {
@@ -740,6 +779,8 @@ pub fn start_message(length: i32) -> Result<(), LibpdError> {
 ///
 /// # Example
 /// ```rust
+/// # use libpd_rs::mirror::*;
+/// # init();
 /// // Arbitrary length
 /// let message_length = 4;
 /// if start_message(message_length).is_ok() {
@@ -761,6 +802,8 @@ pub fn add_float_to_started_message(value: f32) {
 ///
 /// # Example
 /// ```rust
+/// # use libpd_rs::mirror::*;
+/// # init();
 /// // Arbitrary length
 /// let message_length = 4;
 /// if start_message(message_length).is_ok() {
@@ -782,6 +825,8 @@ pub fn add_double_to_started_message(value: f64) {
 ///
 /// # Example
 /// ```rust
+/// # use libpd_rs::mirror::*;
+/// # init();
 /// // Arbitrary length
 /// let message_length = 4;
 /// if start_message(message_length).is_ok() {
@@ -794,7 +839,7 @@ pub fn add_double_to_started_message(value: f64) {
 ///
 /// Although I didn't check that, please let me know if this is the case.
 pub fn add_symbol_to_started_message<T: AsRef<str>>(value: T) {
-    let sym = CString::new(value.as_ref()).unwrap();
+    let sym = CString::new(value.as_ref()).expect(C_STRING_FAILURE);
     unsafe {
         libpd_sys::libpd_add_symbol(sym.as_ptr());
     }
@@ -807,6 +852,8 @@ pub fn add_symbol_to_started_message<T: AsRef<str>>(value: T) {
 ///
 /// # Example
 /// ```rust
+/// # use libpd_rs::mirror::*;
+/// # init();
 /// // Arbitrary length
 /// let message_length = 2;
 /// if start_message(message_length).is_ok() {
@@ -817,12 +864,14 @@ pub fn add_symbol_to_started_message<T: AsRef<str>>(value: T) {
 ///   });
 /// }
 /// ```
-pub fn finish_message_as_list_and_send_to<T: AsRef<str>>(receiver: T) -> Result<(), SendError> {
-    let recv = CString::new(receiver.as_ref()).unwrap();
+pub fn finish_message_as_list_and_send_to<T: AsRef<str>>(receiver: T) -> Result<(), LibpdError> {
+    let recv = CString::new(receiver.as_ref()).expect(C_STRING_FAILURE);
     unsafe {
         match libpd_sys::libpd_finish_list(recv.as_ptr()) {
             0 => Ok(()),
-            _ => Err(SendError::MissingDestination(receiver.as_ref().to_owned())),
+            _ => Err(LibpdError::SendError(SendError::MissingDestination(
+                receiver.as_ref().to_owned(),
+            ))),
         }
     }
 }
@@ -836,6 +885,8 @@ pub fn finish_message_as_list_and_send_to<T: AsRef<str>>(receiver: T) -> Result<
 ///
 /// # Example
 /// ```rust
+/// # use libpd_rs::mirror::*;
+/// # init();
 /// // Arbitrary length
 /// let message_length = 1;
 /// if start_message(message_length).is_ok() {
@@ -849,8 +900,8 @@ pub fn finish_message_as_typed_message_and_send_to<T: AsRef<str>, S: AsRef<str>>
     receiver: T,
     message_header: S,
 ) -> Result<(), LibpdError> {
-    let recv = CString::new(receiver.as_ref()).unwrap();
-    let msg = CString::new(message_header.as_ref()).unwrap();
+    let recv = CString::new(receiver.as_ref()).expect(C_STRING_FAILURE);
+    let msg = CString::new(message_header.as_ref()).expect(C_STRING_FAILURE);
     unsafe {
         match libpd_sys::libpd_finish_message(recv.as_ptr(), msg.as_ptr()) {
             0 => Ok(()),
@@ -861,15 +912,17 @@ pub fn finish_message_as_typed_message_and_send_to<T: AsRef<str>, S: AsRef<str>>
     }
 }
 
-/// Finish the current message and send as a list to a receiver in the loaded pd patch
+/// Send a list to a receiver in the loaded pd patch
 ///
 /// The following example will send a list `42.0 bar` to `|s foo|` on the next tick.
 /// The list can be received from a `|r foo|` object in the loaded pd patch.
 ///
 /// # Example
 /// ```rust
+/// # use libpd_rs::mirror::*;
+/// # init();
 /// use libpd_rs::types::Atom;
-/// let list = vec![Atom::from(42.0), Atom::from("bar")]
+/// let list = vec![Atom::from(42.0), Atom::from("bar")];
 /// // Handle the error if the receiver object is not found
 /// send_list_to("foo", &list).unwrap_or_else(|err| {
 ///   println!("{}", err);
@@ -877,41 +930,72 @@ pub fn finish_message_as_typed_message_and_send_to<T: AsRef<str>, S: AsRef<str>>
 /// // or don't care..
 /// let _ = send_list_to("foo", &list);
 /// ```
-pub fn send_list_to<T: AsRef<str>>(receiver: T, list: &[Atom]) -> Result<(), SendError> {
-    let recv = CString::new(receiver.as_ref()).unwrap();
+
+pub fn send_list_to<T: AsRef<str>>(receiver: T, list: &[Atom]) -> Result<(), LibpdError> {
+    let recv = CString::new(receiver.as_ref()).expect(C_STRING_FAILURE);
+
     unsafe {
         let mut atom_list: Vec<libpd_sys::t_atom> = make_t_atom_list_from_atom_list!(list);
         let atom_list_slice = atom_list.as_mut_slice();
+
+        #[allow(clippy::cast_possible_wrap)]
+        #[allow(clippy::cast_possible_truncation)]
         match libpd_sys::libpd_list(
             recv.as_ptr(),
+            // This is fine since a list will not be millions of elements long and not negative for sure.
             list.len() as i32,
             atom_list_slice.as_mut_ptr(),
         ) {
             0 => Ok(()),
-            _ => Err(SendError::MissingDestination(receiver.as_ref().to_owned())),
+            _ => Err(LibpdError::SendError(SendError::MissingDestination(
+                receiver.as_ref().to_owned(),
+            ))),
         }
     }
 }
 
-// TODO: Document
-pub fn send_message<T: AsRef<str>>(
+/// Send a typed message to a receiver in the loaded pd patch
+///
+/// The following example will send a typed message `dsp 1` to the receiver `pd` on the next tick.
+/// The equivalent of this example message would have looked like `[; pd dsp 1]` in pd gui.
+///
+/// # Example
+/// ```rust
+/// # use libpd_rs::mirror::*;
+/// # init();
+/// use libpd_rs::types::Atom;
+/// let values = vec![Atom::from(1.0)];
+/// // Handle the error if the receiver object is not found
+/// send_message_to("pd", "dsp", &values).unwrap_or_else(|err| {
+///   println!("{}", err);
+/// });
+/// // or don't care..
+/// let _ = send_message_to("pd", "dsp", &values);
+/// ```
+pub fn send_message_to<T: AsRef<str>>(
     receiver: T,
     message: T,
     list: &[Atom],
-) -> Result<(), SendError> {
-    let recv = CString::new(receiver.as_ref()).unwrap();
-    let msg = CString::new(message.as_ref()).unwrap();
+) -> Result<(), LibpdError> {
+    let recv = CString::new(receiver.as_ref()).expect(C_STRING_FAILURE);
+    let msg = CString::new(message.as_ref()).expect(C_STRING_FAILURE);
     unsafe {
         let mut atom_list: Vec<libpd_sys::t_atom> = make_t_atom_list_from_atom_list!(list);
         let atom_list_slice = atom_list.as_mut_slice();
+
+        #[allow(clippy::cast_possible_wrap)]
+        #[allow(clippy::cast_possible_truncation)]
         match libpd_sys::libpd_message(
             recv.as_ptr(),
             msg.as_ptr(),
+            // This is fine since a list will not be millions of elements long and not negative for sure.
             list.len() as i32,
             atom_list_slice.as_mut_ptr(),
         ) {
             0 => Ok(()),
-            _ => Err(SendError::MissingDestination(receiver.as_ref().to_owned())),
+            _ => Err(LibpdError::SendError(SendError::MissingDestination(
+                receiver.as_ref().to_owned(),
+            ))),
         }
     }
 }
@@ -919,31 +1003,35 @@ pub fn send_message<T: AsRef<str>>(
 /// Subscribes to messages sent to a receiver in the loaded pd patch
 ///
 /// `start_listening_from("foo")` would add a **virtual** `|r foo|` which would
-/// forward messages to the libpd message listeners
+/// forward messages to the libpd message listeners.
 ///
 /// # Example
 /// ```rust
-/// use std::collections::HashMap;
+/// # use std::collections::HashMap;
+/// # use libpd_rs::mirror::*;
+/// # use libpd_rs::types::*;
+/// # init();
 /// let sources = vec!["foo", "bar"];
-/// // Maybe you would like to use the receiver handles later..
-/// let handles: Hashmap<String, ReceiverHandle> = HashMap::new();
+/// // Maybe you would like to use the receiver handles later so you may store them..
+/// let mut handles: HashMap<String, ReceiverHandle> = HashMap::new();
 /// for source in sources {
-///     match start_listening_from(&source) {
-///         // Start listening from a source and keep the handle for later
-///         Ok(handle) => Hashmap::insert(source.to_owned(), handle),
+///     start_listening_from(&source).map_or_else(|err| {
 ///         // Handle the error if there is no source to listen from
-///         Err(err) => println!("{}", err),
-///     }
+///         dbg!(err);
+///     }, |handle| {
+///         // Start listening from a source and keep the handle for later
+///         handles.insert(source.to_string(), handle);
+///     });
 /// }
 /// ```
-pub fn start_listening_from<T: AsRef<str>>(sender: T) -> Result<ReceiverHandle, SubscriptionError> {
-    let send = CString::new(sender.as_ref()).unwrap();
+pub fn start_listening_from<T: AsRef<str>>(sender: T) -> Result<ReceiverHandle, LibpdError> {
+    let send = CString::new(sender.as_ref()).expect(C_STRING_FAILURE);
 
     unsafe {
         let handle = libpd_sys::libpd_bind(send.as_ptr());
         if handle.is_null() {
-            Err(SubscriptionError::FailedToSubscribeToSender(
-                sender.as_ref().to_owned(),
+            Err(LibpdError::SubscriptionError(
+                SubscriptionError::FailedToSubscribeToSender(sender.as_ref().to_owned()),
             ))
         } else {
             Ok(ReceiverHandle::from(handle))
@@ -959,6 +1047,9 @@ pub fn start_listening_from<T: AsRef<str>>(sender: T) -> Result<ReceiverHandle, 
 ///
 /// # Example
 /// ```rust
+/// # use libpd_rs::mirror::*;
+/// # use libpd_rs::types::*;
+/// # init();
 /// let receiver_handle = start_listening_from("foo").unwrap();
 /// stop_listening_from(receiver_handle);
 /// ```
@@ -972,18 +1063,21 @@ pub fn stop_listening_from(source: ReceiverHandle) {
     }
 }
 
-/// Check if a source to listen from exists
+/// Check if a source to listen from exists.
 ///
 /// # Example
 /// ```rust
+/// # use libpd_rs::mirror::*;
+/// # use libpd_rs::types::*;
+/// # init();
 /// if source_to_listen_from_exists("foo") {
-///   if let receiver_handle = start_listening_from("foo") {
+///   if let Ok(receiver_handle) = start_listening_from("foo") {
 ///     // Do something with the handle..
 ///   }
 /// }
 /// ```
 pub fn source_to_listen_from_exists<T: AsRef<str>>(sender: T) -> bool {
-    let send = CString::new(sender.as_ref()).unwrap();
+    let send = CString::new(sender.as_ref()).expect(C_STRING_FAILURE);
     unsafe { matches!(libpd_sys::libpd_exists(send.as_ptr()), 1) }
 }
 
@@ -996,18 +1090,23 @@ pub fn source_to_listen_from_exists<T: AsRef<str>>(sender: T) -> bool {
 ///
 /// # Example
 /// ```rust
+/// # use libpd_rs::mirror::*;
 /// on_print(|msg: &str| {
 ///  println!("pd is printing: {msg}");
 /// });
+/// # init();
 /// ```
 pub fn on_print<F: FnMut(&str) + Send + Sync + 'static>(mut user_provided_closure: F) {
     let closure: &'static mut _ = Box::leak(Box::new(move |out: *const std::os::raw::c_char| {
-        let out = unsafe { CStr::from_ptr(out).to_str().unwrap() };
+        let out = unsafe { CStr::from_ptr(out).to_str().expect(C_STR_FAILURE) };
         user_provided_closure(out);
     }));
     let callback = ClosureMut1::new(closure);
     let code = callback.code_ptr();
-    let ptr: &_ = unsafe { std::mem::transmute(code) };
+    let ptr: &_ = unsafe {
+        &*(code as *const libffi::high::FnPtr1<*const i8, ()>)
+            .cast::<unsafe extern "C" fn(*const i8)>()
+    };
     std::mem::forget(callback);
     unsafe {
         // Always concatenate
@@ -1022,9 +1121,9 @@ pub fn on_print<F: FnMut(&str) + Send + Sync + 'static>(mut user_provided_closur
 ///
 /// # Example
 /// ```rust
-/// // This is an example, handle the result properly here..
-/// let foo_receiver_handle = start_listening_from("foo").unwrap();
-/// let bar_receiver_handle = start_listening_from("bar").unwrap();
+/// # use libpd_rs::mirror::*;
+/// # init();
+///
 /// on_bang(|source: &str| {
 ///   match source {
 ///     "foo" => println!("bang from foo"),   
@@ -1032,16 +1131,22 @@ pub fn on_print<F: FnMut(&str) + Send + Sync + 'static>(mut user_provided_closur
 ///      _ => unreachable!(),
 ///   }
 /// });
+///
+/// let foo_receiver_handle = start_listening_from("foo").unwrap();
+/// let bar_receiver_handle = start_listening_from("bar").unwrap();
 /// ```
 pub fn on_bang<F: FnMut(&str) + Send + Sync + 'static>(mut user_provided_closure: F) {
     let closure: &'static mut _ =
         Box::leak(Box::new(move |source: *const std::os::raw::c_char| {
-            let source = unsafe { CStr::from_ptr(source).to_str().unwrap() };
+            let source = unsafe { CStr::from_ptr(source).to_str().expect(C_STR_FAILURE) };
             user_provided_closure(source);
         }));
     let callback = ClosureMut1::new(closure);
     let code = callback.code_ptr();
-    let ptr: &_ = unsafe { std::mem::transmute(code) };
+    let ptr: &_ = unsafe {
+        &*(code as *const libffi::high::FnPtr1<*const i8, ()>)
+            .cast::<unsafe extern "C" fn(*const i8)>()
+    };
     std::mem::forget(callback);
     unsafe { libpd_sys::libpd_set_banghook(Some(*ptr)) };
 }
@@ -1055,27 +1160,33 @@ pub fn on_bang<F: FnMut(&str) + Send + Sync + 'static>(mut user_provided_closure
 ///
 /// # Example
 /// ```rust
-/// // This is an example, handle the result properly here..
-/// let foo_receiver_handle = start_listening_from("foo").unwrap();
-/// let bar_receiver_handle = start_listening_from("bar").unwrap();
+/// # use libpd_rs::mirror::*;
+/// # init();
+///
 /// on_float(|source: &str, value: f32| {
 ///   match source {
-///     "foo" => println!("Received a float from foo, value is: {value}"),   
-///     "bar" => println!("Received a float from bar, value is: {value}"),
+///     "foo" =>  println!("Received a float from foo, value is: {value}"),  
+///     "bar" =>  println!("Received a float from bar, value is: {value}"),
 ///      _ => unreachable!(),
 ///   }
 /// });
+///
+/// let foo_receiver_handle = start_listening_from("foo").unwrap();
+/// let bar_receiver_handle = start_listening_from("bar").unwrap();
 /// ```
 pub fn on_float<F: FnMut(&str, f32) + Send + Sync + 'static>(mut user_provided_closure: F) {
     let closure: &'static mut _ = Box::leak(Box::new(
         move |source: *const std::os::raw::c_char, float: f32| {
-            let source = unsafe { CStr::from_ptr(source).to_str().unwrap() };
+            let source = unsafe { CStr::from_ptr(source).to_str().expect(C_STR_FAILURE) };
             user_provided_closure(source, float);
         },
     ));
     let callback = ClosureMut2::new(closure);
     let code = callback.code_ptr();
-    let ptr: &_ = unsafe { std::mem::transmute(code) };
+    let ptr: &_ = unsafe {
+        &*(code as *const libffi::high::FnPtr2<*const i8, f32, ()>)
+            .cast::<unsafe extern "C" fn(*const i8, f32)>()
+    };
     std::mem::forget(callback);
     unsafe { libpd_sys::libpd_set_queued_floathook(Some(*ptr)) };
 }
@@ -1089,27 +1200,33 @@ pub fn on_float<F: FnMut(&str, f32) + Send + Sync + 'static>(mut user_provided_c
 ///
 /// # Example
 /// ```rust
-/// // This is an example, handle the result properly here..
-/// let foo_receiver_handle = start_listening_from("foo").unwrap();
-/// let bar_receiver_handle = start_listening_from("bar").unwrap();
-/// on_double(|source: &str, value: f32| {
+/// # use libpd_rs::mirror::*;
+/// # init();
+///
+/// on_double(|source: &str, value: f64| {
 ///   match source {
-///     "foo" => println!("Received a float from foo, value is: {value}"),   
-///     "bar" => println!("Received a float from bar, value is: {value}"),
+///     "foo" =>  println!("Received a float from foo, value is: {value}"),  
+///     "bar" =>  println!("Received a float from bar, value is: {value}"),
 ///      _ => unreachable!(),
 ///   }
 /// });
+///
+/// let foo_receiver_handle = start_listening_from("foo").unwrap();
+/// let bar_receiver_handle = start_listening_from("bar").unwrap();
 /// ```
 pub fn on_double<F: FnMut(&str, f64) + Send + Sync + 'static>(mut user_provided_closure: F) {
     let closure: &'static mut _ = Box::leak(Box::new(
         move |source: *const std::os::raw::c_char, double: f64| {
-            let source = unsafe { CStr::from_ptr(source).to_str().unwrap() };
+            let source = unsafe { CStr::from_ptr(source).to_str().expect(C_STR_FAILURE) };
             user_provided_closure(source, double);
         },
     ));
     let callback = ClosureMut2::new(closure);
     let code = callback.code_ptr();
-    let ptr: &_ = unsafe { std::mem::transmute(code) };
+    let ptr: &_ = unsafe {
+        &*(code as *const libffi::high::FnPtr2<*const i8, f64, ()>)
+            .cast::<unsafe extern "C" fn(*const i8, f64)>()
+    };
     std::mem::forget(callback);
     unsafe { libpd_sys::libpd_set_queued_doublehook(Some(*ptr)) };
 }
@@ -1120,39 +1237,89 @@ pub fn on_double<F: FnMut(&str, f64) + Send + Sync + 'static>(mut user_provided_
 ///
 /// # Example
 /// ```rust
-/// // This is an example, handle the result properly here..
-/// let foo_receiver_handle = start_listening_from("foo").unwrap();
-/// let bar_receiver_handle = start_listening_from("bar").unwrap();
-/// on_symbol(|source: &str, value: &str| {
+/// # use libpd_rs::mirror::*;
+/// # init();
+///
+/// on_symbol(|source: &str, symbol: &str| {
 ///   match source {
-///     "foo" => println!("Received a float from foo, value is: {value}"),   
-///     "bar" => println!("Received a float from bar, value is: {value}"),
+///     "foo" =>  println!("Received a float from foo, value is: {symbol}"),  
+///     "bar" =>  println!("Received a float from bar, value is: {symbol}"),
 ///      _ => unreachable!(),
 ///   }
 /// });
+///
+/// let foo_receiver_handle = start_listening_from("foo").unwrap();
+/// let bar_receiver_handle = start_listening_from("bar").unwrap();
 /// ```
 pub fn on_symbol<F: FnMut(&str, &str) + Send + Sync + 'static>(mut user_provided_closure: F) {
     let closure: &'static mut _ = Box::leak(Box::new(
         move |source: *const std::os::raw::c_char, symbol: *const std::os::raw::c_char| {
-            let source = unsafe { CStr::from_ptr(source).to_str().unwrap() };
-            let symbol = unsafe { CStr::from_ptr(symbol).to_str().unwrap() };
+            let source = unsafe { CStr::from_ptr(source).to_str().expect(C_STR_FAILURE) };
+            let symbol = unsafe { CStr::from_ptr(symbol).to_str().expect(C_STR_FAILURE) };
             user_provided_closure(source, symbol);
         },
     ));
     let callback = ClosureMut2::new(closure);
     let code = callback.code_ptr();
-    let ptr: &_ = unsafe { std::mem::transmute(code) };
+    let ptr: &_ = unsafe {
+        &*(code as *const libffi::high::FnPtr2<*const i8, *const i8, ()>)
+            .cast::<unsafe extern "C" fn(*const i8, *const i8)>()
+    };
     std::mem::forget(callback);
     unsafe { libpd_sys::libpd_set_queued_symbolhook(Some(*ptr)) };
 }
 
-// TODO: Document
+// TODO: Revisit after finishing all atom impls.
+/// Sets a closure to be called when a list is received from a subscribed receiver
+///
+/// Do not register this listener while pd DSP is running.
+///
+/// # Example
+/// ```rust
+/// # use libpd_rs::mirror::*;
+/// # use libpd_rs::types::*;
+/// # init();
+/// on_list(|source: &str, list: &[Atom]| match source {
+///     "foo" => {
+///         for atom in list {
+///             match atom {
+///                 Atom::Float(value) => {
+///                     println!("Received a float from foo, value is: {value}")
+///                 }
+///                 Atom::Symbol(value) => {
+///                     println!("Received a symbol from foo, value is: {value}")
+///                 }
+///                 _ => unimplemented!(),
+///             }
+///         }
+///     }
+///     "bar" => {
+///         for atom in list {
+///             match atom {
+///                 Atom::Float(value) => {
+///                     println!("Received a float from bar, value is: {value}")
+///                 }
+///                 Atom::Symbol(value) => {
+///                     println!("Received a symbol from bar, value is: {value}")
+///                 }
+///                 _ => unimplemented!(),
+///             }
+///         }
+///     }
+///     _ => unreachable!(),
+/// });
+///
+/// let foo_receiver_handle = start_listening_from("foo").unwrap();
+/// let bar_receiver_handle = start_listening_from("bar").unwrap();
+/// ```
 pub fn on_list<F: FnMut(&str, &[Atom]) + Send + Sync + 'static>(mut user_provided_closure: F) {
     let closure: &'static mut _ = Box::leak(Box::new(
         move |source: *const std::os::raw::c_char,
               list_length: i32,
               atom_list: *mut libpd_sys::t_atom| {
-            let source = unsafe { CStr::from_ptr(source).to_str().unwrap() };
+            let source = unsafe { CStr::from_ptr(source).to_str().expect(C_STR_FAILURE) };
+            // It is practically impossible that this list will have a negative size or a size of millions so this is safe.
+            #[allow(clippy::cast_sign_loss)]
             let atom_list = unsafe { std::slice::from_raw_parts(atom_list, list_length as usize) };
             let atoms = make_atom_list_from_t_atom_list!(atom_list);
             user_provided_closure(source, &atoms);
@@ -1160,12 +1327,55 @@ pub fn on_list<F: FnMut(&str, &[Atom]) + Send + Sync + 'static>(mut user_provide
     ));
     let callback = ClosureMut3::new(closure);
     let code = callback.code_ptr();
-    let ptr: &_ = unsafe { std::mem::transmute(code) };
+    let ptr: &_ = unsafe {
+        &*(code as *const libffi::high::FnPtr3<*const i8, i32, *mut libpd_sys::_atom, ()>)
+            .cast::<unsafe extern "C" fn(*const i8, i32, *mut libpd_sys::_atom)>()
+    };
     std::mem::forget(callback);
     unsafe { libpd_sys::libpd_set_queued_listhook(Some(*ptr)) };
 }
 
-// TODO: Document
+// TODO: Revisit after finishing all atom impls.
+// TODO: Can we receive messages here without binding??
+
+/// Sets a closure to be called when a typed message is received from a subscribed receiver
+///
+/// In a message like [; foo hello 1.0 merhaba] which is sent from the patch,
+///
+/// The arguments of the closure would be:
+///
+/// ```sh
+/// source: "foo"
+/// message: "hello"
+/// values: [Atom::Float(1.0), Atom::Symbol("merhaba")]
+/// ```
+///
+/// Do not register this listener while pd DSP is running.
+///
+/// # Example
+/// ```rust
+/// # use libpd_rs::mirror::*;
+/// # use libpd_rs::types::*;
+/// # init();
+/// on_message(|source: &str, message: &str, values: &[Atom]| match source {
+///     "foo" => {
+///         println!("Received a message from foo, message is: {message}");
+///         for atom in values {
+///             match atom {
+///                 Atom::Float(value) => {
+///                     println!("In message, {message}, a float value is: {value}")
+///                 }
+///                 Atom::Symbol(value) => {
+///                     println!("In message, {message}, a symbol value is: {value}")
+///                 }
+///                 _ => unimplemented!(),
+///             }
+///         }
+///     }
+///     _ => unreachable!(),
+/// });
+/// let foo_receiver_handle = start_listening_from("foo").unwrap();
+/// ```
 pub fn on_message<F: FnMut(&str, &str, &[Atom]) + Send + Sync + 'static>(
     mut user_provided_closure: F,
 ) {
@@ -1174,8 +1384,10 @@ pub fn on_message<F: FnMut(&str, &str, &[Atom]) + Send + Sync + 'static>(
               message: *const std::os::raw::c_char,
               list_length: i32,
               atom_list: *mut libpd_sys::t_atom| {
-            let source = unsafe { CStr::from_ptr(source).to_str().unwrap() };
-            let message = unsafe { CStr::from_ptr(message).to_str().unwrap() };
+            let source = unsafe { CStr::from_ptr(source).to_str().expect(C_STR_FAILURE) };
+            let message = unsafe { CStr::from_ptr(message).to_str().expect(C_STR_FAILURE) };
+            // It is practically impossible that this list will have a negative size or a size of millions so this is safe.
+            #[allow(clippy::cast_sign_loss)]
             let atom_list = unsafe { std::slice::from_raw_parts(atom_list, list_length as usize) };
             let atoms = make_atom_list_from_t_atom_list!(atom_list);
             user_provided_closure(source, message, &atoms);
@@ -1183,7 +1395,16 @@ pub fn on_message<F: FnMut(&str, &str, &[Atom]) + Send + Sync + 'static>(
     ));
     let callback = ClosureMut4::new(closure);
     let code = callback.code_ptr();
-    let ptr: &_ = unsafe { std::mem::transmute(code) };
+    let ptr: &_ = unsafe {
+        &*(code as *const libffi::high::FnPtr4<
+            *const i8,
+            *const i8,
+            i32,
+            *mut libpd_sys::_atom,
+            (),
+        >)
+            .cast::<unsafe extern "C" fn(*const i8, *const i8, i32, *mut libpd_sys::_atom)>()
+    };
     std::mem::forget(callback);
     unsafe { libpd_sys::libpd_set_queued_messagehook(Some(*ptr)) };
 }
@@ -1193,10 +1414,9 @@ pub fn on_message<F: FnMut(&str, &str, &[Atom]) + Send + Sync + 'static>(
 /// This should be called repeatedly in the **application's main loop** to fetch messages from pd.
 ///
 /// # Example
-/// ```rust
-/// // This is an example, handle the result properly here..
-/// let foo_receiver_handle = start_listening_from("foo").unwrap();
-/// let bar_receiver_handle = start_listening_from("bar").unwrap();
+/// ```no_run
+/// # use libpd_rs::mirror::*;
+/// # use libpd_rs::types::*;
 /// on_symbol(|source: &str, value: &str| {
 ///   match source {
 ///     "foo" => println!("Received a float from foo, value is: {value}"),   
@@ -1204,6 +1424,10 @@ pub fn on_message<F: FnMut(&str, &str, &[Atom]) + Send + Sync + 'static>(
 ///      _ => unreachable!(),
 ///   }
 /// });
+///
+/// let foo_receiver_handle = start_listening_from("foo").unwrap();
+/// let bar_receiver_handle = start_listening_from("bar").unwrap();
+///
 /// loop {
 ///     receive_messages_from_pd();
 /// }
@@ -1301,7 +1525,13 @@ pub fn on_midi_note_on<F: FnMut(i32, i32, i32) + Send + Sync + 'static>(
         }));
     let callback = ClosureMut3::new(closure);
     let code = callback.code_ptr();
-    let ptr: &_ = unsafe { std::mem::transmute(code) };
+    let ptr: &_ = unsafe {
+        &*(code as *const libffi::high::FnPtr3<i32, i32, i32, ()>).cast::<unsafe extern "C" fn(
+            i32,
+            i32,
+            i32,
+        )>()
+    };
     std::mem::forget(callback);
     unsafe { libpd_sys::libpd_set_queued_noteonhook(Some(*ptr)) };
 }
@@ -1320,7 +1550,13 @@ pub fn on_midi_control_change<F: FnMut(i32, i32, i32) + Send + Sync + 'static>(
     ));
     let callback = ClosureMut3::new(closure);
     let code = callback.code_ptr();
-    let ptr: &_ = unsafe { std::mem::transmute(code) };
+    let ptr: &_ = unsafe {
+        &*(code as *const libffi::high::FnPtr3<i32, i32, i32, ()>).cast::<unsafe extern "C" fn(
+            i32,
+            i32,
+            i32,
+        )>()
+    };
     std::mem::forget(callback);
     unsafe { libpd_sys::libpd_set_queued_controlchangehook(Some(*ptr)) };
 }
@@ -1337,7 +1573,10 @@ pub fn on_midi_program_change<F: FnMut(i32, i32) + Send + Sync + 'static>(
     }));
     let callback = ClosureMut2::new(closure);
     let code = callback.code_ptr();
-    let ptr: &_ = unsafe { std::mem::transmute(code) };
+    let ptr: &_ = unsafe {
+        &*(code as *const libffi::high::FnPtr2<i32, i32, ()>)
+            .cast::<unsafe extern "C" fn(i32, i32)>()
+    };
     std::mem::forget(callback);
     unsafe { libpd_sys::libpd_set_queued_programchangehook(Some(*ptr)) };
 }
@@ -1355,7 +1594,10 @@ pub fn on_midi_pitch_bend<F: FnMut(i32, i32) + Send + Sync + 'static>(
     }));
     let callback = ClosureMut2::new(closure);
     let code = callback.code_ptr();
-    let ptr: &_ = unsafe { std::mem::transmute(code) };
+    let ptr: &_ = unsafe {
+        &*(code as *const libffi::high::FnPtr2<i32, i32, ()>)
+            .cast::<unsafe extern "C" fn(i32, i32)>()
+    };
     std::mem::forget(callback);
     unsafe { libpd_sys::libpd_set_queued_pitchbendhook(Some(*ptr)) };
 }
@@ -1372,7 +1614,10 @@ pub fn on_midi_after_touch<F: FnMut(i32, i32) + Send + Sync + 'static>(
     }));
     let callback = ClosureMut2::new(closure);
     let code = callback.code_ptr();
-    let ptr: &_ = unsafe { std::mem::transmute(code) };
+    let ptr: &_ = unsafe {
+        &*(code as *const libffi::high::FnPtr2<i32, i32, ()>)
+            .cast::<unsafe extern "C" fn(i32, i32)>()
+    };
     std::mem::forget(callback);
     unsafe { libpd_sys::libpd_set_queued_aftertouchhook(Some(*ptr)) };
 }
@@ -1390,7 +1635,13 @@ pub fn on_midi_poly_after_touch<F: FnMut(i32, i32, i32) + Send + Sync + 'static>
         }));
     let callback = ClosureMut3::new(closure);
     let code = callback.code_ptr();
-    let ptr: &_ = unsafe { std::mem::transmute(code) };
+    let ptr: &_ = unsafe {
+        &*(code as *const libffi::high::FnPtr3<i32, i32, i32, ()>).cast::<unsafe extern "C" fn(
+            i32,
+            i32,
+            i32,
+        )>()
+    };
     std::mem::forget(callback);
     unsafe { libpd_sys::libpd_set_queued_polyaftertouchhook(Some(*ptr)) };
 }
@@ -1404,7 +1655,10 @@ pub fn on_midi_byte<F: FnMut(i32, i32) + Send + Sync + 'static>(mut user_provide
     }));
     let callback = ClosureMut2::new(closure);
     let code = callback.code_ptr();
-    let ptr: &_ = unsafe { std::mem::transmute(code) };
+    let ptr: &_ = unsafe {
+        &*(code as *const libffi::high::FnPtr2<i32, i32, ()>)
+            .cast::<unsafe extern "C" fn(i32, i32)>()
+    };
     std::mem::forget(callback);
     unsafe { libpd_sys::libpd_set_queued_midibytehook(Some(*ptr)) };
 }
@@ -1414,7 +1668,9 @@ pub fn on_midi_byte<F: FnMut(i32, i32) + Send + Sync + 'static>(mut user_provide
 /// This should be called repeatedly in the **application's main loop** to fetch midi messages from pd.
 ///
 /// # Example
-/// ```rust
+/// ```no_run
+/// # use libpd_rs::mirror::*;
+/// # use libpd_rs::types::*;
 /// on_midi_byte(|port: i32, byte: i32| {
 ///     println!("{port}, {byte}");
 /// });
@@ -1433,19 +1689,19 @@ pub fn receive_midi_messages_from_pd() {
 /// requires the path to pd's main folder that contains bin/, tcl/, etc
 /// for a macOS .app bundle: /path/to/Pd-#.#-#.app/Contents/Resources
 /// returns 0 on success
-pub fn start_gui(path_to_pd: &std::path::Path) -> Result<(), IoError> {
+pub fn start_gui(path_to_pd: &std::path::Path) -> Result<(), LibpdError> {
     if path_to_pd.exists() {
         let path_to_pd = path_to_pd.to_string_lossy();
-        let path_to_pd = CString::new(path_to_pd.as_ref()).unwrap();
+        let path_to_pd = CString::new(path_to_pd.as_ref()).expect(C_STRING_FAILURE);
         unsafe {
             match libpd_sys::libpd_start_gui(path_to_pd.as_ptr()) {
                 0 => return Ok(()),
                 // TODO: This can be a different error.
-                _ => return Err(IoError::FailedToOpenGui),
+                _ => return Err(LibpdError::IoError(IoError::FailedToOpenGui)),
             }
         }
     }
-    Err(IoError::FailedToOpenGui)
+    Err(LibpdError::IoError(IoError::FailedToOpenGui))
 }
 
 /// stop the pd vanilla GUI
@@ -1533,9 +1789,10 @@ pub fn poll_gui() -> Option<()> {
 
 /// Sets the flag for the functionality of verbose printing to the pd console
 pub fn verbose_print_state(active: bool) {
-    match active {
-        true => unsafe { libpd_sys::libpd_set_verbose(1) },
-        false => unsafe { libpd_sys::libpd_set_verbose(0) },
+    if active {
+        unsafe { libpd_sys::libpd_set_verbose(1) }
+    } else {
+        unsafe { libpd_sys::libpd_set_verbose(0) }
     }
 }
 
@@ -1679,7 +1936,7 @@ pub fn verbose_print_state_active() -> bool {
 
 //             libpd_sys::libpd_queued_init();
 //             libpd_sys::libpd_set_queued_floathook(Some(float_hook));
-//             let r = CString::new("simple_float").unwrap();
+//             let r = CString::new("simple_float").expect(C_STRING_FAILURE);
 //             let rp = libpd_sys::libpd_bind(r.as_ptr());
 //             let status = libpd_sys::libpd_init_audio(1, 2, 44100);
 //             assert_eq!(status, 0);
@@ -1689,13 +1946,13 @@ pub fn verbose_print_state_active() -> bool {
 
 //             libpd_sys::libpd_start_message(1);
 //             libpd_sys::libpd_add_float(1.0);
-//             let msg = CString::new("pd").unwrap();
-//             let recv = CString::new("dsp").unwrap();
+//             let msg = CString::new("pd").expect(C_STRING_FAILURE);
+//             let recv = CString::new("dsp").expect(C_STRING_FAILURE);
 //             libpd_sys::libpd_finish_message(msg.as_ptr(), recv.as_ptr());
 
 //             let project_root = std::env::current_dir().unwrap();
-//             let name = CString::new("simple.pd").unwrap();
-//             let directory = CString::new(project_root.to_str().unwrap()).unwrap();
+//             let name = CString::new("simple.pd").expect(C_STRING_FAILURE);
+//             let directory = CString::new(project_root.to_str().unwrap()).expect(C_STRING_FAILURE);
 //             let file_handle = libpd_sys::libpd_openfile(name.as_ptr(), directory.as_ptr());
 
 //             let input_buffer = [0.0f32; 64];

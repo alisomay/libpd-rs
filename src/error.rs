@@ -55,18 +55,19 @@ pub enum SizeError {
     // Add more errors here..
 }
 
+// TODO: Renew this error explanations.
 #[derive(Error, Debug)]
 pub enum LibpdError {
     #[error("Error in initialization.")]
     InitializationError(InitializationError),
-    #[error("Error in initialization.")]
+    #[error("Error in I/O.")]
     IoError(IoError),
-    #[error("Error in initialization.")]
+    #[error("Error in accessing files.")]
     FileSystemError(FileSystemError),
-    #[error("Error in initialization.")]
+    #[error("Error in sending data to pd.")]
     SendError(SendError),
-    #[error("Error in initialization.")]
+    #[error("Error in subscribing pd senders.")]
     SubscriptionError(SubscriptionError),
-    #[error("Error in initialization.")]
+    #[error("Error in sizes.")]
     SizeError(SizeError),
 }

@@ -1,9 +1,9 @@
-use crate::error::{IoError, LibpdError, SendError};
+// TODO: Improve this
+
+use crate::error::LibpdError;
 use crate::mirror::{
-    add_float_to_started_message, close_patch, finish_message_as_typed_message_and_send_to, init,
-    open_patch, start_message,
+    add_float_to_started_message, finish_message_as_typed_message_and_send_to, start_message,
 };
-use crate::types::{Atom, PatchFileHandle};
 
 pub fn dsp_on() -> Result<(), LibpdError> {
     start_message(1)?;

@@ -41,22 +41,22 @@ pub enum Atom {
 
 impl From<f32> for Atom {
     fn from(f: f32) -> Self {
-        Atom::Float(f)
+        Self::Float(f)
     }
 }
 impl From<f64> for Atom {
     fn from(d: f64) -> Self {
-        Atom::Double(d)
+        Self::Double(d)
     }
 }
 impl From<String> for Atom {
     fn from(s: String) -> Self {
-        Atom::Symbol(s)
+        Self::Symbol(s)
     }
 }
 impl From<&str> for Atom {
     fn from(s: &str) -> Self {
-        Atom::Symbol(s.to_owned())
+        Self::Symbol(s.to_owned())
     }
 }
 
@@ -74,9 +74,10 @@ impl std::fmt::Display for Atom {
     }
 }
 
+#[derive(Debug)]
 pub struct PatchFileHandle(usize);
 impl PatchFileHandle {
-    pub(crate) fn as_mut_ptr(&self) -> *mut std::os::raw::c_void {
+    pub(crate) const fn as_mut_ptr(&self) -> *mut std::os::raw::c_void {
         self.0 as *mut std::os::raw::c_void
     }
 }
@@ -95,13 +96,9 @@ impl Into<*mut std::os::raw::c_void> for PatchFileHandle {
     }
 }
 
+#[derive(Debug)]
 pub struct ReceiverHandle(usize);
 
-impl ReceiverHandle {
-    pub(crate) fn as_mut_ptr(&self) -> *mut std::os::raw::c_void {
-        self.0 as *mut std::os::raw::c_void
-    }
-}
 impl From<*mut std::os::raw::c_void> for ReceiverHandle {
     fn from(ptr: *mut std::os::raw::c_void) -> Self {
         Self(ptr as usize)

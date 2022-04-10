@@ -1,18 +1,18 @@
+#![allow(
+    clippy::all,
+    clippy::pedantic,
+    clippy::restriction,
+    clippy::nursery,
+    clippy::cargo
+)]
+
 use std::{
     path::PathBuf,
     sync::{Arc, Mutex},
 };
 
-use libpd_sys::*;
-
 fn main() {
     unsafe {
-        let project_root = std::env::current_dir().unwrap();
-        let send = std::ffi::CString::new("simple_float").unwrap();
-        let bad = std::ffi::CString::new("sple_float").unwrap();
-        let name = std::ffi::CString::new("simple.pd").unwrap();
-        let dir = std::ffi::CString::new("/Users/vallahiboyle/Desktop/software/libpd-rs").unwrap();
-
         let mut v = Arc::new(Mutex::new(vec![]));
         // INIT ORDER
         // First set hooks
@@ -68,7 +68,8 @@ fn main() {
         let r = libpd_rs::mirror::start_listening_from("listy");
         let r = libpd_rs::mirror::start_listening_from("list_loopback_float");
         let r = libpd_rs::mirror::start_listening_from("list_loopback_symbol");
-
+        let r = libpd_rs::mirror::start_listening_from("AMK");
+        dbg!(r);
         // Run
         use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 
@@ -126,6 +127,12 @@ fn main() {
             )
             .unwrap();
         stream.play().unwrap();
+
+        let message_length = 4;
+        if libpd_rs::mirror::start_message(message_length).is_ok() {
+            libpd_rs::mirror::add_symbol_to_started_message("foo");
+            libpd_rs::mirror::add_symbol_to_started_message("foo");
+        }
 
         // loop {}
         // 44100
