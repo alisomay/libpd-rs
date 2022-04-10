@@ -13,7 +13,25 @@ keywords = ["puredata", "libpd", "audio", "midi", "bindings"]
 categories = ["multimedia"]
 
 [dependencies]
-libpd-sys = { git = "https://github.com/alisomay/libpd-sys" }
+# libpd-sys = { git = "https://github.com/alisomay/libpd-sys" }
+libpd-sys = { path = "../libpd-sys"}
 thiserror = "1.0.30"
-ffi_helpers= "0.3.0"
-libffi = "2.0.0"
+libffi = "3.0.0"
+cpal = "0.13.5"
+
+[dev-dependencies]
+cpal = "0.13.5"
+
+[lib]
+# name = "foo"           # The name of the target.
+# path = "src/lib.rs"    # The source file of the target.
+# test = true            # Is tested by default.
+doctest = false         # Documentation examples are tested by default.
+# bench = true           # Is benchmarked by default.
+doc = true             # Is documented by default.
+# plugin = false         # Used as a compiler plugin (deprecated).
+# proc-macro = false     # Set to `true` for a proc-macro library.
+# harness = true         # Use libtest harness.
+# edition = "2021"       # The edition of the target.
+# crate-type = ["lib"]   # The crate types to generate.
+# required-features = [] # Features required to build this target (N/A for lib).

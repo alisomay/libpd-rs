@@ -1,41 +1,56 @@
 pub mod error;
-pub mod pd;
+// pub mod pd;
 pub mod types;
-use error::{SizeError, SubscriptionError};
+use error::{FileSystemError, SizeError, SubscriptionError};
 use types::ReceiverHandle;
 
 use crate::error::{InitializationError, IoError, SendError};
 use crate::types::{Atom, PatchFileHandle};
-use libffi::high::{Closure1, Closure2, Closure3, Closure4};
+use libffi::high::{ClosureMut1, ClosureMut2, ClosureMut3, ClosureMut4};
 use std::ffi::{CStr, CString};
+use std::path::PathBuf;
+
+// TODO: Mention why only queued versions are implemented in the main doc.
 
 /// Initializes libpd.
 ///
 /// Support for multi instances of pd is not implemented yet.
 /// This function should be called before any other in this crate.
-/// It initializes libpd globally and it lives for 'static lifetime.
+/// It initializes libpd globally and also initializes ring buffers for internal message passing.
+/// Sets internal hooks. Then initializes `libpd` by calling the underlying
+/// C function which which is `libpd_init`.
+/// See `libpd_queued_init` function in (`z_queued.c`)[TODO: link here] to
+/// assess what it is doing.
 /// A second call to this function will return an error.
+///
 ///
 /// # Example
 /// ```rust
-/// assert_eq!(libpd_rs::init().is_ok(), true);
-/// assert_eq!(libpd_rs::init().is_err(), true);
+/// assert_eq!(libpd_rs::init_with_queue().is_ok(), true);
+/// assert_eq!(libpd_rs::init_with_queue().is_err(), true);
 /// ```
 pub fn init() -> Result<(), InitializationError> {
     unsafe {
-        match libpd_sys::libpd_init() {
+        match libpd_sys::libpd_queued_init() {
             0 => Ok(()),
             -1 => Err(InitializationError::AlreadyInitialized),
+            -2 => Err(InitializationError::RingBufferInitializationError),
             _ => Err(InitializationError::InitializationFailed),
         }
     }
 }
 
-// TODO: Queued functions are not implemented yet. Find out if they are necessary.
-// libpd_sys::libpd_queued_init;
-// libpd_sys::libpd_queued_release;
+#[allow(dead_code)]
+/// Frees the queued ring buffers.
+///
+/// Currently I don't see a necessity to call this function in any case.
+/// So it is kept private.
+fn release_internal_queues() {
+    unsafe {
+        libpd_sys::libpd_queued_release();
+    };
+}
 
-// TODO: Reference init function in a right way.
 /// Clears all the paths where libpd searches for patches and assets.
 ///
 /// This function is also called by `init`.
@@ -45,19 +60,26 @@ pub fn clear_search_paths() {
     }
 }
 
-/// Adds a path to the list of paths where libpd searches for patches and assets.
+/// Adds a path to the list of paths where libpd searches in.
 ///
 /// Relative paths are relative to the current working directory.
 /// Unlike the desktop pd application, **no** search paths are set by default.
-pub fn add_to_search_paths(path: &std::path::Path) {
+pub fn add_to_search_paths(path: &std::path::Path) -> Result<(), FileSystemError> {
+    if !path.exists() {
+        return Err(FileSystemError::PathDoesNotExist(
+            path.to_string_lossy().to_string(),
+        ));
+    }
     unsafe {
         let c_path = CString::new(&*path.to_string_lossy()).unwrap();
         libpd_sys::libpd_add_to_search_path(c_path.as_ptr());
+        Ok(())
     }
 }
 
 /// Opens a pd patch.
 ///
+/// The argument should be an absolute path to the patch file.
 /// It would be useful to keep the return value of this function.
 /// It can be used later to close it.
 ///
@@ -66,31 +88,66 @@ pub fn add_to_search_paths(path: &std::path::Path) {
 /// let patch_handle = libpd_rs::open_patch("test.pd").unwrap();
 /// ```
 pub fn open_patch(path_to_patch: &std::path::Path) -> Result<PatchFileHandle, IoError> {
-    if let Some(file_name) = path_to_patch.file_name() {
-        if let Some(file_name) = file_name.to_str() {
-            let parent_directory = path_to_patch
-                .parent()
-                .unwrap_or_else(|| std::path::Path::new("/"));
-            if let Some(parent_directory) = parent_directory.to_str() {
-                let name = CString::new(file_name).unwrap();
-                let directory = CString::new(parent_directory).unwrap();
-                unsafe {
-                    let file_handle = libpd_sys::libpd_openfile(name.as_ptr(), directory.as_ptr())
-                        as *mut std::os::raw::c_void;
-                    if file_handle.is_null() {
-                        Err(IoError::FailedToOpenPatch)
-                    } else {
-                        Ok(PatchFileHandle::from(file_handle))
-                    }
-                }
-            } else {
-                Err(IoError::FailedToOpenPatch)
-            }
+    let file_name = path_to_patch
+        .file_name()
+        .ok_or(error::IoError::FailedToOpenPatch)?;
+    let file_name = file_name.to_string_lossy();
+    let file_name = file_name.as_ref();
+    let parent_path = path_to_patch
+        .parent()
+        .unwrap_or_else(|| std::path::Path::new("/"));
+    let parent_path_string: String = parent_path.to_string_lossy().into();
+
+    // Assume absolute path.
+    let mut directory: String = parent_path_string.clone();
+
+    // "../some.pd" --> prepend working directory
+    if parent_path.is_relative() {
+        let mut app_dir = std::env::current_exe().map_err(|_| IoError::FailedToOpenPatch)?;
+        app_dir.pop();
+        app_dir.push(parent_path);
+        let parent_path_str = app_dir.to_string_lossy();
+        directory = parent_path_str.into();
+    }
+    // "some.pd" --> prepend working directory
+    if parent_path_string.is_empty() {
+        let mut app_dir = std::env::current_exe().map_err(|_| IoError::FailedToOpenPatch)?;
+        app_dir.pop();
+        app_dir.push(file_name);
+        let parent_path_str = app_dir.to_string_lossy();
+
+        if !app_dir.exists() {
+            // Try manifest dir.
+            directory = std::env!("CARGO_MANIFEST_DIR").into();
         } else {
-            Err(IoError::FailedToOpenPatch)
+            directory = parent_path_str.into();
         }
-    } else {
-        Err(IoError::FailedToOpenPatch)
+    }
+
+    // Invalid path.
+    let mut calculated_patch_path = PathBuf::new();
+    calculated_patch_path.push(&directory);
+    calculated_patch_path.push(file_name);
+
+    if !calculated_patch_path.exists() {
+        return Err(error::IoError::FailedToOpenPatch);
+        // TODO: Update returned errors when umbrella error type is in action.
+        // return Err(FileSystemError::PathDoesNotExist(
+        //     path.to_string_lossy().to_string(),
+        // ));
+    }
+    // All good.
+    unsafe {
+        let name = CString::new(file_name).unwrap();
+        let directory = CString::new(directory).unwrap();
+        dbg!(&name, &directory);
+        let file_handle = libpd_sys::libpd_openfile(name.as_ptr(), directory.as_ptr())
+            // TODO: Change this once PatchFileHandle is updated.
+            as *mut std::os::raw::c_void;
+        if file_handle.is_null() {
+            return Err(IoError::FailedToOpenPatch);
+        }
+        Ok(PatchFileHandle::from(file_handle))
     }
 }
 
@@ -281,7 +338,7 @@ pub fn send_bang_to<T: AsRef<str>>(receiver: T) -> Result<(), SendError> {
 }
 
 // TODO: This function takes a float instead of a double.
-// TODO: Does pd also support doubles?
+// TODO: Does pd also support doubles? (I suppose currently not but I might include an explanation here.)
 
 /// Sends a float value to the pd receiver object specified in the `receiver` argument
 ///
@@ -560,8 +617,9 @@ pub fn start_listening_from<T: AsRef<str>>(sender: T) -> Result<ReceiverHandle, 
 
 /// Unsubscribes from messages sent to the receiver in the loaded pd patch
 ///
-/// `stop_listening_from("foo")` would remove the virtual `|r foo|`.
-///  Messages can not be received from this receiver anymore.
+///`stop_listening_from("foo")` would **remove** the virtual `|r foo|`.
+///  
+/// Then, messages can not be received from this receiver anymore.
 ///
 /// # Example
 /// ```rust
@@ -608,18 +666,18 @@ pub fn source_to_listen_from_exists<T: AsRef<str>>(sender: T) -> bool {
 ///  println!("pd is printing: {msg}");
 /// });
 /// ```
-pub fn on_print<F: Fn(&str) + Send + Sync + 'static>(user_provided_closure: F) {
-    let closure: &'static _ = Box::leak(Box::new(move |out: *const std::os::raw::c_char| {
+pub fn on_print<F: FnMut(&str) + Send + Sync + 'static>(mut user_provided_closure: F) {
+    let closure: &'static mut _ = Box::leak(Box::new(move |out: *const std::os::raw::c_char| {
         let out = unsafe { CStr::from_ptr(out).to_str().unwrap() };
         user_provided_closure(out);
     }));
-    let callback = Closure1::new(closure);
+    let callback = ClosureMut1::new(closure);
     let code = callback.code_ptr();
     let ptr: &_ = unsafe { std::mem::transmute(code) };
     std::mem::forget(callback);
     unsafe {
         // Always concatenate
-        libpd_sys::libpd_set_printhook(Some(libpd_sys::libpd_print_concatenator));
+        libpd_sys::libpd_set_queued_printhook(Some(libpd_sys::libpd_print_concatenator));
         libpd_sys::libpd_set_concatenated_printhook(Some(*ptr));
     };
 }
@@ -641,12 +699,13 @@ pub fn on_print<F: Fn(&str) + Send + Sync + 'static>(user_provided_closure: F) {
 ///   }
 /// });
 /// ```
-pub fn on_bang<F: Fn(&str) + Send + Sync + 'static>(user_provided_closure: F) {
-    let closure: &'static _ = Box::leak(Box::new(move |source: *const std::os::raw::c_char| {
-        let source = unsafe { CStr::from_ptr(source).to_str().unwrap() };
-        user_provided_closure(source);
-    }));
-    let callback = Closure1::new(closure);
+pub fn on_bang<F: FnMut(&str) + Send + Sync + 'static>(mut user_provided_closure: F) {
+    let closure: &'static mut _ =
+        Box::leak(Box::new(move |source: *const std::os::raw::c_char| {
+            let source = unsafe { CStr::from_ptr(source).to_str().unwrap() };
+            user_provided_closure(source);
+        }));
+    let callback = ClosureMut1::new(closure);
     let code = callback.code_ptr();
     let ptr: &_ = unsafe { std::mem::transmute(code) };
     std::mem::forget(callback);
@@ -670,18 +729,18 @@ pub fn on_bang<F: Fn(&str) + Send + Sync + 'static>(user_provided_closure: F) {
 ///   }
 /// });
 /// ```
-pub fn on_float<F: Fn(&str, f32) + Send + Sync + 'static>(user_provided_closure: F) {
-    let closure: &'static _ = Box::leak(Box::new(
+pub fn on_float<F: FnMut(&str, f32) + Send + Sync + 'static>(mut user_provided_closure: F) {
+    let closure: &'static mut _ = Box::leak(Box::new(
         move |source: *const std::os::raw::c_char, float: f32| {
             let source = unsafe { CStr::from_ptr(source).to_str().unwrap() };
             user_provided_closure(source, float);
         },
     ));
-    let callback = Closure2::new(closure);
+    let callback = ClosureMut2::new(closure);
     let code = callback.code_ptr();
     let ptr: &_ = unsafe { std::mem::transmute(code) };
     std::mem::forget(callback);
-    unsafe { libpd_sys::libpd_set_floathook(Some(*ptr)) };
+    unsafe { libpd_sys::libpd_set_queued_floathook(Some(*ptr)) };
 }
 
 /// Sets a closure to be called when a symbol is received from a subscribed receiver
@@ -701,49 +760,49 @@ pub fn on_float<F: Fn(&str, f32) + Send + Sync + 'static>(user_provided_closure:
 ///   }
 /// });
 /// ```
-pub fn on_symbol<F: Fn(&str, &str) + Send + Sync + 'static>(user_provided_closure: F) {
-    let closure: &'static _ = Box::leak(Box::new(
+pub fn on_symbol<F: FnMut(&str, &str) + Send + Sync + 'static>(mut user_provided_closure: F) {
+    let closure: &'static mut _ = Box::leak(Box::new(
         move |source: *const std::os::raw::c_char, symbol: *const std::os::raw::c_char| {
             let source = unsafe { CStr::from_ptr(source).to_str().unwrap() };
             let symbol = unsafe { CStr::from_ptr(symbol).to_str().unwrap() };
             user_provided_closure(source, symbol);
         },
     ));
-    let callback = Closure2::new(closure);
+    let callback = ClosureMut2::new(closure);
     let code = callback.code_ptr();
     let ptr: &_ = unsafe { std::mem::transmute(code) };
     std::mem::forget(callback);
-    unsafe { libpd_sys::libpd_set_symbolhook(Some(*ptr)) };
+    unsafe { libpd_sys::libpd_set_queued_symbolhook(Some(*ptr)) };
 }
 
 // TODO: Re-document and check this after re-visiting atom list implementation.
-pub fn on_list<F: Fn(&str, i32, &[Atom]) + Send + Sync + 'static>(user_provided_closure: F) {
-    let closure: &'static _ = Box::leak(Box::new(
+pub fn on_list<F: FnMut(&str, i32, &[Atom]) + Send + Sync + 'static>(mut user_provided_closure: F) {
+    let closure: &'static mut _ = Box::leak(Box::new(
         move |source: *const std::os::raw::c_char,
               list_length: i32,
               atom_list: *mut libpd_sys::t_atom| {
             let source = unsafe { CStr::from_ptr(source).to_str().unwrap() };
             unsafe {
-                let atoms: Vec<libpd_sys::t_atom> =
-                    Vec::from_raw_parts(atom_list, list_length as usize, list_length as usize);
-                let wrapped_atoms: Vec<Atom> =
-                    atoms.iter().map(|t_atom| Atom::from(*t_atom)).collect();
-                user_provided_closure(source, list_length, &wrapped_atoms);
+                let mut atoms: Vec<Atom> = vec![];
+                for index in 0..list_length {
+                    atoms.push(Atom::from(*atom_list.offset(index as isize)));
+                }
+                user_provided_closure(source, list_length, &atoms);
             };
         },
     ));
-    let callback = Closure3::new(closure);
+    let callback = ClosureMut3::new(closure);
     let code = callback.code_ptr();
     let ptr: &_ = unsafe { std::mem::transmute(code) };
     std::mem::forget(callback);
-    unsafe { libpd_sys::libpd_set_listhook(Some(*ptr)) };
+    unsafe { libpd_sys::libpd_set_queued_listhook(Some(*ptr)) };
 }
 
 // TODO: Re-document and check this after re-visiting atom list implementation.
-pub fn on_message<F: Fn(&str, &str, i32, &[Atom]) + Send + Sync + 'static>(
-    user_provided_closure: F,
+pub fn on_message<F: FnMut(&str, &str, i32, &[Atom]) + Send + Sync + 'static>(
+    mut user_provided_closure: F,
 ) {
-    let closure: &'static _ = Box::leak(Box::new(
+    let closure: &'static mut _ = Box::leak(Box::new(
         move |source: *const std::os::raw::c_char,
               message: *const std::os::raw::c_char,
               list_length: i32,
@@ -759,21 +818,36 @@ pub fn on_message<F: Fn(&str, &str, i32, &[Atom]) + Send + Sync + 'static>(
             };
         },
     ));
-    let callback = Closure4::new(closure);
+    let callback = ClosureMut4::new(closure);
     let code = callback.code_ptr();
     let ptr: &_ = unsafe { std::mem::transmute(code) };
     std::mem::forget(callback);
-    unsafe { libpd_sys::libpd_set_messagehook(Some(*ptr)) };
+    unsafe { libpd_sys::libpd_set_queued_messagehook(Some(*ptr)) };
 }
 
-// TODO: Find out if there is a necessity to implement the queued ones, currently don't see any need.
-
-// libpd_sys::libpd_set_queued_banghook;
-// libpd_sys::libpd_set_queued_listhook;
-// libpd_sys::libpd_set_queued_messagehook;
-// libpd_sys::libpd_set_queued_printhook;
-// libpd_sys::libpd_set_queued_symbolhook;
-// libpd_sys::libpd_queued_receive_pd_messages;
+/// Receive messages from pd message queue.
+///
+/// This should be called repeatedly in the **application's main loop** to fetch messages from pd.
+///
+/// # Example
+/// ```rust
+/// // This is an example, handle the result properly here..
+/// let foo_receiver_handle = start_listening_from("foo").unwrap();
+/// let bar_receiver_handle = start_listening_from("bar").unwrap();
+/// on_symbol(|source: &str, value: &str| {
+///   match source {
+///     "foo" => println!("Received a float from foo, value is: {value}"),   
+///     "bar" => println!("Received a float from bar, value is: {value}"),
+///      _ => unreachable!(),
+///   }
+/// });
+/// loop {
+///     receive_messages_from_pd();
+/// }
+/// ```
+pub fn receive_messages_from_pd() {
+    unsafe { libpd_sys::libpd_queued_receive_pd_messages() };
+}
 
 // @attention Stayed here..
 
@@ -855,50 +929,54 @@ pub fn send_sys_realtime(port: i32, byte: i32) {
 /// channels encode MIDI ports via: libpd_channel = pd_channel + 16 * pd_port
 /// note: there is no note off message, note on w/ velocity = 0 is used instead
 /// note: out of range values from pd are clamped
-pub fn on_midi_note_on<F: Fn(i32, i32, i32) + Send + Sync + 'static>(user_provided_closure: F) {
-    let closure: &'static _ =
+pub fn on_midi_note_on<F: FnMut(i32, i32, i32) + Send + Sync + 'static>(
+    mut user_provided_closure: F,
+) {
+    let closure: &'static mut _ =
         Box::leak(Box::new(move |channel: i32, pitch: i32, velocity: i32| {
             user_provided_closure(channel, pitch, velocity);
         }));
-    let callback = Closure3::new(closure);
+    let callback = ClosureMut3::new(closure);
     let code = callback.code_ptr();
     let ptr: &_ = unsafe { std::mem::transmute(code) };
     std::mem::forget(callback);
-    unsafe { libpd_sys::libpd_set_noteonhook(Some(*ptr)) };
+    unsafe { libpd_sys::libpd_set_queued_noteonhook(Some(*ptr)) };
 }
 
 /// MIDI control change receive hook signature
 /// channel is 0-indexed, controller is 0-127, and value is 0-127
 /// channels encode MIDI ports via: libpd_channel = pd_channel + 16 * pd_port
 /// note: out of range values from pd are clamped
-pub fn on_midi_control_change<F: Fn(i32, i32, i32) + Send + Sync + 'static>(
-    user_provided_closure: F,
+pub fn on_midi_control_change<F: FnMut(i32, i32, i32) + Send + Sync + 'static>(
+    mut user_provided_closure: F,
 ) {
-    let closure: &'static _ = Box::leak(Box::new(
+    let closure: &'static mut _ = Box::leak(Box::new(
         move |channel: i32, controller: i32, value: i32| {
             user_provided_closure(channel, controller, value);
         },
     ));
-    let callback = Closure3::new(closure);
+    let callback = ClosureMut3::new(closure);
     let code = callback.code_ptr();
     let ptr: &_ = unsafe { std::mem::transmute(code) };
     std::mem::forget(callback);
-    unsafe { libpd_sys::libpd_set_controlchangehook(Some(*ptr)) };
+    unsafe { libpd_sys::libpd_set_queued_controlchangehook(Some(*ptr)) };
 }
 
 /// MIDI program change receive hook signature
 /// channel is 0-indexed and value is 0-127
 /// channels encode MIDI ports via: libpd_channel = pd_channel + 16 * pd_port
 /// note: out of range values from pd are clamped
-pub fn on_midi_program_change<F: Fn(i32, i32) + Send + Sync + 'static>(user_provided_closure: F) {
-    let closure: &'static _ = Box::leak(Box::new(move |channel: i32, value: i32| {
+pub fn on_midi_program_change<F: FnMut(i32, i32) + Send + Sync + 'static>(
+    mut user_provided_closure: F,
+) {
+    let closure: &'static mut _ = Box::leak(Box::new(move |channel: i32, value: i32| {
         user_provided_closure(channel, value);
     }));
-    let callback = Closure2::new(closure);
+    let callback = ClosureMut2::new(closure);
     let code = callback.code_ptr();
     let ptr: &_ = unsafe { std::mem::transmute(code) };
     std::mem::forget(callback);
-    unsafe { libpd_sys::libpd_set_programchangehook(Some(*ptr)) };
+    unsafe { libpd_sys::libpd_set_queued_programchangehook(Some(*ptr)) };
 }
 
 /// MIDI pitch bend receive hook signature
@@ -906,73 +984,87 @@ pub fn on_midi_program_change<F: Fn(i32, i32) + Send + Sync + 'static>(user_prov
 /// channels encode MIDI ports via: libpd_channel = pd_channel + 16 * pd_port
 /// note: [bendin] outputs 0-16383 while [bendout] accepts -8192-8192
 /// note: out of range values from pd are clamped
-pub fn on_midi_pitch_bend<F: Fn(i32, i32) + Send + Sync + 'static>(user_provided_closure: F) {
-    let closure: &'static _ = Box::leak(Box::new(move |channel: i32, value: i32| {
+pub fn on_midi_pitch_bend<F: FnMut(i32, i32) + Send + Sync + 'static>(
+    mut user_provided_closure: F,
+) {
+    let closure: &'static mut _ = Box::leak(Box::new(move |channel: i32, value: i32| {
         user_provided_closure(channel, value);
     }));
-    let callback = Closure2::new(closure);
+    let callback = ClosureMut2::new(closure);
     let code = callback.code_ptr();
     let ptr: &_ = unsafe { std::mem::transmute(code) };
     std::mem::forget(callback);
-    unsafe { libpd_sys::libpd_set_pitchbendhook(Some(*ptr)) };
+    unsafe { libpd_sys::libpd_set_queued_pitchbendhook(Some(*ptr)) };
 }
 
 /// MIDI after touch receive hook signature
 /// channel is 0-indexed and value is 0-127
 /// channels encode MIDI ports via: libpd_channel = pd_channel + 16 * pd_port
 /// note: out of range values from pd are clamped
-pub fn on_midi_after_touch<F: Fn(i32, i32) + Send + Sync + 'static>(user_provided_closure: F) {
-    let closure: &'static _ = Box::leak(Box::new(move |channel: i32, value: i32| {
+pub fn on_midi_after_touch<F: FnMut(i32, i32) + Send + Sync + 'static>(
+    mut user_provided_closure: F,
+) {
+    let closure: &'static mut _ = Box::leak(Box::new(move |channel: i32, value: i32| {
         user_provided_closure(channel, value);
     }));
-    let callback = Closure2::new(closure);
+    let callback = ClosureMut2::new(closure);
     let code = callback.code_ptr();
     let ptr: &_ = unsafe { std::mem::transmute(code) };
     std::mem::forget(callback);
-    unsafe { libpd_sys::libpd_set_aftertouchhook(Some(*ptr)) };
+    unsafe { libpd_sys::libpd_set_queued_aftertouchhook(Some(*ptr)) };
 }
 
 /// MIDI poly after touch receive hook signature
 /// channel is 0-indexed, pitch is 0-127, and value is 0-127
 /// channels encode MIDI ports via: libpd_channel = pd_channel + 16 * pd_port
 /// note: out of range values from pd are clamped
-pub fn on_midi_poly_after_touch<F: Fn(i32, i32, i32) + Send + Sync + 'static>(
-    user_provided_closure: F,
+pub fn on_midi_poly_after_touch<F: FnMut(i32, i32, i32) + Send + Sync + 'static>(
+    mut user_provided_closure: F,
 ) {
-    let closure: &'static _ = Box::leak(Box::new(move |channel: i32, pitch: i32, value: i32| {
-        user_provided_closure(channel, pitch, value);
-    }));
-    let callback = Closure3::new(closure);
+    let closure: &'static mut _ =
+        Box::leak(Box::new(move |channel: i32, pitch: i32, value: i32| {
+            user_provided_closure(channel, pitch, value);
+        }));
+    let callback = ClosureMut3::new(closure);
     let code = callback.code_ptr();
     let ptr: &_ = unsafe { std::mem::transmute(code) };
     std::mem::forget(callback);
-    unsafe { libpd_sys::libpd_set_polyaftertouchhook(Some(*ptr)) };
+    unsafe { libpd_sys::libpd_set_queued_polyaftertouchhook(Some(*ptr)) };
 }
 
 /// raw MIDI byte receive hook signature
 /// port is 0-indexed and byte is 0-256
 /// note: out of range values from pd are clamped
-pub fn on_midi_byte<F: Fn(i32, i32) + Send + Sync + 'static>(user_provided_closure: F) {
-    let closure: &'static _ = Box::leak(Box::new(move |port: i32, byte: i32| {
+pub fn on_midi_byte<F: FnMut(i32, i32) + Send + Sync + 'static>(mut user_provided_closure: F) {
+    let closure: &'static mut _ = Box::leak(Box::new(move |port: i32, byte: i32| {
         user_provided_closure(port, byte);
     }));
-    let callback = Closure2::new(closure);
+    let callback = ClosureMut2::new(closure);
     let code = callback.code_ptr();
     let ptr: &_ = unsafe { std::mem::transmute(code) };
     std::mem::forget(callback);
-    unsafe { libpd_sys::libpd_set_midibytehook(Some(*ptr)) };
+    unsafe { libpd_sys::libpd_set_queued_midibytehook(Some(*ptr)) };
 }
 
 // TODO: Find out if there is a necessity to implement the queued ones, currently don't see any need.
 
-// libpd_sys::libpd_set_queued_aftertouchhook;
-// libpd_sys::libpd_set_queued_controlchangehook;
-// libpd_sys::libpd_set_queued_midibytehook;
-// libpd_sys::libpd_set_queued_noteonhook;
-// libpd_sys::libpd_set_queued_pitchbendhook;
-// libpd_sys::libpd_set_queued_polyaftertouchhook;
-// libpd_sys::libpd_set_queued_programchangehook;
-// libpd_sys::libpd_queued_receive_midi_messages;
+/// Receive messages from pd midi message queue.
+///
+/// This should be called repeatedly in the **application's main loop** to fetch midi messages from pd.
+///
+/// # Example
+/// ```rust
+/// on_midi_byte(|port: i32, byte: i32| {
+///     println!("{port}, {byte}");
+/// });
+///
+/// loop {
+///     receive_midi_messages_from_pd();
+/// }
+/// ```
+pub fn receive_midi_messages_from_pd() {
+    unsafe { libpd_sys::libpd_queued_receive_midi_messages() };
+}
 
 // TODO: Gui utils
 
@@ -1007,7 +1099,7 @@ pub fn poll_gui() {
 }
 
 // @attention Multi instance features implementation is scheduled for later.
-// @attention If there is a necessity emerges, I'll give time to implement.
+// @attention If there is a necessity emerges, I'll give time to implement them.
 
 /* multiple instance functions in z_libpd.h */
 
@@ -1069,7 +1161,7 @@ pub fn poll_gui() {
 //     pub fn libpd_num_instances() -> ::std::os::raw::c_int;
 // }
 
-/// Sets the status of verbose printing to the pd console
+/// Sets the flag for the functionality of verbose printing to the pd console
 pub fn verbose_print_state(active: bool) {
     match active {
         true => unsafe { libpd_sys::libpd_set_verbose(1) },
@@ -1077,137 +1169,185 @@ pub fn verbose_print_state(active: bool) {
     }
 }
 
-/// Checks if verbose printing to the pd console is active
+/// Checks if verbose printing functionality to the pd console is active
 pub fn verbose_print_state_active() -> bool {
     unsafe { libpd_sys::libpd_get_verbose() == 1 }
 }
 
-#[cfg(test)]
-mod tests {
-    use crate::pd::Pd;
+// #[cfg(test)]
+// mod tests {
+//     use crate::pd::Pd;
 
-    use super::*;
+//     use super::*;
 
-    #[test]
-    #[ignore]
-    fn run_simple() {
-        let mut pd = Pd::default();
-        let project_root = std::env::current_dir().unwrap();
-        assert!(pd.open(&project_root.join("simple.pd")).is_ok());
-        assert!(initialize_audio(0, 2, 44100).is_ok());
-        assert!(pd.dsp_on().is_ok());
-        assert!(pd.is_dsp_on());
-        assert!(pd.dsp_off().is_ok());
-        assert!(!pd.is_dsp_on());
-        pd.close();
-    }
+//     #[test]
+//     #[ignore]
+//     fn run_simple() {
+//         // on_float(|a, b| {
+//         //     dbg!(a);
+//         //     dbg!(b);
+//         // });
+//         let _ = init().unwrap();
+//         let project_root = std::env::current_dir().unwrap();
+//         let _ = start_listening_from("listy");
+//         let _ = start_listening_from("simple_float");
+//         unsafe extern "C" fn float_hook(s: *const ::std::os::raw::c_char, x: f32) {
+//             println!("HELLOOOO: {} {}", CStr::from_ptr(s).to_str().unwrap(), x);
+//         }
+//         on_print(|a| {
+//             dbg!(a);
 
-    #[test]
-    #[ignore]
-    fn run_safe() {
-        assert!(init().is_ok());
-        assert!(init().is_err());
-        start_message(1);
-        add_float_to_started_message(1.0);
-        let result = finish_message_as_typed_message_and_send_to("pd", "dsp");
-        assert!(result.is_ok());
-        let project_root = std::env::current_dir().unwrap();
-        let result = open_patch(&project_root.join("simple.pd"));
-        assert!(result.is_ok());
-        let result_2 = open_patch(&project_root.join("bad_naming.pd"));
-        assert!(result_2.is_err());
-        let handle = result.unwrap();
+//             // panic!();
+//         });
+//         unsafe {
+//             libpd_sys::libpd_set_queued_floathook(Some(float_hook));
+//         }
+//         // on_float(|a, b| {
+//         //     println!("FLOAT");
+//         //     dbg!(a);
+//         //     dbg!(b);
 
-        let input_buffer = [0.0f32; 64];
-        let mut output_buffer = [0.0f32; 128];
+//         //     // panic!();
+//         // });
+//         on_list(|a, b, c| {
+//             dbg!(a);
+//             dbg!(b);
+//             for a in c {
+//                 println!("{}", a);
+//             }
+//             // panic!();
+//         });
 
-        // now run pd for ten seconds (logical time)
-        for _ in 0..((10 * 44100) / 64) {
-            // fill input_buffer here
-            process_float(1, &input_buffer[..], &mut output_buffer[..]);
-            // use output_buffer here
-        }
+//         let handle = open_patch(&project_root.join("simple.pd"));
 
-        for sample in output_buffer.iter().take(10) {
-            println!("{}", sample);
-        }
+//         std::thread::spawn(move || {});
+//         // let mut cnt = 0;
 
-        close_patch(handle);
-    }
+//         loop {
+//             std::thread::sleep(std::time::Duration::from_millis(100));
+//             /// process and dispatch received messages in message ringbuffer
+//             unsafe {
+//                 libpd_sys::libpd_queued_receive_pd_messages();
+//             }
+//             // cnt += 100;
+//             // if cnt > 4000 {
+//             //     panic!();
+//             // }
+//         }
 
-    #[test]
-    fn run_unsafe() {
-        unsafe {
-            //    ::std::option::Option<unsafe extern "C" fn(s: *const ::std::os::raw::c_char)>;
+//         // pd.close();
+//     }
 
-            // // // unsafe extern "C" fn print_hook(s: *const ::std::os::raw::c_char) {}
-            // unsafe extern "C" fn float_hook(s: *const ::std::os::raw::c_char, x: f32) {
-            //     println!("HELLOOOO: {} {}", CStr::from_ptr(s).to_str().unwrap(), x);
-            // }
+//     #[test]
+//     // #[ignore]
+//     fn run_safe() {
+//         assert!(init().is_ok());
+//         assert!(init().is_err());
 
-            // Setting hooks are better before init!
+//         start_message(1);
+//         add_float_to_started_message(1.0);
+//         let result = finish_message_as_typed_message_and_send_to("pd", "dsp");
+//         assert!(result.is_ok());
+//         let project_root = std::env::current_dir().unwrap();
+//         let result = open_patch(&project_root.join("simple.pd"));
+//         assert!(result.is_ok());
+//         let result_2 = open_patch(&project_root.join("bad_naming.pd"));
+//         assert!(result_2.is_err());
+//         let handle = result.unwrap();
 
-            // libpd_sys::libpd_set_floathook(Some(float_hook));
-            // libpd_sys::libpd_set_printhook(libpd_sys::libpd_print_concatenator as *const ());
-            // libpd_sys::libpd_set_concatenated_printhook(print_hook as *const ());
+//         let input_buffer = [0.0f32; 0];
+//         let mut output_buffer = [0.0f32; 1024];
 
-            // Also decide for queued hooks or normal hooks.
-            // If queued hooks we may use libpd_queued_init!
+//         // now run pd for ten seconds (logical time)
+//         loop {
+//             process_float(8, &input_buffer[..], &mut output_buffer[..]);
+//         }
+//         // fill input_buffer here
 
-            on_print(|string| {
-                println!("IAM DONE {}", string);
-            });
-            on_float(|source, value| {
-                println!("HELLOOOO: {} {}", source, value);
-            });
-            let status = libpd_sys::libpd_init();
-            assert_eq!(status, 0);
-            let status = libpd_sys::libpd_init();
-            assert_eq!(status, -1);
-            let status = libpd_sys::libpd_init_audio(1, 2, 44100);
-            assert_eq!(status, 0);
+//         // use output_buffer here
 
-            let r = CString::new("simple_float").unwrap();
-            let rp = libpd_sys::libpd_bind(r.as_ptr());
+//         for sample in output_buffer.iter().take(10) {
+//             println!("{}", sample);
+//         }
 
-            // libpd_sys::libpd_set_queued_printhook(Some(libpd_sys::libpd_print_concatenator));
-            // libpd_sys::libpd_set_concatenated_printhook(Some(abc));
-            // libpd_sys::libpd_set_queued_floathook(Some(dd));
-            // libpd_sys::libpd_queued_receive_pd_messages();
-            // libpd_sys::libpd_queued_init();
+//         close_patch(handle);
+//     }
 
-            // libpd_sys::sys_printhook = Some(abc);
+//     #[test]
+//     #[ignore]
+//     fn run_unsafe() {
+//         unsafe {
+//             //    ::std::option::Option<unsafe extern "C" fn(s: *const ::std::os::raw::c_char)>;
 
-            libpd_sys::libpd_start_message(1);
-            libpd_sys::libpd_add_float(1.0);
-            let msg = CString::new("pd").unwrap();
-            let recv = CString::new("dsp").unwrap();
-            libpd_sys::libpd_finish_message(msg.as_ptr(), recv.as_ptr());
+//             // // // unsafe extern "C" fn print_hook(s: *const ::std::os::raw::c_char) {}
+//             unsafe extern "C" fn float_hook(s: *const ::std::os::raw::c_char, x: f32) {
+//                 println!("HELLOOOO: {} {}", CStr::from_ptr(s).to_str().unwrap(), x);
+//             }
 
-            let project_root = std::env::current_dir().unwrap();
-            let name = CString::new("simple.pd").unwrap();
-            let directory = CString::new(project_root.to_str().unwrap()).unwrap();
-            let file_handle = libpd_sys::libpd_openfile(name.as_ptr(), directory.as_ptr());
+//             // Setting hooks are better before init!
 
-            let input_buffer = [0.0f32; 64];
-            let mut output_buffer = [0.0f32; 128];
+//             // libpd_sys::libpd_set_floathook(Some(float_hook));
+//             // libpd_sys::libpd_set_printhook(libpd_sys::libpd_print_concatenator as *const ());
+//             // libpd_sys::libpd_set_concatenated_printhook(print_hook as *const ());
 
-            // now run pd for ten seconds (logical time)
-            for _ in 0..((10 * 44100) / 64) {
-                // fill input_buffer here
-                libpd_sys::libpd_process_float(
-                    1,
-                    input_buffer[..].as_ptr(),
-                    output_buffer[..].as_mut_ptr(),
-                );
-                // use output_buffer here
-            }
+//             // Also decide for queued hooks or normal hooks.
+//             // If queued hooks we may use libpd_queued_init!
 
-            for sample in output_buffer.iter().take(10) {
-                println!("{}", sample);
-            }
+//             // on_print(|string| {
+//             //     println!("IAM DONE {}", string);
+//             // });
+//             // on_float(|source, value| {
+//             //     println!("HELLOOOO: {} {}", source, value);
+//             // });
+//             // let status = libpd_sys::libpd_init();
+//             // assert_eq!(status, 0);
+//             // let status = libpd_sys::libpd_init();
+//             // assert_eq!(status, -1);
 
-            // libpd_sys::libpd_closefile(file_handle);
-        }
-    }
-}
+//             // libpd_sys::libpd_set_queued_printhook(Some(libpd_sys::libpd_print_concatenator));
+//             // libpd_sys::libpd_set_concatenated_printhook(Some(abc));
+
+//             libpd_sys::libpd_queued_init();
+//             libpd_sys::libpd_set_queued_floathook(Some(float_hook));
+//             let r = CString::new("simple_float").unwrap();
+//             let rp = libpd_sys::libpd_bind(r.as_ptr());
+//             let status = libpd_sys::libpd_init_audio(1, 2, 44100);
+//             assert_eq!(status, 0);
+//             libpd_sys::libpd_queued_receive_pd_messages();
+
+//             // libpd_sys::sys_printhook = Some(abc);
+
+//             libpd_sys::libpd_start_message(1);
+//             libpd_sys::libpd_add_float(1.0);
+//             let msg = CString::new("pd").unwrap();
+//             let recv = CString::new("dsp").unwrap();
+//             libpd_sys::libpd_finish_message(msg.as_ptr(), recv.as_ptr());
+
+//             let project_root = std::env::current_dir().unwrap();
+//             let name = CString::new("simple.pd").unwrap();
+//             let directory = CString::new(project_root.to_str().unwrap()).unwrap();
+//             let file_handle = libpd_sys::libpd_openfile(name.as_ptr(), directory.as_ptr());
+
+//             let input_buffer = [0.0f32; 64];
+//             let mut output_buffer = [0.0f32; 128];
+
+//             // now run pd for ten seconds (logical time)
+//             for _ in 0..((10 * 44100) / 64) {
+//                 // fill input_buffer here
+//                 libpd_sys::libpd_process_float(
+//                     1,
+//                     input_buffer[..].as_ptr(),
+//                     output_buffer[..].as_mut_ptr(),
+//                 );
+//                 // use output_buffer here
+//             }
+
+//             for sample in output_buffer.iter().take(10) {
+//                 println!("{}", sample);
+//             }
+
+//             assert!(true)
+//             // libpd_sys::libpd_closefile(file_handle);
+//         }
+//     }
+// }

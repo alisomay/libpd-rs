@@ -40,8 +40,22 @@ pub enum PdType {
     // Binbuf,
     // Index,
 }
+
 pub struct Atom {
     inner: libpd_sys::t_atom,
+}
+
+impl std::fmt::Display for Atom {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        match self.get_value() {
+            PdType::Float(float) => write!(f, "{}", float),
+            PdType::Symbol(symbol) => write!(f, "{}", symbol),
+            // PdType::Pointer => write!(f, "Pointer"),
+            // PdType::Array => write!(f, "Array"),
+            // PdType::Binbuf => write!(f, "Binbuf"),
+            // PdType::Index => write!(f, "Index"),
+        }
+    }
 }
 
 impl Atom {
@@ -162,7 +176,10 @@ impl From<&str> for Atom {
     }
 }
 
-// TODO: This type has to be a smart pointer.
+// TODO: The thing is one needs to find a way to either
+// cast this to a type which is equivalent memory wise or do the same thing :)
+// I think this would worth a research for this to be a clean library.
+// TODO: This type has to be a smart pointer, we can not pass voids around.
 pub struct PatchFileHandle {
     inner: *mut std::os::raw::c_void,
 }
