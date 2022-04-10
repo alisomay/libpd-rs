@@ -21,7 +21,7 @@
     clippy::shadow_reuse,
     clippy::shadow_same,
     clippy::shadow_unrelated,
-    clippy::must_use_candidate,
+    // clippy::must_use_candidate,
     clippy::clone_on_ref_ptr,
     clippy::multiple_crate_versions,
     clippy::default_numeric_fallback,
@@ -37,13 +37,13 @@
     clippy::exhaustive_enums,
     clippy::module_name_repetitions,
     clippy::unseparated_literal_suffix,
-    clippy::self_named_module_files,
+    // clippy::self_named_module_files,
 
     // Allowed lints related to cargo
     // (comment these out if you'd like to improve Cargo.toml)
-    clippy::wildcard_dependencies,
-    clippy::redundant_feature_names,
-    clippy::cargo_common_metadata,
+    // clippy::wildcard_dependencies,
+    // clippy::redundant_feature_names,
+    // clippy::cargo_common_metadata,
 
     // Comment these out when writing docs
     clippy::missing_docs_in_private_items,

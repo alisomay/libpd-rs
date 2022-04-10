@@ -36,6 +36,8 @@ pub enum FileSystemError {
 pub enum SendError {
     #[error("No destination found for receiver: `{0}` in loaded pd patch.")]
     MissingDestination(String),
+    #[error("Values which are being sent are out of range.")]
+    OutOfRange,
     // Add more errors here..
 }
 

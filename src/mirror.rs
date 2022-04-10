@@ -203,7 +203,7 @@ pub fn open_patch(path_to_patch: &std::path::Path) -> Result<PatchFileHandle, Li
 /// ```
 pub fn close_patch(handle: PatchFileHandle) -> Result<(), LibpdError> {
     unsafe {
-        let ptr: *mut std::os::raw::c_void = handle.into();
+        let ptr: *mut std::ffi::c_void = handle.into();
         if ptr.is_null() {
             Err(LibpdError::IoError(IoError::FailedToClosePatch))
         } else {
@@ -246,6 +246,7 @@ pub fn get_dollar_zero(handle: &PatchFileHandle) {
 /// // If we know about pd_ticks, then we can also calculate the buffer size,
 /// assert_eq!(buffer_size, pd_ticks * (block_size * output_channels));
 /// ```
+#[must_use]
 pub fn block_size() -> i32 {
     unsafe { libpd_sys::libpd_blocksize() }
 }
@@ -1054,7 +1055,7 @@ pub fn start_listening_from<T: AsRef<str>>(sender: T) -> Result<ReceiverHandle, 
 /// stop_listening_from(receiver_handle);
 /// ```
 pub fn stop_listening_from(source: ReceiverHandle) {
-    let handle: *mut std::os::raw::c_void = source.into();
+    let handle: *mut std::ffi::c_void = source.into();
     if handle.is_null() {
         return;
     }
@@ -1436,78 +1437,248 @@ pub fn receive_messages_from_pd() {
     unsafe { libpd_sys::libpd_queued_receive_pd_messages() };
 }
 
+/// Sends a MIDI note on message to `|notein|` objects in pd.
+///
+/// Channel is 0-indexed, pitch is 0-127 and velocity is 0-127.
+///
+/// Channels encode MIDI ports via: `libpd_channel = pd_channel + 16 * pd_port`
+///
+/// Mote: There is no note off message, send a note on with velocity = 0 instead.
+///
+/// # Example
+/// ```rust
+/// # use libpd_rs::mirror::*;
+/// # init();
+/// // Handle the error if the receiver object is not found
+/// send_note_on(0, 48, 64).unwrap_or_else(|err| {
+///   dbg!("{err}");
+/// });
+/// // or don't care..
+/// let _ = send_note_on(0, 48, 64);
+/// ```
+pub fn send_note_on(channel: i32, pitch: i32, velocity: i32) -> Result<(), LibpdError> {
+    unsafe {
+        // Returns 0 on success or -1 if an argument is out of range
+        match libpd_sys::libpd_noteon(channel, pitch, velocity) {
+            0 => Ok(()),
+            _ => Err(LibpdError::SendError(SendError::OutOfRange)),
+        }
+    }
+}
+
+/// Sends a MIDI control change message to `ctlin` objects in pd.
+///
+/// Channel is 0-indexed, controller is 0-127 and value is 0-127.
+///
+/// Channels encode MIDI ports via: `libpd_channel = pd_channel + 16 * pd_port`
+///
+/// # Example
+/// ```rust
+/// # use libpd_rs::mirror::*;
+/// # init();
+/// // Handle the error if the receiver object is not found
+/// send_control_change(0, 0, 64).unwrap_or_else(|err| {
+///   dbg!("{err}");
+/// });
+/// // or don't care..
+/// let _ = send_control_change(0, 0, 64);
+/// ```
+pub fn send_control_change(channel: i32, controller: i32, value: i32) -> Result<(), LibpdError> {
+    unsafe {
+        // Returns 0 on success or -1 if an argument is out of range
+        match libpd_sys::libpd_controlchange(channel, controller, value) {
+            0 => Ok(()),
+            _ => Err(LibpdError::SendError(SendError::OutOfRange)),
+        }
+    }
+}
+
+/// Sends a MIDI program change message to `pgmin` objects in pd.
+///
+/// Channel is 0-indexed, value is 0-127.
+///
+/// Channels encode MIDI ports via: `libpd_channel = pd_channel + 16 * pd_port`
+///
+/// # Example
+/// ```rust
+/// # use libpd_rs::mirror::*;
+/// # init();
+/// // Handle the error if the receiver object is not found
+/// send_program_change(0, 42).unwrap_or_else(|err| {
+///   dbg!("{err}");
+/// });
+/// // or don't care..
+/// let _ = send_program_change(0, 42);
+/// ```
+pub fn send_program_change(channel: i32, value: i32) -> Result<(), LibpdError> {
+    unsafe {
+        // Returns 0 on success or -1 if an argument is out of range
+        match libpd_sys::libpd_programchange(channel, value) {
+            0 => Ok(()),
+            _ => Err(LibpdError::SendError(SendError::OutOfRange)),
+        }
+    }
+}
+
+/// Sends a MIDI pitch bend message to `|bendin|` objects in pd.
+///
+/// Channel is 0-indexed, value is -8192 to 8192.
+///
+/// Channels encode MIDI ports via: `libpd_channel = pd_channel + 16 * pd_port`
+///
+/// Note: `|bendin|` outputs 0-16383 while `|bendout|` accepts -8192-8192
+///
+/// # Example
+/// ```rust
+/// # use libpd_rs::mirror::*;
+/// # init();
+/// // Handle the error if the receiver object is not found
+/// send_pitch_bend(0, 8192).unwrap_or_else(|err| {
+///   dbg!("{err}");
+/// });
+/// // or don't care..
+/// let _ = send_pitch_bend(0, 8192);
+/// ```
+pub fn send_pitch_bend(channel: i32, value: i32) -> Result<(), LibpdError> {
+    unsafe {
+        // Returns 0 on success or -1 if an argument is out of range
+        match libpd_sys::libpd_pitchbend(channel, value) {
+            0 => Ok(()),
+            _ => Err(LibpdError::SendError(SendError::OutOfRange)),
+        }
+    }
+}
+
+/// Sends a MIDI after touch message to `|touchin|` objects in pd.
+///
+/// Channel is 0-indexed, value is 0-127.
+///
+/// Channels encode MIDI ports via: `libpd_channel = pd_channel + 16 * pd_port`
+///
+/// # Example
+/// ```rust
+/// # use libpd_rs::mirror::*;
+/// # init();
+/// // Handle the error if the receiver object is not found
+/// send_aftertouch(0, 42).unwrap_or_else(|err| {
+///   dbg!("{err}");
+/// });
+/// // or don't care..
+/// let _ = send_aftertouch(0, 42);
+/// ```
+pub fn send_aftertouch(channel: i32, value: i32) -> Result<(), LibpdError> {
+    unsafe {
+        // Returns 0 on success or -1 if an argument is out of range
+        match libpd_sys::libpd_aftertouch(channel, value) {
+            0 => Ok(()),
+            _ => Err(LibpdError::SendError(SendError::OutOfRange)),
+        }
+    }
+}
+
+/// Sends a MIDI poly after touch message to `|polytouchin|` objects in pd.
+///
+/// Channel is 0-indexed, pitch is 0-127 and value is 0-127.
+///
+/// Channels encode MIDI ports via: `libpd_channel = pd_channel + 16 * pd_port`
+///
+/// # Example
+/// ```rust
+/// # use libpd_rs::mirror::*;
+/// # init();
+/// // Handle the error if the receiver object is not found
+/// send_poly_aftertouch(0, 48, 64).unwrap_or_else(|err| {
+///   dbg!("{err}");
+/// });
+/// // or don't care..
+/// let _ = send_poly_aftertouch(0, 48, 64);
+/// ```
+pub fn send_poly_aftertouch(channel: i32, pitch: i32, value: i32) -> Result<(), LibpdError> {
+    unsafe {
+        // Returns 0 on success or -1 if an argument is out of range
+        match libpd_sys::libpd_polyaftertouch(channel, pitch, value) {
+            0 => Ok(()),
+            _ => Err(LibpdError::SendError(SendError::OutOfRange)),
+        }
+    }
+}
+
+/// Sends a raw MIDI byte to `|midiin|` objects in pd.
+///
+/// Port is 0-indexed and byte is 0-255
+///
+/// # Example
+/// ```rust
+/// # use libpd_rs::mirror::*;
+/// # init();
+/// // Handle the error if the receiver object is not found
+/// send_midi_byte(0, 0xFF).unwrap_or_else(|err| {
+///   dbg!("{err}");
+/// });
+/// // or don't care..
+/// let _ = send_midi_byte(0, 0xFF);
+/// ```
+pub fn send_midi_byte(port: i32, byte: i32) -> Result<(), LibpdError> {
+    unsafe {
+        // Returns 0 on success or -1 if an argument is out of range
+        match libpd_sys::libpd_midibyte(port, byte) {
+            0 => Ok(()),
+            _ => Err(LibpdError::SendError(SendError::OutOfRange)),
+        }
+    }
+}
+
+/// Sends a raw MIDI byte to `|sysexin|` objects in pd.
+///
+/// Port is 0-indexed and byte is 0-255
+///
+/// # Example
+/// ```rust
+/// # use libpd_rs::mirror::*;
+/// # init();
+/// // Handle the error if the receiver object is not found
+/// send_sysex(0, 0x7F).unwrap_or_else(|err| {
+///   dbg!("{err}");
+/// });
+/// // or don't care..
+/// let _ = send_sysex(0, 0x7F);
+/// ```
+pub fn send_sysex(port: i32, byte: i32) -> Result<(), LibpdError> {
+    unsafe {
+        // Returns 0 on success or -1 if an argument is out of range
+        match libpd_sys::libpd_sysex(port, byte) {
+            0 => Ok(()),
+            _ => Err(LibpdError::SendError(SendError::OutOfRange)),
+        }
+    }
+}
+
+/// Sends a raw MIDI byte to `|realtimein|` objects in pd.
+///
+/// Port is 0-indexed and byte is 0-255
+///
+/// # Example
+/// ```rust
+/// # use libpd_rs::mirror::*;
+/// # init();
+/// // Handle the error if the receiver object is not found
+/// send_sysex(0, 0x7F).unwrap_or_else(|err| {
+///   dbg!("{err}");
+/// });
+/// // or don't care..
+/// let _ = send_sysex(0, 0x7F);
+/// ```
+pub fn send_sys_realtime(port: i32, byte: i32) -> Result<(), LibpdError> {
+    unsafe {
+        // Returns 0 on success or -1 if an argument is out of range
+        match libpd_sys::libpd_sysrealtime(port, byte) {
+            0 => Ok(()),
+            _ => Err(LibpdError::SendError(SendError::OutOfRange)),
+        }
+    }
+}
+
 // @attention Stayed here..
-
-/// send a MIDI note on message to [notein] objects
-/// channel is 0-indexed, pitch is 0-127, and velocity is 0-127
-/// channels encode MIDI ports via: libpd_channel = pd_channel + 16 * pd_port
-/// note: there is no note off message, send a note on with velocity = 0 instead
-/// returns 0 on success or -1 if an argument is out of range
-pub fn send_note_on(channel: i32, pitch: i32, velocity: i32) {
-    unsafe { libpd_sys::libpd_noteon(channel, pitch, velocity) };
-}
-
-/// send a MIDI control change message to [ctlin] objects
-/// channel is 0-indexed, controller is 0-127, and value is 0-127
-/// channels encode MIDI ports via: libpd_channel = pd_channel + 16 * pd_port
-/// returns 0 on success or -1 if an argument is out of range
-pub fn send_control_change(channel: i32, controller: i32, value: i32) {
-    unsafe { libpd_sys::libpd_controlchange(channel, controller, value) };
-}
-
-/// send a MIDI program change message to [pgmin] objects
-/// channel is 0-indexed and value is 0-127
-/// channels encode MIDI ports via: libpd_channel = pd_channel + 16 * pd_port
-/// returns 0 on success or -1 if an argument is out of range
-pub fn send_program_change(channel: i32, value: i32) {
-    unsafe { libpd_sys::libpd_programchange(channel, value) };
-}
-
-/// send a MIDI pitch bend message to [bendin] objects
-/// channel is 0-indexed and value is -8192-8192
-/// channels encode MIDI ports via: libpd_channel = pd_channel + 16 * pd_port
-/// note: [bendin] outputs 0-16383 while [bendout] accepts -8192-8192
-/// returns 0 on success or -1 if an argument is out of range
-pub fn send_pitch_bend(channel: i32, value: i32) {
-    unsafe { libpd_sys::libpd_pitchbend(channel, value) };
-}
-
-/// send a MIDI after touch message to [touchin] objects
-/// channel is 0-indexed and value is 0-127
-/// channels encode MIDI ports via: libpd_channel = pd_channel + 16 * pd_port
-/// returns 0 on success or -1 if an argument is out of range
-pub fn send_aftertouch(channel: i32, value: i32) {
-    unsafe { libpd_sys::libpd_aftertouch(channel, value) };
-}
-
-/// send a MIDI poly after touch message to [polytouchin] objects
-/// channel is 0-indexed, pitch is 0-127, and value is 0-127
-/// channels encode MIDI ports via: libpd_channel = pd_channel + 16 * pd_port
-/// returns 0 on success or -1 if an argument is out of range
-pub fn send_poly_aftertouch(channel: i32, pitch: i32, value: i32) {
-    unsafe { libpd_sys::libpd_polyaftertouch(channel, pitch, value) };
-}
-
-/// send a raw MIDI byte to [midiin] objects
-/// port is 0-indexed and byte is 0-256
-/// returns 0 on success or -1 if an argument is out of range
-pub fn send_midi_byte(port: i32, byte: i32) {
-    unsafe { libpd_sys::libpd_midibyte(port, byte) };
-}
-
-/// send a raw MIDI byte to [sysexin] objects
-/// port is 0-indexed and byte is 0-256
-/// returns 0 on success or -1 if an argument is out of range
-pub fn send_sysex(port: i32, byte: i32) {
-    unsafe { libpd_sys::libpd_sysex(port, byte) };
-}
-
-/// send a raw MIDI byte to [realtimein] objects
-/// port is 0-indexed and byte is 0-256
-/// returns 0 on success or -1 if an argument is out of range
-pub fn send_sys_realtime(port: i32, byte: i32) {
-    unsafe { libpd_sys::libpd_sysrealtime(port, byte) };
-}
 
 // TODO: MIDI hooks / MIDI queued hooks
 
@@ -1715,6 +1886,7 @@ pub fn stop_gui() {
 ///       useful to call repeatedly when idle for more throughput
 /// returns 1 if the poll found something, in which case it might be desirable
 /// to poll again, up to some reasonable limit
+#[must_use]
 pub fn poll_gui() -> Option<()> {
     unsafe {
         match libpd_sys::libpd_poll_gui() {
@@ -1797,6 +1969,7 @@ pub fn verbose_print_state(active: bool) {
 }
 
 /// Checks if verbose printing functionality to the pd console is active
+#[must_use]
 pub fn verbose_print_state_active() -> bool {
     unsafe { libpd_sys::libpd_get_verbose() == 1 }
 }

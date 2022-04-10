@@ -77,38 +77,38 @@ impl std::fmt::Display for Atom {
 #[derive(Debug)]
 pub struct PatchFileHandle(usize);
 impl PatchFileHandle {
-    pub(crate) const fn as_mut_ptr(&self) -> *mut std::os::raw::c_void {
-        self.0 as *mut std::os::raw::c_void
+    pub(crate) const fn as_mut_ptr(&self) -> *mut std::ffi::c_void {
+        self.0 as *mut std::ffi::c_void
     }
 }
 
-impl From<*mut std::os::raw::c_void> for PatchFileHandle {
-    fn from(ptr: *mut std::os::raw::c_void) -> Self {
+impl From<*mut std::ffi::c_void> for PatchFileHandle {
+    fn from(ptr: *mut std::ffi::c_void) -> Self {
         Self(ptr as usize)
     }
 }
 
 // Needed in this case.
 #[allow(clippy::from_over_into)]
-impl Into<*mut std::os::raw::c_void> for PatchFileHandle {
-    fn into(self) -> *mut std::os::raw::c_void {
-        self.0 as *mut std::os::raw::c_void
+impl Into<*mut std::ffi::c_void> for PatchFileHandle {
+    fn into(self) -> *mut std::ffi::c_void {
+        self.0 as *mut std::ffi::c_void
     }
 }
 
 #[derive(Debug)]
 pub struct ReceiverHandle(usize);
 
-impl From<*mut std::os::raw::c_void> for ReceiverHandle {
-    fn from(ptr: *mut std::os::raw::c_void) -> Self {
+impl From<*mut std::ffi::c_void> for ReceiverHandle {
+    fn from(ptr: *mut std::ffi::c_void) -> Self {
         Self(ptr as usize)
     }
 }
 
 // Might be needed
 #[allow(clippy::from_over_into)]
-impl Into<*mut std::os::raw::c_void> for ReceiverHandle {
-    fn into(self) -> *mut std::os::raw::c_void {
-        self.0 as *mut std::os::raw::c_void
+impl Into<*mut std::ffi::c_void> for ReceiverHandle {
+    fn into(self) -> *mut std::ffi::c_void {
+        self.0 as *mut std::ffi::c_void
     }
 }
