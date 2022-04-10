@@ -58,5 +58,7 @@ pub enum SubscriptionError {
 pub enum SizeError {
     #[error("The maximum size specified is too large.")]
     TooLarge,
+    #[error("Couldn't determine the size.")]
+    CouldNotDetermine,
     // Add more errors here..
 }

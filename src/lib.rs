@@ -478,23 +478,120 @@ pub fn process_raw_double(input_buffer: &[f64], output_buffer: &mut [f64]) {
     }
 }
 
-// TODO: Implement array utilities!
-// TODO: Document
+// TODO: CHECK IF WE NEED THIS?
+/* sending compound messages: atom array */
 
-// /* array access */
-// /// get the size of an array by name
-// /// returns size or negative error code if non-existent
-// EXTERN int libpd_arraysize(const char *name);
+// /// write a float value to the given atom
+// EXTERN void libpd_set_float(t_atom *a, float x);
 
-// /// (re)size an array by name; sizes <= 0 are clipped to 1
-// /// returns 0 on success or negative error code if non-existent
-// EXTERN int libpd_resize_array(const char *name, long size);
+// /// write a double value to the given atom
+// /// note: only full-precision when compiled with PD_FLOATSIZE=64
+// EXTERN void libpd_set_double(t_atom *v, double x);
+
+// /// write a symbol value to the given atom
+// EXTERN void libpd_set_symbol(t_atom *a, const char *symbol);
+
+// /// send an atom array of a given length as a list to a destination receiver
+// /// returns 0 on success or -1 if receiver name is non-existent
+// /// ex: send [list 1 2 bar( to [r foo] on the next tick with:
+// ///     t_atom v[3];
+// ///     libpd_set_float(v, 1);
+// ///     libpd_set_float(v + 1, 2);
+// ///     libpd_set_symbol(v + 2, "bar");
+// ///     libpd_list("foo", 3, v);
+// EXTERN int libpd_list(const char *recv, int argc, t_atom *argv);
+
+// /// send a atom array of a given length as a typed message to a destination
+// /// receiver, returns 0 on success or -1 if receiver name is non-existent
+// /// ex: send [; pd dsp 1( on the next tick with:
+// ///     t_atom v[1];
+// ///     libpd_set_float(v, 1);
+// ///     libpd_message("pd", "dsp", 1, v);
+// EXTERN int libpd_message(const char *recv, const char *msg,
+//                          int argc, t_atom *argv);
+
+// /// get the float value of an atom
+// /// note: no NULL or type checks are performed
+// EXTERN float libpd_get_float(t_atom *a);
+
+// /// returns the double value of an atom
+// /// note: no NULL or type checks are performed
+// /// note: only full-precision when compiled with PD_FLOATSIZE=64
+// EXTERN double libpd_get_double(t_atom *a);
+
+// /// returns the symbol value of an atom
+// /// note: no NULL or type checks are performed
+// EXTERN const char *libpd_get_symbol(t_atom *a);
+
+// /// increment to the next atom in an atom vector
+// /// returns next atom or NULL, assuming the atom vector is NULL-terminated
+// EXTERN t_atom *libpd_next_atom(t_atom *a);
+
+/* Array access */
+
+/// Gets the size of an array by name in the pd patch which is running.
+///
+/// # Example
+/// ```rust
+/// let size = array_size("my_array").unwrap();
+/// ```
+pub fn array_size<T: AsRef<str>>(name: T) -> Result<i32, SizeError> {
+    unsafe {
+        let name = CString::new(name.as_ref()).unwrap();
+        // Returns size or negative error code if non-existent
+        let result = libpd_sys::libpd_arraysize(name.as_ptr());
+        if result >= 0 {
+            return Ok(result);
+        }
+        Err(SizeError::CouldNotDetermine)
+    }
+}
+
+/// Resizes an array found by name in the pd patch which is running.
+///
+/// Sizes <= 0 are clipped to 1
+///
+/// # Example
+/// ```rust
+/// resize_array("my_array", 1024).unwrap();
+///
+/// resize_array("my_array", 0).unwrap();
+/// let size = array_size("my_array").unwrap();
+/// assert_eq!(size, 1);
+/// ```
+pub fn resize_array<T: AsRef<str>>(name: T, size: i64) -> Result<(), SizeError> {
+    unsafe {
+        let name = CString::new(name.as_ref()).unwrap();
+        // returns 0 on success or negative error code if non-existent
+        match libpd_sys::libpd_resize_array(name.as_ptr(), size) {
+            0 => Ok(()),
+            _ => Err(SizeError::CouldNotDetermine),
+        }
+    }
+}
 
 // /// read n values from named src array and write into dest starting at an offset
 // /// note: performs no bounds checking on dest
 // /// returns 0 on success or a negative error code if the array is non-existent
 // /// or offset + n exceeds range of array
 // EXTERN int libpd_read_array(float *dest, const char *name, int offset, int n);
+pub fn read_float_array_from<T: AsRef<str>>(
+    source_name: T,
+    source_offset: i32,
+    read_amount: i32,
+    destination: &mut [f32],
+) {
+    // TODO: Error handling and documentation.
+    unsafe {
+        let name = CString::new(source_name.as_ref()).unwrap();
+        libpd_sys::libpd_read_array(
+            destination.as_mut_ptr(),
+            name.as_ptr(),
+            source_offset,
+            read_amount,
+        );
+    }
+}
 
 // /// read n values from src and write into named dest array starting at an offset
 // /// note: performs no bounds checking on src
@@ -502,6 +599,73 @@ pub fn process_raw_double(input_buffer: &[f64], output_buffer: &mut [f64]) {
 // /// or offset + n exceeds range of array
 // EXTERN int libpd_write_array(const char *name, int offset,
 // 	const float *src, int n);
+pub fn write_float_array_to<T: AsRef<str>>(
+    destination: &mut [f32],
+    source_name: T,
+    source_offset: i32,
+    read_amount: i32,
+) {
+    unsafe {
+        // TODO: Error handling and documentation.
+        let name = CString::new(source_name.as_ref()).unwrap();
+        libpd_sys::libpd_write_array(
+            name.as_ptr(),
+            source_offset,
+            destination.as_mut_ptr(),
+            read_amount,
+        );
+    }
+}
+
+/// read n values from named src array and write into dest starting at an offset
+/// note: performs no bounds checking on dest
+/// note: only full-precision when compiled with PD_FLOATSIZE=64
+/// returns 0 on success or a negative error code if the array is non-existent
+/// or offset + n exceeds range of array
+/// double-precision variant of libpd_read_array()
+///
+pub fn read_double_array_from<T: AsRef<str>>(
+    source_name: T,
+    source_offset: i32,
+    read_amount: i32,
+    destination: &mut [f64],
+) {
+    // TODO: Error handling and documentation.
+    unsafe {
+        let name = CString::new(source_name.as_ref()).unwrap();
+        libpd_sys::libpd_read_array_double(
+            destination.as_mut_ptr(),
+            name.as_ptr(),
+            source_offset,
+            read_amount,
+        );
+    }
+}
+
+/// read n values from src and write into named dest array starting at an offset
+/// note: performs no bounds checking on src
+/// note: only full-precision when compiled with PD_FLOATSIZE=64
+/// returns 0 on success or a negative error code if the array is non-existent
+/// or offset + n exceeds range of array
+/// double-precision variant of libpd_write_array()
+
+pub fn write_double_array_to<T: AsRef<str>>(
+    destination: &mut [f64],
+    source_name: T,
+    source_offset: i32,
+    read_amount: i32,
+) {
+    unsafe {
+        // TODO: Error handling and documentation.
+        let name = CString::new(source_name.as_ref()).unwrap();
+        libpd_sys::libpd_write_array_double(
+            name.as_ptr(),
+            source_offset,
+            destination.as_mut_ptr(),
+            read_amount,
+        );
+    }
+}
 
 /// Sends a `bang` to the pd receiver object specified in `receiver` the argument
 ///
@@ -527,12 +691,9 @@ pub fn send_bang_to<T: AsRef<str>>(receiver: T) -> Result<(), SendError> {
     }
 }
 
-// TODO: This function takes a float instead of a double.
-// TODO: Does pd also support doubles? (I suppose currently not but I might include an explanation here.)
-
-/// Sends a float value to the pd receiver object specified in the `receiver` argument
+/// Sends an `f32` value to the pd receiver object specified in the `receiver` argument
 ///
-/// `send_float_to("foo", 1.0)` will send the float value to `|s foo|` on the next tick.
+/// `send_float_to("foo", 1.0)` will send the `f32` value to `|s foo|` on the next tick.
 /// The value can be received from a `|r foo|` object in the loaded pd patch.
 ///
 /// # Example
@@ -548,6 +709,30 @@ pub fn send_float_to<T: AsRef<str>>(receiver: T, value: f32) -> Result<(), SendE
     let recv = CString::new(receiver.as_ref()).unwrap();
     unsafe {
         match libpd_sys::libpd_float(recv.as_ptr(), value) {
+            0 => Ok(()),
+            _ => Err(SendError::MissingDestination(receiver.as_ref().to_owned())),
+        }
+    }
+}
+
+/// Sends an `f64` value to the pd receiver object specified in the `receiver` argument
+///
+/// `send_double_to("foo", 1.0)` will send the `f64` value to `|s foo|` on the next tick.
+/// The value can be received from a `|r foo|` object in the loaded pd patch.
+///
+/// # Example
+/// ```rust
+/// // Handle the error if the receiver object is not found
+/// send_double_to("foo", 1.0).unwrap_or_else(|err| {
+///   println!("{}", err);
+/// });
+/// // or don't care..
+/// let _ = send_double_to("foo", 1.0);
+/// ```
+pub fn send_double_to<T: AsRef<str>>(receiver: T, value: f64) -> Result<(), SendError> {
+    let recv = CString::new(receiver.as_ref()).unwrap();
+    unsafe {
+        match libpd_sys::libpd_double(recv.as_ptr(), value) {
             0 => Ok(()),
             _ => Err(SendError::MissingDestination(receiver.as_ref().to_owned())),
         }
@@ -605,9 +790,7 @@ pub fn start_message(length: i32) -> Result<(), SizeError> {
     }
 }
 
-// TODO: Find what happens if you add a float to a maxed out message
-
-/// Add a float to the current message in the progress of composition
+/// Add an `f32` to the current message in the progress of composition
 ///
 /// # Example
 /// ```rust
@@ -617,13 +800,37 @@ pub fn start_message(length: i32) -> Result<(), SizeError> {
 ///   add_float_to_started_message(42.0);
 /// }
 /// ```
+///
+/// # Panics
+/// To be honest I'd expect this to panic if you overflow a message buffer.
+///
+/// Although I didn't check that, please let me know if this is the case.
 pub fn add_float_to_started_message(value: f32) {
     unsafe {
         libpd_sys::libpd_add_float(value);
     }
 }
 
-// TODO: Find what happens if you add a symbol to a maxed out message
+/// Add an `f64` to the current message in the progress of composition
+///
+/// # Example
+/// ```rust
+/// // Arbitrary length
+/// let message_length = 4;
+/// if start_message(message_length).is_ok() {
+///   add_double_to_started_message(42.0);
+/// }
+/// ```
+///
+/// # Panics
+/// To be honest I'd expect this to panic if you overflow a message buffer.
+///
+/// Although I didn't check that, please let me know if this is the case.
+pub fn add_double_to_started_message(value: f64) {
+    unsafe {
+        libpd_sys::libpd_add_double(value);
+    }
+}
 
 /// Add a symbol to the current message in the progress of composition
 ///
@@ -635,6 +842,11 @@ pub fn add_float_to_started_message(value: f32) {
 ///   add_symbol_to_started_message("foo");
 /// }
 /// ```
+///
+/// # Panics
+/// To be honest I'd expect this to panic if you overflow a message buffer.
+///
+/// Although I didn't check that, please let me know if this is the case.
 pub fn add_symbol_to_started_message<T: AsRef<str>>(value: T) {
     let sym = CString::new(value.as_ref()).unwrap();
     unsafe {
@@ -902,7 +1114,10 @@ pub fn on_bang<F: FnMut(&str) + Send + Sync + 'static>(mut user_provided_closure
     unsafe { libpd_sys::libpd_set_banghook(Some(*ptr)) };
 }
 
-/// Sets a closure to be called when a float is received from a subscribed receiver
+/// Sets a closure to be called when an `f32` is received from a subscribed receiver
+///
+/// You may either have `on_double` registered or `on_float` registered. **Not both**.
+/// If you set both, the one you have set the latest will **overwrite the previously set one**.
 ///
 /// Do not register this listener while pd DSP is running.
 ///
@@ -931,6 +1146,40 @@ pub fn on_float<F: FnMut(&str, f32) + Send + Sync + 'static>(mut user_provided_c
     let ptr: &_ = unsafe { std::mem::transmute(code) };
     std::mem::forget(callback);
     unsafe { libpd_sys::libpd_set_queued_floathook(Some(*ptr)) };
+}
+
+/// Sets a closure to be called when an `f64` is received from a subscribed receiver
+///
+/// You may either have `on_double` registered or `on_float` registered. **Not both**.
+/// If you set both, the one you have set the latest will **overwrite the previously set one**.
+///
+/// Do not register this listener while pd DSP is running.
+///
+/// # Example
+/// ```rust
+/// // This is an example, handle the result properly here..
+/// let foo_receiver_handle = start_listening_from("foo").unwrap();
+/// let bar_receiver_handle = start_listening_from("bar").unwrap();
+/// on_double(|source: &str, value: f32| {
+///   match source {
+///     "foo" => println!("Received a float from foo, value is: {value}"),   
+///     "bar" => println!("Received a float from bar, value is: {value}"),
+///      _ => unreachable!(),
+///   }
+/// });
+/// ```
+pub fn on_double<F: FnMut(&str, f64) + Send + Sync + 'static>(mut user_provided_closure: F) {
+    let closure: &'static mut _ = Box::leak(Box::new(
+        move |source: *const std::os::raw::c_char, double: f64| {
+            let source = unsafe { CStr::from_ptr(source).to_str().unwrap() };
+            user_provided_closure(source, double);
+        },
+    ));
+    let callback = ClosureMut2::new(closure);
+    let code = callback.code_ptr();
+    let ptr: &_ = unsafe { std::mem::transmute(code) };
+    std::mem::forget(callback);
+    unsafe { libpd_sys::libpd_set_queued_doublehook(Some(*ptr)) };
 }
 
 /// Sets a closure to be called when a symbol is received from a subscribed receiver
