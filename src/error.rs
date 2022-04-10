@@ -2,16 +2,6 @@ use thiserror::Error;
 
 // TODO: Document errors.
 
-#[derive(Debug)]
-pub enum LibpdError {
-    InitializationError,
-    IoError,
-    FileSystemError,
-    SendError,
-    SubscriptionError,
-    SizeError,
-}
-
 #[derive(Error, Debug)]
 pub enum InitializationError {
     #[error("Pure Data is already initialized.")]
@@ -63,4 +53,20 @@ pub enum SizeError {
     #[error("Couldn't determine the size.")]
     CouldNotDetermine,
     // Add more errors here..
+}
+
+#[derive(Error, Debug)]
+pub enum LibpdError {
+    #[error("Error in initialization.")]
+    InitializationError(InitializationError),
+    #[error("Error in initialization.")]
+    IoError(IoError),
+    #[error("Error in initialization.")]
+    FileSystemError(FileSystemError),
+    #[error("Error in initialization.")]
+    SendError(SendError),
+    #[error("Error in initialization.")]
+    SubscriptionError(SubscriptionError),
+    #[error("Error in initialization.")]
+    SizeError(SizeError),
 }

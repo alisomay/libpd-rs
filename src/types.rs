@@ -1,4 +1,4 @@
-use std::ffi::{CStr, CString};
+// TODO: Document types
 
 // TODO: Is really implementing all of these needed?
 // pub type t_word = word;
@@ -74,143 +74,6 @@ impl std::fmt::Display for Atom {
     }
 }
 
-impl Atom {
-    // pub(crate) fn as_mut_ptr(&self) -> *mut libpd_sys::t_atom {
-    //     match self {
-    //         Atom::Float(f) => {}
-    //         Atom::Symbol(s) => {}
-    //         Atom::Double(d) => {}
-    //     }
-    // }
-    // pub fn get_value(&self) -> PdType {
-    //     match self.inner.a_type {
-    //         libpd_sys::t_atomtype_A_FLOAT => {
-    //             let ptr_to_inner =
-    //                 &self.inner as *const libpd_sys::t_atom as *mut libpd_sys::t_atom;
-    //             let f: f32 = unsafe { libpd_sys::libpd_get_float(ptr_to_inner) };
-    //             PdType::Float(f)
-    //         }
-    //         libpd_sys::t_atomtype_A_SYMBOL => {
-    //             let ptr_to_inner =
-    //                 &self.inner as *const libpd_sys::t_atom as *mut libpd_sys::t_atom;
-    //             let sym: *const std::os::raw::c_char =
-    //                 unsafe { libpd_sys::libpd_get_symbol(ptr_to_inner) };
-    //             let result = unsafe { CStr::from_ptr(sym) };
-    //             PdType::Symbol(result.to_str().unwrap().to_owned())
-    //         }
-    //         _ => todo!(),
-    //     }
-    // }
-
-    // pub fn set_value(&mut self, value: PdType) {
-    //     match value {
-    //         PdType::Float(val) => self.set_float(val),
-    //         PdType::Symbol(sym) => self.set_symbol(sym),
-    //         _ => todo!(),
-    //     }
-    // }
-
-    // /// write a float value to the given atom
-    // fn set_float(&mut self, value: f32) {
-    //     unsafe {
-    //         libpd_sys::libpd_set_float(
-    //             &self.inner as *const libpd_sys::t_atom as *mut libpd_sys::t_atom,
-    //             value,
-    //         );
-    //     }
-    // }
-
-    // /// write a symbol value to the given atom
-    // fn set_symbol<T: AsRef<str>>(&mut self, value: T) {
-    //     let val = CString::new(value.as_ref()).unwrap();
-    //     unsafe {
-    //         libpd_sys::libpd_set_symbol(
-    //             &self.inner as *const libpd_sys::t_atom as *mut libpd_sys::t_atom,
-    //             val.as_ptr(),
-    //         );
-    //     }
-    // }
-
-    // TODO: Maybe implement get float and get symbol separately also with result types?
-}
-
-// impl From<libpd_sys::t_atom> for Atom {
-//     fn from(atom: libpd_sys::t_atom) -> Self {
-//         Atom { inner: atom }
-//     }
-// }
-
-// impl From<f32> for Atom {
-//     fn from(value: f32) -> Self {
-//         Self {
-//             inner: libpd_sys::t_atom {
-//                 a_type: libpd_sys::t_atomtype_A_FLOAT,
-//                 a_w: libpd_sys::word { w_float: value },
-//             },
-//         }
-//     }
-// }
-
-// impl From<String> for Atom {
-//     fn from(value: String) -> Self {
-//         let val = CString::new(&*value).unwrap();
-//         Self {
-//             inner: libpd_sys::t_atom {
-//                 a_type: libpd_sys::t_atomtype_A_SYMBOL,
-//                 a_w: libpd_sys::word {
-//                     w_symbol: unsafe { libpd_sys::gensym(val.as_ptr()) },
-//                 },
-//             },
-//         }
-//     }
-// }
-
-// impl From<&String> for Atom {
-//     fn from(value: &String) -> Self {
-//         let val = CString::new(&**value).unwrap();
-//         Self {
-//             inner: libpd_sys::t_atom {
-//                 a_type: libpd_sys::t_atomtype_A_SYMBOL,
-//                 a_w: libpd_sys::word {
-//                     w_symbol: unsafe { libpd_sys::gensym(val.as_ptr()) },
-//                 },
-//             },
-//         }
-//     }
-// }
-
-// impl From<&str> for Atom {
-//     fn from(value: &str) -> Self {
-//         let val = CString::new(value).unwrap();
-//         Self {
-//             inner: libpd_sys::t_atom {
-//                 a_type: libpd_sys::t_atomtype_A_SYMBOL,
-//                 a_w: libpd_sys::word {
-//                     w_symbol: unsafe { libpd_sys::gensym(val.as_ptr()) },
-//                 },
-//             },
-//         }
-//     }
-// }
-
-// TODO: The thing is one needs to find a way to either
-// cast this to a type which is equivalent memory wise or do the same thing :)
-// I think this would worth a research for this to be a clean library.
-// TODO: This type has to be a smart pointer, we can not pass voids around.
-// pub struct PatchFileHandle {
-//     inner: *mut std::os::raw::c_void,
-// }
-
-// impl PatchFileHandle {
-//     pub fn into_inner(self) -> *mut std::os::raw::c_void {
-//         self.inner
-//     }
-// }
-// impl From<*mut std::os::raw::c_void> for PatchFileHandle {
-//     fn from(inner: *mut std::os::raw::c_void) -> Self {
-//         Self { inner }
-//     }
-// }
 pub struct PatchFileHandle(usize);
 impl PatchFileHandle {
     pub(crate) fn as_mut_ptr(&self) -> *mut std::os::raw::c_void {
@@ -232,17 +95,23 @@ impl Into<*mut std::os::raw::c_void> for PatchFileHandle {
     }
 }
 
-pub struct ReceiverHandle {
-    inner: *mut std::os::raw::c_void,
-}
+pub struct ReceiverHandle(usize);
 
 impl ReceiverHandle {
-    pub fn into_inner(self) -> *mut std::os::raw::c_void {
-        self.inner
+    pub(crate) fn as_mut_ptr(&self) -> *mut std::os::raw::c_void {
+        self.0 as *mut std::os::raw::c_void
     }
 }
 impl From<*mut std::os::raw::c_void> for ReceiverHandle {
-    fn from(inner: *mut std::os::raw::c_void) -> Self {
-        Self { inner }
+    fn from(ptr: *mut std::os::raw::c_void) -> Self {
+        Self(ptr as usize)
+    }
+}
+
+// Might be needed
+#[allow(clippy::from_over_into)]
+impl Into<*mut std::os::raw::c_void> for ReceiverHandle {
+    fn into(self) -> *mut std::os::raw::c_void {
+        self.0 as *mut std::os::raw::c_void
     }
 }
