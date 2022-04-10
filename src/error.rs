@@ -28,6 +28,8 @@ pub enum InitializationError {
 pub enum IoError {
     #[error("Failed to open patch for unknown reason.")]
     FailedToOpenPatch,
+    #[error("Failed to close patch, because the handle provided is null.")]
+    FailedToClosePatch,
     // Add more errors here..
 }
 

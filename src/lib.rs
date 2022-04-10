@@ -82,10 +82,24 @@ pub fn add_to_search_paths(path: &std::path::Path) -> Result<(), FileSystemError
 /// The argument should be an absolute path to the patch file.
 /// It would be useful to keep the return value of this function.
 /// It can be used later to close it.
+/// Absolute and relative paths are supported.
+/// Relative paths and single file names are tried in executable directory and manifest directory.
+///
+/// Tha function **first** checks the executable directory and **then** the manifest directory.
 ///
 /// # Example
 /// ```rust
-/// let patch_handle = libpd_rs::open_patch("test.pd").unwrap();
+/// let mut absolute_path = PathBuf::new();
+/// let mut relative_path = PathBuf::new();
+/// let mut patch_name = PathBuf::new();
+///
+/// absolute_path.push("/home/user/my_patch.pd");
+/// relative_path.push("../my_patch.pd");
+/// patch_name.push("my_patch.pd");
+///
+/// let patch_handle = libpd_rs::open_patch(&absolute_path).unwrap();
+/// let patch_handle = libpd_rs::open_patch(&relative_path).unwrap();
+/// let patch_handle = libpd_rs::open_patch(&patch_name).unwrap();
 /// ```
 pub fn open_patch(path_to_patch: &std::path::Path) -> Result<PatchFileHandle, IoError> {
     let file_name = path_to_patch
@@ -107,7 +121,17 @@ pub fn open_patch(path_to_patch: &std::path::Path) -> Result<PatchFileHandle, Io
         app_dir.pop();
         app_dir.push(parent_path);
         let parent_path_str = app_dir.to_string_lossy();
-        directory = parent_path_str.into();
+
+        if !app_dir.exists() {
+            let mut manifest_dir = PathBuf::new();
+            manifest_dir.push(&std::env!("CARGO_MANIFEST_DIR"));
+            manifest_dir.push(parent_path);
+            // Try manifest dir.
+            let manifest_dir_str = manifest_dir.to_string_lossy();
+            directory = manifest_dir_str.into();
+        } else {
+            directory = parent_path_str.into();
+        }
     }
     // "some.pd" --> prepend working directory
     if parent_path_string.is_empty() {
@@ -147,7 +171,7 @@ pub fn open_patch(path_to_patch: &std::path::Path) -> Result<PatchFileHandle, Io
         if file_handle.is_null() {
             return Err(IoError::FailedToOpenPatch);
         }
-        Ok(PatchFileHandle::from(file_handle))
+        Ok(file_handle.into())
     }
 }
 
@@ -158,31 +182,53 @@ pub fn open_patch(path_to_patch: &std::path::Path) -> Result<PatchFileHandle, Io
 /// let patch_handle = libpd_rs::open_patch("test.pd").unwrap();
 /// libpd_rs::close_patch(patch_handle);
 /// ```
-pub fn close_patch(handle: PatchFileHandle) {
+pub fn close_patch(handle: PatchFileHandle) -> Result<(), IoError> {
     unsafe {
-        // TODO: Can this file handle ever be null or invalidated?
-        // This is a free, is there any way for a double free to occur?
-        libpd_sys::libpd_closefile(handle.into_inner());
+        let ptr: *mut std::os::raw::c_void = handle.into();
+        if ptr.is_null() {
+            Err(IoError::FailedToClosePatch)
+        } else {
+            libpd_sys::libpd_closefile(ptr);
+            Ok(())
+        }
     }
 }
-
-// TODO: This function shouldn't consume PatchFileHandle.
-// PatchFileHandle should be a smart pointer.
 
 /// Get the `$0` id of the running patch.
 ///
 /// `$0` id in pd could be thought as a auto generated unique identifier for the patch.
-pub fn get_dollar_zero(handle: PatchFileHandle) {
+pub fn get_dollar_zero(handle: &PatchFileHandle) {
     unsafe {
-        libpd_sys::libpd_getdollarzero(handle.into_inner());
+        libpd_sys::libpd_getdollarzero(handle.as_mut_ptr());
     }
 }
 
-// TODO: Maybe explain what a pd tick is?
-
-/// Return pd's fixed block size
+/// Return pd's fixed block size which is 64 by default.
 ///
-/// The number of sample frames per 1 pd tick
+/// The number of frames per 1 pd tick.
+///
+/// For every pd tick, pd will process frames by the amount of block size.
+/// e.g. this would make 128 samples if we have a stereo output and the default block size.
+///
+/// It will first process the input buffers and then will continue with the output buffers.
+/// Check the `PROCESS` macro in `libpd.c` for more information.
+///
+/// # Examples
+///
+/// ```rust
+/// let block_size = block_size();
+/// let output_channels = 2;
+/// let buffer_size = 1024;
+///  
+/// // Calculate pd ticks according to the upper information
+/// let pd_ticks = buffer_size / (block_size * output_channels);
+///
+/// // If we would have known about pd_ticks, then we could also calculate the buffer size,
+/// assert_eq!(buffer_size, pd_ticks * (block_size() * output_channels));
+/// ```
+///
+///
+///
 pub fn block_size() -> i32 {
     unsafe { libpd_sys::libpd_blocksize() }
 }
@@ -201,87 +247,231 @@ pub fn initialize_audio(
     }
 }
 
-// TODO: Handle return? returns 0 on success
-// TODO: Re-check formula
-// TODO: Write an example
-// TODO: Then write doc for all process functions accordingly.
-
-/// Process the audio buffer in place through the loaded pd patch
+/// Process the audio buffer in place through the loaded pd patch.
 ///
 /// Processes `f32` interleaved audio buffers.
-/// The processing order is like the following, input_buffer -> libpd -> output_buffer
-/// You may calculate the ticks argument with the following formula:
-/// `(output_buffer.len() / block_size()) / channels`
-/// `size = ticks * libpd_blocksize() * (in/out)channel`
+///
+/// The processing order is like the following, `input_buffer -> libpd -> output_buffer`.
+///
+/// Call this in your **audio callback**.
+///
+/// # Examples
+/// ```rust
+///
+/// let input_buffer = [0.0_f32; 512];
+/// let mut output_buffer = [0.0_f32; 1024];
+///
+/// let block_size = block_size();
+/// let output_channels = 2;
+/// let buffer_size = output_buffer.len();
+///  
+/// // In the audio callback,
+/// // Calculate pd ticks according to the upper information
+/// let pd_ticks = buffer_size / (block_size * output_channels);
+/// process_float(pd_ticks, &input_buffer, &mut output_buffer)
+///
+/// // Or if you wish,
+/// // the input buffer can also be an empty slice if you're not going to use any inputs.
+/// process_float(pd_ticks, &[], &mut output_buffer)
+/// ```
+///
+/// # Panics
+///
+/// This function may panic for multiple reasons,
+/// first of all there is a mutex lock used internally and also it processes buffers in place so there are possibilities of segfaults.
+/// Use with care.
 pub fn process_float(ticks: i32, input_buffer: &[f32], output_buffer: &mut [f32]) {
     unsafe {
         libpd_sys::libpd_process_float(ticks, input_buffer.as_ptr(), output_buffer.as_mut_ptr());
     }
 }
 
-// TODO: Document
+/// Process the audio buffer in place through the loaded pd patch.
+///
+/// Processes `i16` interleaved audio buffers.
+///
+/// The processing order is like the following, `input_buffer -> libpd -> output_buffer`.
+///
+/// Float samples are converted to short by multiplying by 32767 and casting,
+/// so any values received from pd patches beyond -1 to 1 will result in garbage.
+///
+/// Note: for efficiency, does *not* clip input
+///
+/// Call this in your **audio callback**.
+///
+/// # Examples
+/// ```rust
+///
+/// let input_buffer = [0_i16; 512];
+/// let mut output_buffer = [0_i16; 1024];
+///
+/// let block_size = block_size();
+/// let output_channels = 2;
+/// let buffer_size = output_buffer.len();
+///  
+/// // In the audio callback,
+/// // Calculate pd ticks according to the upper information
+/// let pd_ticks = buffer_size / (block_size * output_channels);
+/// process_short(pd_ticks, &input_buffer, &mut output_buffer)
+///
+/// // Or if you wish,
+/// // the input buffer can also be an empty slice if you're not going to use any inputs.
+/// process_short(pd_ticks, &[], &mut output_buffer)
+/// ```
+///
+/// # Panics
+///
+/// This function may panic for multiple reasons,
+/// first of all there is a mutex lock used internally and also it processes buffers in place so there are possibilities of segfaults.
+/// Use with care.
 
-/// process interleaved short samples from inBuffer -> libpd -> outBuffer
-/// buffer sizes are based on # of ticks and channels where:
-///     size = ticks * libpd_blocksize() * (in/out)channels
-/// float samples are converted to short by multiplying by 32767 and casting,
-/// so any values received from pd patches beyond -1 to 1 will result in garbage
-/// note: for efficiency, does *not* clip input
-/// returns 0 on success
 pub fn process_short(ticks: i32, input_buffer: &[i16], output_buffer: &mut [i16]) {
     unsafe {
         libpd_sys::libpd_process_short(ticks, input_buffer.as_ptr(), output_buffer.as_mut_ptr());
     }
 }
 
-// TODO: Document
-
-/// process interleaved double samples from inBuffer -> libpd -> outBuffer
-/// buffer sizes are based on # of ticks and channels where:
-///     size = ticks * libpd_blocksize() * (in/out)channels
-/// returns 0 on success
+/// Process the audio buffer in place through the loaded pd patch.
+///
+/// Processes `f64` interleaved audio buffers.
+///
+/// The processing order is like the following, `input_buffer -> libpd -> output_buffer`.
+///
+/// Call this in your **audio callback**.
+///
+/// # Examples
+/// ```rust
+///
+/// let input_buffer = [0.0_f64; 512];
+/// let mut output_buffer = [0.0_f64; 1024];
+///
+/// let block_size = block_size();
+/// let output_channels = 2;
+/// let buffer_size = output_buffer.len();
+///  
+/// // In the audio callback,
+/// // Calculate pd ticks according to the upper information
+/// let pd_ticks = buffer_size / (block_size * output_channels);
+/// process_double(pd_ticks, &input_buffer, &mut output_buffer)
+///
+/// // Or if you wish,
+/// // the input buffer can also be an empty slice if you're not going to use any inputs.
+/// process_double(pd_ticks, &[], &mut output_buffer)
+/// ```
+///
+/// # Panics
+///
+/// This function may panic for multiple reasons,
+/// first of all there is a mutex lock used internally and also it processes buffers in place so there are possibilities of segfaults.
+/// Use with care.
 pub fn process_double(ticks: i32, input_buffer: &[f64], output_buffer: &mut [f64]) {
     unsafe {
         libpd_sys::libpd_process_double(ticks, input_buffer.as_ptr(), output_buffer.as_mut_ptr());
     }
 }
 
-// TODO: Document
-
-/// process non-interleaved float samples from inBuffer -> libpd -> outBuffer
-/// copies buffer contents to/from libpd without striping
-/// buffer sizes are based on a single tick and # of channels where:
-///     size = libpd_blocksize() * (in/out)channels
-/// returns 0 on success
+/// Process the audio buffer in place through the loaded pd patch.
+///
+/// Processes `f32` **non-interleaved** audio buffers.
+///
+/// The processing order is like the following, `input_buffer -> libpd -> output_buffer`.
+/// Copies buffer contents to/from libpd without striping.
+///
+/// Call this in your **audio callback**.
+///
+/// # Examples
+/// ```rust
+///
+/// let input_buffer = [0.0_f32; 512];
+/// let mut output_buffer = [0.0_f32; 1024];
+///  
+/// // In the audio callback,
+/// process_raw(&input_buffer, &mut output_buffer)
+///
+/// // Or if you wish,
+/// // the input buffer can also be an empty slice if you're not going to use any inputs.
+/// process_raw(&[], &mut output_buffer)
+/// ```
+///
+/// # Panics
+///
+/// This function may panic for multiple reasons,
+/// first of all there is a mutex lock used internally and also it processes buffers in place so there are possibilities of segfaults.
+/// Use with care.
 pub fn process_raw(input_buffer: &[f32], output_buffer: &mut [f32]) {
     unsafe {
         libpd_sys::libpd_process_raw(input_buffer.as_ptr(), output_buffer.as_mut_ptr());
     }
 }
 
-// TODO: Document
+/// Process the audio buffer in place through the loaded pd patch.
+///
+/// Processes `i16` **non-interleaved** audio buffers.
+///
+/// The processing order is like the following, `input_buffer -> libpd -> output_buffer`.
+/// Copies buffer contents to/from libpd without striping.
+///
+/// Float samples are converted to short by multiplying by 32767 and casting,
+/// so any values received from pd patches beyond -1 to 1 will result in garbage.
+///
+/// Note: for efficiency, does *not* clip input
+///
+/// Call this in your **audio callback**.
+///
+/// # Examples
+/// ```rust
+///
+/// let input_buffer = [0_i16; 512];
+/// let mut output_buffer = [0_i16; 1024];
+///  
+/// // In the audio callback,
+/// process_raw_short(&input_buffer, &mut output_buffer)
+///
+/// // Or if you wish,
+/// // the input buffer can also be an empty slice if you're not going to use any inputs.
+/// process_raw_short(&[], &mut output_buffer)
+/// ```
+///
+/// # Panics
+///
+/// This function may panic for multiple reasons,
+/// first of all there is a mutex lock used internally and also it processes buffers in place so there are possibilities of segfaults.
+/// Use with care.
 
-/// process non-interleaved short samples from inBuffer -> libpd -> outBuffer
-/// copies buffer contents to/from libpd without striping
-/// buffer sizes are based on a single tick and # of channels where:
-///     size = libpd_blocksize() * (in/out)channels
-/// float samples are converted to short by multiplying by 32767 and casting,
-/// so any values received from pd patches beyond -1 to 1 will result in garbage
-/// note: for efficiency, does *not* clip input
-/// returns 0 on success
 pub fn process_raw_short(input_buffer: &[i16], output_buffer: &mut [i16]) {
     unsafe {
         libpd_sys::libpd_process_raw_short(input_buffer.as_ptr(), output_buffer.as_mut_ptr());
     }
 }
 
-// TODO: Document
-
-/// process non-interleaved double samples from inBuffer -> libpd -> outBuffer
-/// copies buffer contents to/from libpd without striping
-/// buffer sizes are based on a single tick and # of channels where:
-///     size = libpd_blocksize() * (in/out)channels
-/// returns 0 on success
+/// Process the audio buffer in place through the loaded pd patch.
+///
+/// Processes `f64` **non-interleaved** audio buffers.
+///
+/// The processing order is like the following, `input_buffer -> libpd -> output_buffer`.
+/// Copies buffer contents to/from libpd without striping.
+///
+/// Call this in your **audio callback**.
+///
+/// # Examples
+/// ```rust
+///
+/// let input_buffer = [0.0_f64; 512];
+/// let mut output_buffer = [0.0_f64; 1024];
+///  
+/// // In the audio callback,
+/// process_raw_double(&input_buffer, &mut output_buffer)
+///
+/// // Or if you wish,
+/// // the input buffer can also be an empty slice if you're not going to use any inputs.
+/// process_raw_double(&[], &mut output_buffer)
+/// ```
+///
+/// # Panics
+///
+/// This function may panic for multiple reasons,
+/// first of all there is a mutex lock used internally and also it processes buffers in place so there are possibilities of segfaults.
+/// Use with care.
 pub fn process_raw_double(input_buffer: &[f64], output_buffer: &mut [f64]) {
     unsafe {
         libpd_sys::libpd_process_raw_double(input_buffer.as_ptr(), output_buffer.as_mut_ptr());

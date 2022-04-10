@@ -180,18 +180,38 @@ impl From<&str> for Atom {
 // cast this to a type which is equivalent memory wise or do the same thing :)
 // I think this would worth a research for this to be a clean library.
 // TODO: This type has to be a smart pointer, we can not pass voids around.
-pub struct PatchFileHandle {
-    inner: *mut std::os::raw::c_void,
-}
+// pub struct PatchFileHandle {
+//     inner: *mut std::os::raw::c_void,
+// }
 
+// impl PatchFileHandle {
+//     pub fn into_inner(self) -> *mut std::os::raw::c_void {
+//         self.inner
+//     }
+// }
+// impl From<*mut std::os::raw::c_void> for PatchFileHandle {
+//     fn from(inner: *mut std::os::raw::c_void) -> Self {
+//         Self { inner }
+//     }
+// }
+pub struct PatchFileHandle(usize);
 impl PatchFileHandle {
-    pub fn into_inner(self) -> *mut std::os::raw::c_void {
-        self.inner
+    pub(crate) fn as_mut_ptr(&self) -> *mut std::os::raw::c_void {
+        self.0 as *mut std::os::raw::c_void
     }
 }
+
 impl From<*mut std::os::raw::c_void> for PatchFileHandle {
-    fn from(inner: *mut std::os::raw::c_void) -> Self {
-        Self { inner }
+    fn from(ptr: *mut std::os::raw::c_void) -> Self {
+        Self(ptr as usize)
+    }
+}
+
+// Needed in this case.
+#[allow(clippy::from_over_into)]
+impl Into<*mut std::os::raw::c_void> for PatchFileHandle {
+    fn into(self) -> *mut std::os::raw::c_void {
+        self.0 as *mut std::os::raw::c_void
     }
 }
 
