@@ -580,8 +580,6 @@ pub fn read_float_array_from<T: AsRef<str>>(
     }
 }
 
-// @attention Stayed here..
-
 /// Reads values as much as `read_amount` from the array which is given as the `source` argument
 /// and writes them to a named array in pd which is specified with `destination_name` argument starting at `destination_offset`.
 ///
@@ -1500,7 +1498,7 @@ pub fn receive_messages_from_pd() {
 ///
 /// Channels encode MIDI ports via: `libpd_channel = pd_channel + 16 * pd_port`
 ///
-/// Mote: There is no note off message, send a note on with velocity = 0 instead.
+/// Note: There is no note off message, send a note on with velocity = 0 instead.
 ///
 /// # Example
 /// ```rust
@@ -1735,11 +1733,28 @@ pub fn send_sys_realtime(port: i32, byte: i32) -> Result<(), LibpdError> {
     }
 }
 
-/// MIDI note on receive hook signature
-/// channel is 0-indexed, pitch is 0-127, and value is 0-127
-/// channels encode MIDI ports via: libpd_channel = pd_channel + 16 * pd_port
-/// note: there is no note off message, note on w/ velocity = 0 is used instead
-/// note: out of range values from pd are clamped
+// @attention Stayed here..
+
+/// Sets a closure to be called when a MIDI note on event is received.
+///
+/// You do not need to register this listener explicitly.
+///
+/// Channel is 0-indexed, pitch is 0-127 and velocity is 0-127.
+///
+/// Channels encode MIDI ports via: `libpd_channel = pd_channel + 16 * pd_port`
+///
+/// Note:
+///  - There is no note off message, a note on message with velocity = 0 is used instead.
+///  - Out of range values which are sent from the patch are clamped.
+///
+/// # Example
+/// ```rust
+/// # use libpd_rs::mirror::*;
+/// # init();
+/// on_midi_note_on(|channel: i32, pitch: i32, velocity: i32| {
+///   println!("Note On: channel {channel}, pitch {pitch}, velocity {velocity}");
+/// });
+/// ```
 pub fn on_midi_note_on<F: FnMut(i32, i32, i32) + Send + Sync + 'static>(
     mut user_provided_closure: F,
 ) {
@@ -1760,10 +1775,24 @@ pub fn on_midi_note_on<F: FnMut(i32, i32, i32) + Send + Sync + 'static>(
     unsafe { libpd_sys::libpd_set_queued_noteonhook(Some(*ptr)) };
 }
 
-/// MIDI control change receive hook signature
-/// channel is 0-indexed, controller is 0-127, and value is 0-127
-/// channels encode MIDI ports via: libpd_channel = pd_channel + 16 * pd_port
-/// note: out of range values from pd are clamped
+/// Sets a closure to be called when a MIDI control change event is received.
+///
+/// You do not need to register this listener explicitly.
+///
+/// Channel is 0-indexed, controller is 0-127 and value is 0-127.
+///
+/// Channels encode MIDI ports via: `libpd_channel = pd_channel + 16 * pd_port`
+///
+/// Note: Out of range values which are sent from the patch are clamped.
+///
+/// # Example
+/// ```rust
+/// # use libpd_rs::mirror::*;
+/// # init();
+/// on_midi_control_change(|channel: i32, controller: i32, value: i32| {
+///   println!("Control Change: channel {channel}, controller number {controller}, value {value}");
+/// });
+/// ```
 pub fn on_midi_control_change<F: FnMut(i32, i32, i32) + Send + Sync + 'static>(
     mut user_provided_closure: F,
 ) {
@@ -1785,10 +1814,24 @@ pub fn on_midi_control_change<F: FnMut(i32, i32, i32) + Send + Sync + 'static>(
     unsafe { libpd_sys::libpd_set_queued_controlchangehook(Some(*ptr)) };
 }
 
-/// MIDI program change receive hook signature
-/// channel is 0-indexed and value is 0-127
-/// channels encode MIDI ports via: libpd_channel = pd_channel + 16 * pd_port
-/// note: out of range values from pd are clamped
+/// Sets a closure to be called when a MIDI program change event is received.
+///
+/// You do not need to register this listener explicitly.
+///
+/// Channel is 0-indexed, value is 0-127.
+///
+/// Channels encode MIDI ports via: `libpd_channel = pd_channel + 16 * pd_port`
+///
+/// Note: Out of range values which are sent from the patch are clamped.
+///
+/// # Example
+/// ```rust
+/// # use libpd_rs::mirror::*;
+/// # init();
+/// on_midi_program_change(|channel: i32, value: i32| {
+///   println!("Program Change: channel {channel}, program number {value}");
+/// });
+/// ```
 pub fn on_midi_program_change<F: FnMut(i32, i32) + Send + Sync + 'static>(
     mut user_provided_closure: F,
 ) {
@@ -1805,11 +1848,26 @@ pub fn on_midi_program_change<F: FnMut(i32, i32) + Send + Sync + 'static>(
     unsafe { libpd_sys::libpd_set_queued_programchangehook(Some(*ptr)) };
 }
 
-/// MIDI pitch bend receive hook signature
-/// channel is 0-indexed and value is -8192-8192
-/// channels encode MIDI ports via: libpd_channel = pd_channel + 16 * pd_port
-/// note: [bendin] outputs 0-16383 while [bendout] accepts -8192-8192
-/// note: out of range values from pd are clamped
+/// Sets a closure to be called when a MIDI pitch bend event is received.
+///
+/// You do not need to register this listener explicitly.
+///
+/// Channel is 0-indexed, value is -8192-8192.
+///
+/// Channels encode MIDI ports via: `libpd_channel = pd_channel + 16 * pd_port`
+///
+/// Note:
+///  - `|bendin|` object in pd outputs 0-16383 while `|bendout|` accepts -8192 to +8192.
+///  - Out of range values which are sent from the patch are clamped.
+///
+/// # Example
+/// ```rust
+/// # use libpd_rs::mirror::*;
+/// # init();
+/// on_midi_pitch_bend(|channel: i32, value: i32| {
+///   println!("Pitch Bend: channel {channel}, bend amount {value}");
+/// });
+/// ```
 pub fn on_midi_pitch_bend<F: FnMut(i32, i32) + Send + Sync + 'static>(
     mut user_provided_closure: F,
 ) {
@@ -1826,10 +1884,24 @@ pub fn on_midi_pitch_bend<F: FnMut(i32, i32) + Send + Sync + 'static>(
     unsafe { libpd_sys::libpd_set_queued_pitchbendhook(Some(*ptr)) };
 }
 
-/// MIDI after touch receive hook signature
-/// channel is 0-indexed and value is 0-127
-/// channels encode MIDI ports via: libpd_channel = pd_channel + 16 * pd_port
-/// note: out of range values from pd are clamped
+/// Sets a closure to be called when a MIDI after touch event is received.
+///
+/// You do not need to register this listener explicitly.
+///
+/// Channel is 0-indexed, value is 0-127.
+///
+/// Channels encode MIDI ports via: `libpd_channel = pd_channel + 16 * pd_port`
+///
+/// Note: Out of range values which are sent from the patch are clamped.
+///
+/// # Example
+/// ```rust
+/// # use libpd_rs::mirror::*;
+/// # init();
+/// on_midi_after_touch(|channel: i32, value: i32| {
+///   println!("After Touch: channel {channel}, after touch amount {value}");
+/// });
+/// ```
 pub fn on_midi_after_touch<F: FnMut(i32, i32) + Send + Sync + 'static>(
     mut user_provided_closure: F,
 ) {
@@ -1846,10 +1918,24 @@ pub fn on_midi_after_touch<F: FnMut(i32, i32) + Send + Sync + 'static>(
     unsafe { libpd_sys::libpd_set_queued_aftertouchhook(Some(*ptr)) };
 }
 
-/// MIDI poly after touch receive hook signature
-/// channel is 0-indexed, pitch is 0-127, and value is 0-127
-/// channels encode MIDI ports via: libpd_channel = pd_channel + 16 * pd_port
-/// note: out of range values from pd are clamped
+/// Sets a closure to be called when a MIDI poly after touch event is received.
+///
+/// You do not need to register this listener explicitly.
+///
+/// Channel is 0-indexed, pitch is 0-127 and value is 0-127.
+///
+/// Channels encode MIDI ports via: `libpd_channel = pd_channel + 16 * pd_port`
+///
+/// Note: Out of range values which are sent from the patch are clamped.
+///
+/// # Example
+/// ```rust
+/// # use libpd_rs::mirror::*;
+/// # init();
+/// on_midi_poly_after_touch(|channel: i32, pitch: i32, value: i32| {
+///   println!("Poly After Touch: channel {channel}, pitch {pitch}, after touch amount {value}");
+/// });
+/// ```
 pub fn on_midi_poly_after_touch<F: FnMut(i32, i32, i32) + Send + Sync + 'static>(
     mut user_provided_closure: F,
 ) {
@@ -1870,9 +1956,22 @@ pub fn on_midi_poly_after_touch<F: FnMut(i32, i32, i32) + Send + Sync + 'static>
     unsafe { libpd_sys::libpd_set_queued_polyaftertouchhook(Some(*ptr)) };
 }
 
-/// raw MIDI byte receive hook signature
-/// port is 0-indexed and byte is 0-256
-/// note: out of range values from pd are clamped
+/// Sets a closure to be called when a single raw MIDI byte is received.
+///
+/// You do not need to register this listener explicitly.
+///
+/// Port is 0-indexed and byte is 0-255
+///
+/// Note: Out of range values which are sent from the patch are clamped.
+///
+/// # Example
+/// ```rust
+/// # use libpd_rs::mirror::*;
+/// # init();
+/// on_midi_byte(|port: i32, byte: i32| {
+///   println!("Raw MIDI Byte: port {port}, byte {byte}");
+/// });
+/// ```
 pub fn on_midi_byte<F: FnMut(i32, i32) + Send + Sync + 'static>(mut user_provided_closure: F) {
     let closure: &'static mut _ = Box::leak(Box::new(move |port: i32, byte: i32| {
         user_provided_closure(port, byte);
