@@ -6,29 +6,52 @@
 /// This enum maps those to their Rust counterparts.
 #[derive(Debug, Clone)]
 pub enum Atom {
-    Float(f32),
+    Float(f64),
     Symbol(String),
-    Double(f64),
 }
 
-impl From<f32> for Atom {
-    fn from(f: f32) -> Self {
-        Self::Float(f)
-    }
+macro_rules! atom_from_number_type {
+    ($type:ty) => {
+        impl From<$type> for Atom {
+            fn from(i: $type) -> Self {
+                Self::Float(i.into())
+            }
+        }
+    };
 }
-impl From<f64> for Atom {
-    fn from(d: f64) -> Self {
-        Self::Double(d)
-    }
-}
+
+atom_from_number_type!(i8);
+atom_from_number_type!(i16);
+atom_from_number_type!(i32);
+atom_from_number_type!(u8);
+atom_from_number_type!(u16);
+atom_from_number_type!(u32);
+atom_from_number_type!(f32);
+atom_from_number_type!(f64);
+
 impl From<String> for Atom {
     fn from(s: String) -> Self {
         Self::Symbol(s)
     }
 }
+impl From<&String> for Atom {
+    fn from(s: &String) -> Self {
+        Self::Symbol(s.clone())
+    }
+}
 impl From<&str> for Atom {
     fn from(s: &str) -> Self {
         Self::Symbol(s.to_owned())
+    }
+}
+impl From<char> for Atom {
+    fn from(c: char) -> Self {
+        Self::Symbol(c.to_string())
+    }
+}
+impl From<&char> for Atom {
+    fn from(c: &char) -> Self {
+        Self::Symbol(c.to_string())
     }
 }
 
@@ -37,11 +60,6 @@ impl std::fmt::Display for Atom {
         match self {
             Atom::Float(float) => write!(f, "{}", float),
             Atom::Symbol(s) => write!(f, "{}", s),
-            Atom::Double(d) => write!(f, "{}", d),
-            // PdType::Pointer => write!(f, "Pointer"),
-            // PdType::Array => write!(f, "Array"),
-            // PdType::Binbuf => write!(f, "Binbuf"),
-            // PdType::Index => write!(f, "Index"),
         }
     }
 }

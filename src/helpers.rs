@@ -24,16 +24,6 @@ macro_rules! make_t_atom_list_from_atom_list {
                             ),
                         },
                     },
-                    Atom::Double(value) => {
-                        libpd_sys::t_atom {
-                            a_type: libpd_sys::t_atomtype_A_FLOAT,
-                            a_w: libpd_sys::word {
-                                // TODO: This is wrong.
-                                // Please find a better strategy here.
-                                w_float: *value as f32,
-                            },
-                        }
-                    }
                 }
             })
             .collect::<Vec<libpd_sys::t_atom>>()
@@ -49,7 +39,7 @@ macro_rules! make_atom_list_from_t_atom_list {
                 libpd_sys::t_atomtype_A_FLOAT => {
                     let ptr_to_inner =
                         atom_type as *const libpd_sys::t_atom as *mut libpd_sys::t_atom;
-                    let f: f32 = unsafe { libpd_sys::libpd_get_float(ptr_to_inner) };
+                    let f: f64 = unsafe { libpd_sys::libpd_get_double(ptr_to_inner) };
                     Atom::Float(f)
                 }
                 libpd_sys::t_atomtype_A_SYMBOL => {

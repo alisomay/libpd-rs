@@ -18,6 +18,7 @@ const C_STR_FAILURE: &str = "Converting a CStr to an &str is failed.";
 // TODO: Use AsRef<Path>
 // TODO: Bring use statements visible in documentation.
 // TODO: Also please, change the titles of each individual function to look nice in doc.
+// TODO: We're compiling for f64 floats in pd, check how float and double functions behave and change documentation where necessary.
 
 /// Initializes libpd.
 ///
@@ -105,13 +106,9 @@ pub fn add_to_search_paths(path: &std::path::Path) -> Result<(), LibpdError> {
 /// ```no_run
 /// # use libpd_rs::mirror::*;
 /// # use std::path::PathBuf;
-/// let mut absolute_path = PathBuf::new();
-/// let mut relative_path = PathBuf::new();
-/// let mut patch_name = PathBuf::new();
-///
-/// absolute_path.push("/home/user/my_patch.pd");
-/// relative_path.push("../my_patch.pd");
-/// patch_name.push("my_patch.pd");
+/// let absolute_path = PathBuf::from("/home/user/my_patch.pd");
+/// let relative_path = PathBuf::from("../my_patch.pd");
+/// let patch_name = PathBuf::from("my_patch.pd");
 ///
 /// let patch_handle = open_patch(&patch_name).unwrap();
 /// // or others..
@@ -141,9 +138,7 @@ pub fn open_patch(path_to_patch: &std::path::Path) -> Result<PatchFileHandle, Li
         if app_dir.exists() {
             directory = parent_path_str.into();
         } else {
-            let mut manifest_dir = PathBuf::new();
-            manifest_dir.push(&std::env!("CARGO_MANIFEST_DIR"));
-            manifest_dir.push(parent_path);
+            let manifest_dir = PathBuf::from(&std::env!("CARGO_MANIFEST_DIR")).join(parent_path);
             // Try manifest dir.
             let manifest_dir_str = manifest_dir.to_string_lossy();
             directory = manifest_dir_str.into();
@@ -166,10 +161,7 @@ pub fn open_patch(path_to_patch: &std::path::Path) -> Result<PatchFileHandle, Li
     }
 
     // Invalid path.
-    let mut calculated_patch_path = PathBuf::new();
-    calculated_patch_path.push(&directory);
-    calculated_patch_path.push(file_name);
-
+    let calculated_patch_path = PathBuf::from(&directory).join(file_name);
     if !calculated_patch_path.exists() {
         return Err(LibpdError::IoError(IoError::FailedToOpenPatch));
         // TODO: Update returned errors when umbrella error type is in action.
@@ -199,8 +191,7 @@ pub fn open_patch(path_to_patch: &std::path::Path) -> Result<PatchFileHandle, Li
 /// ```no_run
 /// # use std::path::PathBuf;
 /// # use libpd_rs::mirror::*;
-/// let mut patch = PathBuf::new();
-/// patch.push("my_patch.pd");
+/// let patch = PathBuf::from("my_patch.pd");
 /// let patch_handle = open_patch(&patch).unwrap();
 ///
 /// assert!(close_patch(patch_handle).is_ok());
@@ -1329,7 +1320,6 @@ pub fn on_symbol<F: FnMut(&str, &str) + Send + Sync + 'static>(mut user_provided
     unsafe { libpd_sys::libpd_set_queued_symbolhook(Some(*ptr)) };
 }
 
-// TODO: Revisit after finishing all atom impls.
 /// Sets a closure to be called when a list is received from a subscribed receiver
 ///
 /// Do not register this listener while pd DSP is running.
@@ -1349,7 +1339,7 @@ pub fn on_symbol<F: FnMut(&str, &str) + Send + Sync + 'static>(mut user_provided
 ///                 Atom::Symbol(value) => {
 ///                     println!("Received a symbol from foo, value is: {value}")
 ///                 }
-///                 _ => unimplemented!(),
+///                 _ => unreachable!(),
 ///             }
 ///         }
 ///     }
@@ -1362,7 +1352,7 @@ pub fn on_symbol<F: FnMut(&str, &str) + Send + Sync + 'static>(mut user_provided
 ///                 Atom::Symbol(value) => {
 ///                     println!("Received a symbol from bar, value is: {value}")
 ///                 }
-///                 _ => unimplemented!(),
+///                 _ => unreachable!(),
 ///             }
 ///         }
 ///     }
@@ -1395,9 +1385,7 @@ pub fn on_list<F: FnMut(&str, &[Atom]) + Send + Sync + 'static>(mut user_provide
     unsafe { libpd_sys::libpd_set_queued_listhook(Some(*ptr)) };
 }
 
-// TODO: Revisit after finishing all atom impls.
 // TODO: Can we receive messages here without binding??
-
 /// Sets a closure to be called when a typed message is received from a subscribed receiver
 ///
 /// In a message like [; foo hello 1.0 merhaba] which is sent from the patch,
@@ -1407,7 +1395,7 @@ pub fn on_list<F: FnMut(&str, &[Atom]) + Send + Sync + 'static>(mut user_provide
 /// ```sh
 /// source: "foo"
 /// message: "hello"
-/// values: [Atom::Float(1.0), Atom::Symbol("merhaba")]
+/// values: [Atom::from(1.0), Atom::from("merhaba")]
 /// ```
 ///
 /// Do not register this listener while pd DSP is running.
@@ -1428,7 +1416,7 @@ pub fn on_list<F: FnMut(&str, &[Atom]) + Send + Sync + 'static>(mut user_provide
 ///                 Atom::Symbol(value) => {
 ///                     println!("In message, {message}, a symbol value is: {value}")
 ///                 }
-///                 _ => unimplemented!(),
+///                 _ => unreachable!(),
 ///             }
 ///         }
 ///     }
@@ -2055,8 +2043,6 @@ pub fn start_gui(path_to_pd: &std::path::Path) -> Result<(), LibpdError> {
     }
     Err(LibpdError::IoError(IoError::FailedToOpenGui))
 }
-
-// TODO: Correct pathbufs
 
 /// Stops the current running pd vanilla GUI if it is running.
 pub fn stop_gui() {
