@@ -16,6 +16,8 @@ const C_STRING_FAILURE: &str =
 const C_STR_FAILURE: &str = "Converting a CStr to an &str is failed.";
 
 // TODO: Use AsRef<Path>
+// TODO: Bring use statements visible in documentation.
+// TODO: Also please, change the titles of each individual function to look nice in doc.
 
 /// Initializes libpd.
 ///
@@ -2072,67 +2074,10 @@ pub fn poll_gui() -> Option<()> {
 }
 
 // @attention Multi instance features implementation is scheduled for later.
+
+/* multiple instance functions in z_libpd.h  could have been here.. */
+
 // @attention If there is a necessity emerges, I'll give time to implement them.
-
-/* multiple instance functions in z_libpd.h */
-
-/// create a new pd instance
-/// returns new instance or NULL when libpd is not compiled with PDINSTANCE
-// EXTERN t_pdinstance *libpd_new_instance(void);
-
-/// set the current pd instance
-/// subsequent libpd calls will affect this instance only
-/// does nothing when libpd is not compiled with PDINSTANCE
-// EXTERN void libpd_set_instance(t_pdinstance *p);
-
-/// free a pd instance
-/// does nothing when libpd is not compiled with PDINSTANCE
-// EXTERN void libpd_free_instance(t_pdinstance *p);
-
-/// get the current pd instance
-// EXTERN t_pdinstance *libpd_this_instance(void);
-
-/// get a pd instance by index
-/// returns NULL if index is out of bounds or "this" instance when libpd is not
-/// compiled with PDINSTANCE
-// EXTERN t_pdinstance *libpd_get_instance(int index);
-
-/// get the number of pd instances
-/// returns number or 1 when libpd is not compiled with PDINSTANCE
-// EXTERN int libpd_num_instances(void);
-
-/* bindings for multiple instance functions */
-// extern "C" {
-//     #[doc = " create a new pd instance"]
-//     #[doc = " returns new instance or NULL when libpd is not compiled with PDINSTANCE"]
-//     pub fn libpd_new_instance() -> *mut _pdinstance;
-// }
-// extern "C" {
-//     #[doc = " set the current pd instance"]
-//     #[doc = " subsequent libpd calls will affect this instance only"]
-//     #[doc = " does nothing when libpd is not compiled with PDINSTANCE"]
-//     pub fn libpd_set_instance(p: *mut _pdinstance);
-// }
-// extern "C" {
-//     #[doc = " free a pd instance"]
-//     #[doc = " does nothing when libpd is not compiled with PDINSTANCE"]
-//     pub fn libpd_free_instance(p: *mut _pdinstance);
-// }
-// extern "C" {
-//     #[doc = " get the current pd instance"]
-//     pub fn libpd_this_instance() -> *mut _pdinstance;
-// }
-// extern "C" {
-//     #[doc = " get a pd instance by index"]
-//     #[doc = " returns NULL if index is out of bounds or \"this\" instance when libpd is not"]
-//     #[doc = " compiled with PDINSTANCE"]
-//     pub fn libpd_get_instance(index: ::std::os::raw::c_int) -> *mut _pdinstance;
-// }
-// extern "C" {
-//     #[doc = " get the number of pd instances"]
-//     #[doc = " returns number or 1 when libpd is not compiled with PDINSTANCE"]
-//     pub fn libpd_num_instances() -> ::std::os::raw::c_int;
-// }
 
 /// Sets the flag for the functionality of verbose printing to the pd console
 pub fn verbose_print_state(active: bool) {

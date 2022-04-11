@@ -1,3 +1,5 @@
+// TODO: Document enum variants
+
 /// A type to represent a pd Atom type in Rust side.
 ///
 /// Pd has floating point numbers and symbols as primitive types.

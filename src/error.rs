@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-// TODO: Document errors.
+// TODO: Document errors and their variants.
 
 #[derive(Error, Debug)]
 pub enum InitializationError {
