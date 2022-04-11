@@ -15,6 +15,8 @@ const C_STRING_FAILURE: &str =
     "Provided an invalid CString, check if your string contains null bytes in the middle.";
 const C_STR_FAILURE: &str = "Converting a CStr to an &str is failed.";
 
+// TODO: Use AsRef<Path>
+
 /// Initializes libpd.
 ///
 /// Support for multi instances of pd is not implemented yet.

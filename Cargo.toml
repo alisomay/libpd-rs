@@ -16,7 +16,6 @@ categories = ["multimedia"]
 libpd-sys = { git = "https://github.com/alisomay/libpd-sys" }
 thiserror = "1.0.30"
 libffi = "3.0.0"
-cpal = "0.13.5"
 
 [dev-dependencies]
 cpal = "0.13.5"
