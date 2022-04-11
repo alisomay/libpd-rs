@@ -13,14 +13,17 @@ keywords = ["puredata", "libpd", "audio", "midi", "bindings"]
 categories = ["multimedia"]
 
 [dependencies]
-# libpd-sys = { git = "https://github.com/alisomay/libpd-sys" }
-libpd-sys = { path = "../libpd-sys" }
+libpd-sys = { git = "https://github.com/alisomay/libpd-sys" }
 thiserror = "1.0.30"
 libffi = "3.0.0"
 cpal = "0.13.5"
 
 [dev-dependencies]
 cpal = "0.13.5"
+
+# For local development currently.
+# [patch."https://github.com/alisomay/libpd-sys"]
+# libpd-sys = { path = "../libpd-sys" }
 
 [lib]
 # name = "foo"           # The name of the target.
