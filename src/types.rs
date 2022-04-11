@@ -1,35 +1,3 @@
-// TODO: Is really implementing all of these needed?
-// pub type t_word = word;
-// pub const t_atomtype_A_NULL: t_atomtype = 0;
-// pub const t_atomtype_A_FLOAT: t_atomtype = 1;
-// pub const t_atomtype_A_SYMBOL: t_atomtype = 2;
-// pub const t_atomtype_A_POINTER: t_atomtype = 3;
-// pub const t_atomtype_A_SEMI: t_atomtype = 4;
-// pub const t_atomtype_A_COMMA: t_atomtype = 5;
-// pub const t_atomtype_A_DEFFLOAT: t_atomtype = 6;
-// pub const t_atomtype_A_DEFSYM: t_atomtype = 7;
-// pub const t_atomtype_A_DOLLAR: t_atomtype = 8;
-// pub const t_atomtype_A_DOLLSYM: t_atomtype = 9;
-// pub const t_atomtype_A_GIMME: t_atomtype = 10;
-// pub const t_atomtype_A_CANT: t_atomtype = 11;
-// pub type t_atomtype = ::std::os::raw::c_uint;
-
-// #[repr(C)]
-// #[derive(Copy, Clone)]
-// pub struct _atom {
-//     pub a_type: t_atomtype,
-//     pub a_w: word,
-// }
-
-// pub union word {
-//     pub w_float: t_float,
-//     pub w_symbol: *mut t_symbol,
-//     pub w_gpointer: *mut t_gpointer,
-//     pub w_array: *mut _array,
-//     pub w_binbuf: *mut _binbuf,
-//     pub w_index: ::std::os::raw::c_int,
-// }
-
 /// A type to represent a pd Atom type in Rust side.
 ///
 /// Pd has floating point numbers and symbols as primitive types.
@@ -124,3 +92,35 @@ impl Into<*mut std::ffi::c_void> for ReceiverHandle {
         self.0 as *mut std::ffi::c_void
     }
 }
+
+// TODO: Is really implementing all of these needed?
+// pub type t_word = word;
+// pub const t_atomtype_A_NULL: t_atomtype = 0;
+// pub const t_atomtype_A_FLOAT: t_atomtype = 1;
+// pub const t_atomtype_A_SYMBOL: t_atomtype = 2;
+// pub const t_atomtype_A_POINTER: t_atomtype = 3;
+// pub const t_atomtype_A_SEMI: t_atomtype = 4;
+// pub const t_atomtype_A_COMMA: t_atomtype = 5;
+// pub const t_atomtype_A_DEFFLOAT: t_atomtype = 6;
+// pub const t_atomtype_A_DEFSYM: t_atomtype = 7;
+// pub const t_atomtype_A_DOLLAR: t_atomtype = 8;
+// pub const t_atomtype_A_DOLLSYM: t_atomtype = 9;
+// pub const t_atomtype_A_GIMME: t_atomtype = 10;
+// pub const t_atomtype_A_CANT: t_atomtype = 11;
+// pub type t_atomtype = ::std::os::raw::c_uint;
+
+// #[repr(C)]
+// #[derive(Copy, Clone)]
+// pub struct _atom {
+//     pub a_type: t_atomtype,
+//     pub a_w: word,
+// }
+
+// pub union word {
+//     pub w_float: t_float,
+//     pub w_symbol: *mut t_symbol,
+//     pub w_gpointer: *mut t_gpointer,
+//     pub w_array: *mut _array,
+//     pub w_binbuf: *mut _binbuf,
+//     pub w_index: ::std::os::raw::c_int,
+// }

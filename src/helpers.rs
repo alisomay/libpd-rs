@@ -1,5 +1,7 @@
 #![allow(clippy::redundant_pub_crate)]
 // TODO: Finish covering cases for these macros.
+
+/// Transforms an iterable of type `Atom` to a `Vec<libpd_sys::t_atom>`.
 macro_rules! make_t_atom_list_from_atom_list {
     ($list: expr) => {
         $list
@@ -38,6 +40,7 @@ macro_rules! make_t_atom_list_from_atom_list {
     };
 }
 
+/// Transforms an iterable of type `t_atom` to a `Vec<Atom>`.
 macro_rules! make_atom_list_from_t_atom_list {
     ($list: expr) => {
         $list
