@@ -1,9 +1,9 @@
 // TODO: Remove this in the end.
 #![allow(clippy::wildcard_imports)]
-use crate::error::{ArrayError, FileSystemError, SizeError, SubscriptionError};
+use crate::error::{ArrayError, SizeError, SubscriptionError};
 use crate::types::ReceiverHandle;
 
-use crate::error::{InitializationError, IoError, LibpdError, SendError};
+use crate::error::{CommunicationError, InitializationError, IoError, LibpdError};
 use crate::helpers::*;
 use crate::types::{Atom, PatchFileHandle};
 use libffi::high::{ClosureMut1, ClosureMut2, ClosureMut3, ClosureMut4};
@@ -80,9 +80,9 @@ pub fn clear_search_paths() {
 /// Unlike the desktop pd application, **no** search paths are set by default.
 pub fn add_to_search_paths(path: &std::path::Path) -> Result<(), LibpdError> {
     if !path.exists() {
-        return Err(LibpdError::FileSystemError(
-            FileSystemError::PathDoesNotExist(path.to_string_lossy().to_string()),
-        ));
+        return Err(LibpdError::IoError(IoError::PathDoesNotExist(
+            path.to_string_lossy().to_string(),
+        )));
     }
     unsafe {
         let c_path = CString::new(&*path.to_string_lossy()).expect(C_STRING_FAILURE);
@@ -173,7 +173,7 @@ pub fn open_patch(path_to_patch: &std::path::Path) -> Result<PatchFileHandle, Li
     if !calculated_patch_path.exists() {
         return Err(LibpdError::IoError(IoError::FailedToOpenPatch));
         // TODO: Update returned errors when umbrella error type is in action.
-        // return Err(FileSystemError::PathDoesNotExist(
+        // return Err(IoError::PathDoesNotExist(
         //     path.to_string_lossy().to_string(),
         // ));
     }
@@ -718,9 +718,9 @@ pub fn send_bang_to<T: AsRef<str>>(receiver: T) -> Result<(), LibpdError> {
     unsafe {
         match libpd_sys::libpd_bang(recv.as_ptr()) {
             0 => Ok(()),
-            _ => Err(LibpdError::SendError(SendError::MissingDestination(
-                receiver.as_ref().to_owned(),
-            ))),
+            _ => Err(LibpdError::CommunicationError(
+                CommunicationError::MissingDestination(receiver.as_ref().to_owned()),
+            )),
         }
     }
 }
@@ -745,9 +745,9 @@ pub fn send_float_to<T: AsRef<str>>(receiver: T, value: f32) -> Result<(), Libpd
     unsafe {
         match libpd_sys::libpd_float(recv.as_ptr(), value) {
             0 => Ok(()),
-            _ => Err(LibpdError::SendError(SendError::MissingDestination(
-                receiver.as_ref().to_owned(),
-            ))),
+            _ => Err(LibpdError::CommunicationError(
+                CommunicationError::MissingDestination(receiver.as_ref().to_owned()),
+            )),
         }
     }
 }
@@ -772,9 +772,9 @@ pub fn send_double_to<T: AsRef<str>>(receiver: T, value: f64) -> Result<(), Libp
     unsafe {
         match libpd_sys::libpd_double(recv.as_ptr(), value) {
             0 => Ok(()),
-            _ => Err(LibpdError::SendError(SendError::MissingDestination(
-                receiver.as_ref().to_owned(),
-            ))),
+            _ => Err(LibpdError::CommunicationError(
+                CommunicationError::MissingDestination(receiver.as_ref().to_owned()),
+            )),
         }
     }
 }
@@ -803,9 +803,9 @@ pub fn send_symbol_to<T: AsRef<str>, S: AsRef<str>>(
     unsafe {
         match libpd_sys::libpd_symbol(recv.as_ptr(), sym.as_ptr()) {
             0 => Ok(()),
-            _ => Err(LibpdError::SendError(SendError::MissingDestination(
-                receiver.as_ref().to_owned(),
-            ))),
+            _ => Err(LibpdError::CommunicationError(
+                CommunicationError::MissingDestination(receiver.as_ref().to_owned()),
+            )),
         }
     }
 }
@@ -929,9 +929,9 @@ pub fn finish_message_as_list_and_send_to<T: AsRef<str>>(receiver: T) -> Result<
     unsafe {
         match libpd_sys::libpd_finish_list(recv.as_ptr()) {
             0 => Ok(()),
-            _ => Err(LibpdError::SendError(SendError::MissingDestination(
-                receiver.as_ref().to_owned(),
-            ))),
+            _ => Err(LibpdError::CommunicationError(
+                CommunicationError::MissingDestination(receiver.as_ref().to_owned()),
+            )),
         }
     }
 }
@@ -965,9 +965,9 @@ pub fn finish_message_as_typed_message_and_send_to<T: AsRef<str>, S: AsRef<str>>
     unsafe {
         match libpd_sys::libpd_finish_message(recv.as_ptr(), msg.as_ptr()) {
             0 => Ok(()),
-            _ => Err(LibpdError::SendError(SendError::MissingDestination(
-                receiver.as_ref().to_owned(),
-            ))),
+            _ => Err(LibpdError::CommunicationError(
+                CommunicationError::MissingDestination(receiver.as_ref().to_owned()),
+            )),
         }
     }
 }
@@ -1007,9 +1007,9 @@ pub fn send_list_to<T: AsRef<str>>(receiver: T, list: &[Atom]) -> Result<(), Lib
             atom_list_slice.as_mut_ptr(),
         ) {
             0 => Ok(()),
-            _ => Err(LibpdError::SendError(SendError::MissingDestination(
-                receiver.as_ref().to_owned(),
-            ))),
+            _ => Err(LibpdError::CommunicationError(
+                CommunicationError::MissingDestination(receiver.as_ref().to_owned()),
+            )),
         }
     }
 }
@@ -1053,9 +1053,9 @@ pub fn send_message_to<T: AsRef<str>>(
             atom_list_slice.as_mut_ptr(),
         ) {
             0 => Ok(()),
-            _ => Err(LibpdError::SendError(SendError::MissingDestination(
-                receiver.as_ref().to_owned(),
-            ))),
+            _ => Err(LibpdError::CommunicationError(
+                CommunicationError::MissingDestination(receiver.as_ref().to_owned()),
+            )),
         }
     }
 }
@@ -1520,7 +1520,9 @@ pub fn send_note_on(channel: i32, pitch: i32, velocity: i32) -> Result<(), Libpd
         // Returns 0 on success or -1 if an argument is out of range
         match libpd_sys::libpd_noteon(channel, pitch, velocity) {
             0 => Ok(()),
-            _ => Err(LibpdError::SendError(SendError::OutOfRange)),
+            _ => Err(LibpdError::CommunicationError(
+                CommunicationError::OutOfRange,
+            )),
         }
     }
 }
@@ -1547,7 +1549,9 @@ pub fn send_control_change(channel: i32, controller: i32, value: i32) -> Result<
         // Returns 0 on success or -1 if an argument is out of range
         match libpd_sys::libpd_controlchange(channel, controller, value) {
             0 => Ok(()),
-            _ => Err(LibpdError::SendError(SendError::OutOfRange)),
+            _ => Err(LibpdError::CommunicationError(
+                CommunicationError::OutOfRange,
+            )),
         }
     }
 }
@@ -1574,7 +1578,9 @@ pub fn send_program_change(channel: i32, value: i32) -> Result<(), LibpdError> {
         // Returns 0 on success or -1 if an argument is out of range
         match libpd_sys::libpd_programchange(channel, value) {
             0 => Ok(()),
-            _ => Err(LibpdError::SendError(SendError::OutOfRange)),
+            _ => Err(LibpdError::CommunicationError(
+                CommunicationError::OutOfRange,
+            )),
         }
     }
 }
@@ -1603,7 +1609,9 @@ pub fn send_pitch_bend(channel: i32, value: i32) -> Result<(), LibpdError> {
         // Returns 0 on success or -1 if an argument is out of range
         match libpd_sys::libpd_pitchbend(channel, value) {
             0 => Ok(()),
-            _ => Err(LibpdError::SendError(SendError::OutOfRange)),
+            _ => Err(LibpdError::CommunicationError(
+                CommunicationError::OutOfRange,
+            )),
         }
     }
 }
@@ -1630,7 +1638,9 @@ pub fn send_aftertouch(channel: i32, value: i32) -> Result<(), LibpdError> {
         // Returns 0 on success or -1 if an argument is out of range
         match libpd_sys::libpd_aftertouch(channel, value) {
             0 => Ok(()),
-            _ => Err(LibpdError::SendError(SendError::OutOfRange)),
+            _ => Err(LibpdError::CommunicationError(
+                CommunicationError::OutOfRange,
+            )),
         }
     }
 }
@@ -1657,7 +1667,9 @@ pub fn send_poly_aftertouch(channel: i32, pitch: i32, value: i32) -> Result<(), 
         // Returns 0 on success or -1 if an argument is out of range
         match libpd_sys::libpd_polyaftertouch(channel, pitch, value) {
             0 => Ok(()),
-            _ => Err(LibpdError::SendError(SendError::OutOfRange)),
+            _ => Err(LibpdError::CommunicationError(
+                CommunicationError::OutOfRange,
+            )),
         }
     }
 }
@@ -1682,7 +1694,9 @@ pub fn send_midi_byte(port: i32, byte: i32) -> Result<(), LibpdError> {
         // Returns 0 on success or -1 if an argument is out of range
         match libpd_sys::libpd_midibyte(port, byte) {
             0 => Ok(()),
-            _ => Err(LibpdError::SendError(SendError::OutOfRange)),
+            _ => Err(LibpdError::CommunicationError(
+                CommunicationError::OutOfRange,
+            )),
         }
     }
 }
@@ -1707,7 +1721,9 @@ pub fn send_sysex(port: i32, byte: i32) -> Result<(), LibpdError> {
         // Returns 0 on success or -1 if an argument is out of range
         match libpd_sys::libpd_sysex(port, byte) {
             0 => Ok(()),
-            _ => Err(LibpdError::SendError(SendError::OutOfRange)),
+            _ => Err(LibpdError::CommunicationError(
+                CommunicationError::OutOfRange,
+            )),
         }
     }
 }
@@ -1732,7 +1748,9 @@ pub fn send_sys_realtime(port: i32, byte: i32) -> Result<(), LibpdError> {
         // Returns 0 on success or -1 if an argument is out of range
         match libpd_sys::libpd_sysrealtime(port, byte) {
             0 => Ok(()),
-            _ => Err(LibpdError::SendError(SendError::OutOfRange)),
+            _ => Err(LibpdError::CommunicationError(
+                CommunicationError::OutOfRange,
+            )),
         }
     }
 }
