@@ -14,7 +14,7 @@ categories = ["multimedia"]
 
 [dependencies]
 # libpd-sys = { git = "https://github.com/alisomay/libpd-sys" }
-libpd-sys = { path = "../libpd-sys"}
+libpd-sys = { path = "../libpd-sys" }
 thiserror = "1.0.30"
 libffi = "3.0.0"
 cpal = "0.13.5"

@@ -2006,12 +2006,19 @@ pub fn receive_midi_messages_from_pd() {
     unsafe { libpd_sys::libpd_queued_receive_midi_messages() };
 }
 
-// TODO: Gui utils
-
-/// open the current patches within a pd vanilla GUI
-/// requires the path to pd's main folder that contains bin/, tcl/, etc
-/// for a macOS .app bundle: /path/to/Pd-#.#-#.app/Contents/Resources
-/// returns 0 on success
+/// Opens the current patch within a pd vanilla GUI
+///
+/// This function requires that there is a valid pd installation in your computer and a path to the pd binary.
+///
+/// # Example
+/// ```no_run
+/// # use libpd_rs::mirror::*;
+/// # use std::path::PathBuf;
+/// // In mac os probably it would look something like this,
+/// // The application name here is an example.
+/// let path_to_pd = PathBuf::from("/Applications/Pd-0.51-4.app/Contents/Resources/bin/pd");
+/// start_gui(&path_to_pd);
+/// ```
 pub fn start_gui(path_to_pd: &std::path::Path) -> Result<(), LibpdError> {
     if path_to_pd.exists() {
         let path_to_pd = path_to_pd.to_string_lossy();
@@ -2027,17 +2034,31 @@ pub fn start_gui(path_to_pd: &std::path::Path) -> Result<(), LibpdError> {
     Err(LibpdError::IoError(IoError::FailedToOpenGui))
 }
 
-/// stop the pd vanilla GUI
+// TODO: Correct pathbufs
+
+/// Stops the current running pd vanilla GUI if it is running.
 pub fn stop_gui() {
     unsafe { libpd_sys::libpd_stop_gui() };
 }
 
-/// manually update and handle any GUI messages
-/// this is called automatically when using a libpd_process function,
-/// note: this also facilitates network message processing, etc so it can be
-///       useful to call repeatedly when idle for more throughput
-/// returns 1 if the poll found something, in which case it might be desirable
-/// to poll again, up to some reasonable limit
+/// Manually update and handle any GUI messages
+///
+/// This is called automatically when running any process function in the library. e.g. `process_float`.
+///
+/// Note:
+/// - This also facilitates network message processing, etc so it can be useful to call repeatedly when idle for more throughput.
+/// - Returns a Some(()) when the polled queue is not empty. In this case it might be desirable to keep polling until it is empty or up to some reasonable limit.
+///
+/// # Example
+/// ```no_run
+/// # use libpd_rs::mirror::*;
+/// # init();
+/// loop {
+///     while let Some(_) = poll_gui() {
+///         // Do something
+///     }
+/// }
+/// ```
 #[must_use]
 pub fn poll_gui() -> Option<()> {
     unsafe {
@@ -2125,181 +2146,3 @@ pub fn verbose_print_state(active: bool) {
 pub fn verbose_print_state_active() -> bool {
     unsafe { libpd_sys::libpd_get_verbose() == 1 }
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use crate::pd::Pd;
-
-//     use super::*;
-
-//     #[test]
-//     #[ignore]
-//     fn run_simple() {
-//         // on_float(|a, b| {
-//         //     dbg!(a);
-//         //     dbg!(b);
-//         // });
-//         let _ = init().unwrap();
-//         let project_root = std::env::current_dir().unwrap();
-//         let _ = start_listening_from("listy");
-//         let _ = start_listening_from("simple_float");
-//         unsafe extern "C" fn float_hook(s: *const ::std::os::raw::c_char, x: f32) {
-//             println!("HELLOOOO: {} {}", CStr::from_ptr(s).to_str().unwrap(), x);
-//         }
-//         on_print(|a| {
-//             dbg!(a);
-
-//             // panic!();
-//         });
-//         unsafe {
-//             libpd_sys::libpd_set_queued_floathook(Some(float_hook));
-//         }
-//         // on_float(|a, b| {
-//         //     println!("FLOAT");
-//         //     dbg!(a);
-//         //     dbg!(b);
-
-//         //     // panic!();
-//         // });
-//         on_list(|a, b, c| {
-//             dbg!(a);
-//             dbg!(b);
-//             for a in c {
-//                 println!("{}", a);
-//             }
-//             // panic!();
-//         });
-
-//         let handle = open_patch(&project_root.join("simple.pd"));
-
-//         std::thread::spawn(move || {});
-//         // let mut cnt = 0;
-
-//         loop {
-//             std::thread::sleep(std::time::Duration::from_millis(100));
-//             /// process and dispatch received messages in message ringbuffer
-//             unsafe {
-//                 libpd_sys::libpd_queued_receive_pd_messages();
-//             }
-//             // cnt += 100;
-//             // if cnt > 4000 {
-//             //     panic!();
-//             // }
-//         }
-
-//         // pd.close();
-//     }
-
-//     #[test]
-//     // #[ignore]
-//     fn run_safe() {
-//         assert!(init().is_ok());
-//         assert!(init().is_err());
-
-//         start_message(1);
-//         add_float_to_started_message(1.0);
-//         let result = finish_message_as_typed_message_and_send_to("pd", "dsp");
-//         assert!(result.is_ok());
-//         let project_root = std::env::current_dir().unwrap();
-//         let result = open_patch(&project_root.join("simple.pd"));
-//         assert!(result.is_ok());
-//         let result_2 = open_patch(&project_root.join("bad_naming.pd"));
-//         assert!(result_2.is_err());
-//         let handle = result.unwrap();
-
-//         let input_buffer = [0.0f32; 0];
-//         let mut output_buffer = [0.0f32; 1024];
-
-//         // now run pd for ten seconds (logical time)
-//         loop {
-//             process_float(8, &input_buffer[..], &mut output_buffer[..]);
-//         }
-//         // fill input_buffer here
-
-//         // use output_buffer here
-
-//         for sample in output_buffer.iter().take(10) {
-//             println!("{}", sample);
-//         }
-
-//         close_patch(handle);
-//     }
-
-//     #[test]
-//     #[ignore]
-//     fn run_unsafe() {
-//         unsafe {
-//             //    ::std::option::Option<unsafe extern "C" fn(s: *const ::std::os::raw::c_char)>;
-
-//             // // // unsafe extern "C" fn print_hook(s: *const ::std::os::raw::c_char) {}
-//             unsafe extern "C" fn float_hook(s: *const ::std::os::raw::c_char, x: f32) {
-//                 println!("HELLOOOO: {} {}", CStr::from_ptr(s).to_str().unwrap(), x);
-//             }
-
-//             // Setting hooks are better before init!
-
-//             // libpd_sys::libpd_set_floathook(Some(float_hook));
-//             // libpd_sys::libpd_set_printhook(libpd_sys::libpd_print_concatenator as *const ());
-//             // libpd_sys::libpd_set_concatenated_printhook(print_hook as *const ());
-
-//             // Also decide for queued hooks or normal hooks.
-//             // If queued hooks we may use libpd_queued_init!
-
-//             // on_print(|string| {
-//             //     println!("IAM DONE {}", string);
-//             // });
-//             // on_float(|source, value| {
-//             //     println!("HELLOOOO: {} {}", source, value);
-//             // });
-//             // let status = libpd_sys::libpd_init();
-//             // assert_eq!(status, 0);
-//             // let status = libpd_sys::libpd_init();
-//             // assert_eq!(status, -1);
-
-//             // libpd_sys::libpd_set_queued_printhook(Some(libpd_sys::libpd_print_concatenator));
-//             // libpd_sys::libpd_set_concatenated_printhook(Some(abc));
-
-//             libpd_sys::libpd_queued_init();
-//             libpd_sys::libpd_set_queued_floathook(Some(float_hook));
-//             let r = CString::new("simple_float").expect(C_STRING_FAILURE);
-//             let rp = libpd_sys::libpd_bind(r.as_ptr());
-//             let status = libpd_sys::libpd_init_audio(1, 2, 44100);
-//             assert_eq!(status, 0);
-//             libpd_sys::libpd_queued_receive_pd_messages();
-
-//             // libpd_sys::sys_printhook = Some(abc);
-
-//             libpd_sys::libpd_start_message(1);
-//             libpd_sys::libpd_add_float(1.0);
-//             let msg = CString::new("pd").expect(C_STRING_FAILURE);
-//             let recv = CString::new("dsp").expect(C_STRING_FAILURE);
-//             libpd_sys::libpd_finish_message(msg.as_ptr(), recv.as_ptr());
-
-//             let project_root = std::env::current_dir().unwrap();
-//             let name = CString::new("simple.pd").expect(C_STRING_FAILURE);
-//             let directory = CString::new(project_root.to_str().unwrap()).expect(C_STRING_FAILURE);
-//             let file_handle = libpd_sys::libpd_openfile(name.as_ptr(), directory.as_ptr());
-
-//             let input_buffer = [0.0f32; 64];
-//             let mut output_buffer = [0.0f32; 128];
-
-//             // now run pd for ten seconds (logical time)
-//             for _ in 0..((10 * 44100) / 64) {
-//                 // fill input_buffer here
-//                 libpd_sys::libpd_process_float(
-//                     1,
-//                     input_buffer[..].as_ptr(),
-//                     output_buffer[..].as_mut_ptr(),
-//                 );
-//                 // use output_buffer here
-//             }
-
-//             for sample in output_buffer.iter().take(10) {
-//                 println!("{}", sample);
-//             }
-
-//             assert!(true)
-//             // libpd_sys::libpd_closefile(file_handle);
-//         }
-//     }
-// }

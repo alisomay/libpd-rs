@@ -1,5 +1,3 @@
-// TODO: Document types
-
 // TODO: Is really implementing all of these needed?
 // pub type t_word = word;
 // pub const t_atomtype_A_NULL: t_atomtype = 0;
@@ -32,6 +30,10 @@
 //     pub w_index: ::std::os::raw::c_int,
 // }
 
+/// A type to represent a pd Atom type in Rust side.
+///
+/// Pd has floating point numbers and symbols as primitive types.
+/// This enum maps those to their Rust counterparts.
 #[derive(Debug, Clone)]
 pub enum Atom {
     Float(f32),
@@ -74,6 +76,11 @@ impl std::fmt::Display for Atom {
     }
 }
 
+/// The handle which is returned from opening a patch.
+///
+/// This is a `std::ffi::c_void` in the underlying sys crate but for convenience it is converted to `usize` and held here.
+///
+/// This handle should be kept alive for the lifetime of the patch.
 #[derive(Debug)]
 pub struct PatchFileHandle(usize);
 impl PatchFileHandle {
@@ -96,6 +103,11 @@ impl Into<*mut std::ffi::c_void> for PatchFileHandle {
     }
 }
 
+/// The handle which is returned from subscribing to a sender.
+///
+/// This is a `std::ffi::c_void` in the underlying sys crate but for convenience it is converted to `usize` and held here.
+///
+/// This handle could be used later to unsubscribe from the sender.
 #[derive(Debug)]
 pub struct ReceiverHandle(usize);
 
