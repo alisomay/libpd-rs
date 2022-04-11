@@ -1,6 +1,6 @@
 // TODO: Remove this in the end.
 #![allow(clippy::wildcard_imports)]
-use crate::error::{FileSystemError, SizeError, SubscriptionError};
+use crate::error::{ArrayError, FileSystemError, SizeError, SubscriptionError};
 use crate::types::ReceiverHandle;
 
 use crate::error::{InitializationError, IoError, LibpdError, SendError};
@@ -542,100 +542,157 @@ pub fn resize_array<T: AsRef<str>>(name: T, size: i64) -> Result<(), LibpdError>
     }
 }
 
-// /// read n values from named src array and write into dest starting at an offset
-// /// note: performs no bounds checking on dest
-// /// returns 0 on success or a negative error code if the array is non-existent
-// /// or offset + n exceeds range of array
-// EXTERN int libpd_read_array(float *dest, const char *name, int offset, int n);
+/// Reads values as much as `read_amount` from the array which is specified with the `source_name` argument
+/// and writes them to `destination` starting at `destination_offset`.
+///
+/// # Example
+/// ```no_run
+/// # use libpd_rs::mirror::*;
+/// let mut destination = [0.0_f32; 64];
+/// read_float_array_from("my_array", 32, &mut destination, 32).unwrap();
+/// ```
+/// # Errors
+/// This function performs no bounds checking on the destination.
+///
+/// If `destination_offset` + `read_amount` is greater than the size of the `destination` or
+/// the array which we're trying to read from is not existent it will return an error.
 pub fn read_float_array_from<T: AsRef<str>>(
     source_name: T,
-    source_offset: i32,
     read_amount: i32,
     destination: &mut [f32],
-) {
-    // TODO: Error handling and documentation.
+    destination_offset: i32,
+) -> Result<(), LibpdError> {
     unsafe {
         let name = CString::new(source_name.as_ref()).expect(C_STRING_FAILURE);
-        libpd_sys::libpd_read_array(
+        // Returns 0 on success or a negative error code if the array is non-existent
+        // or offset + n exceeds range of array
+        match libpd_sys::libpd_read_array(
             destination.as_mut_ptr(),
             name.as_ptr(),
-            source_offset,
+            destination_offset,
             read_amount,
-        );
+        ) {
+            0 => Ok(()),
+            -2 => Err(LibpdError::ArrayError(ArrayError::OutOfBounds)),
+            // TODO: See if this is true..
+            _ => Err(LibpdError::ArrayError(ArrayError::NonExistent)),
+        }
     }
 }
 
-// /// read n values from src and write into named dest array starting at an offset
-// /// note: performs no bounds checking on src
-// /// returns 0 on success or a negative error code if the array is non-existent
-// /// or offset + n exceeds range of array
-// EXTERN int libpd_write_array(const char *name, int offset,
-// 	const float *src, int n);
-pub fn write_float_array_to<T: AsRef<str>>(
-    destination: &mut [f32],
-    source_name: T,
-    source_offset: i32,
-    read_amount: i32,
-) {
-    unsafe {
-        // TODO: Error handling and documentation.
-        let name = CString::new(source_name.as_ref()).expect(C_STRING_FAILURE);
-        libpd_sys::libpd_write_array(
-            name.as_ptr(),
-            source_offset,
-            destination.as_mut_ptr(),
-            read_amount,
-        );
-    }
-}
+// @attention Stayed here..
 
-/// read n values from named src array and write into dest starting at an offset
-/// note: performs no bounds checking on dest
-/// note: only full-precision when compiled with PD_FLOATSIZE=64
-/// returns 0 on success or a negative error code if the array is non-existent
-/// or offset + n exceeds range of array
-/// double-precision variant of libpd_read_array()
+/// Reads values as much as `read_amount` from the array which is given as the `source` argument
+/// and writes them to a named array in pd which is specified with `destination_name` argument starting at `destination_offset`.
 ///
+/// # Example
+/// ```no_run
+/// # use libpd_rs::mirror::*;
+/// let mut source = [1.0_f32; 64];
+/// write_float_array_to("my_array", 32, &source, 32).unwrap();
+/// ```
+/// # Errors
+/// This function performs no bounds checking on the destination.
+///
+/// If `destination_offset` + `read_amount` is greater than the size of the `destination` or
+/// the array which we're trying to read from is not existent it will return an error.
+pub fn write_float_array_to<T: AsRef<str>>(
+    destination_name: T,
+    destination_offset: i32,
+    source: &[f32],
+    read_amount: i32,
+) -> Result<(), LibpdError> {
+    unsafe {
+        let name = CString::new(destination_name.as_ref()).expect(C_STRING_FAILURE);
+        // Returns 0 on success or a negative error code if the array is non-existent
+        // or offset + n exceeds range of array
+        match libpd_sys::libpd_write_array(
+            name.as_ptr(),
+            destination_offset,
+            source.as_ptr(),
+            read_amount,
+        ) {
+            0 => Ok(()),
+            -2 => Err(LibpdError::ArrayError(ArrayError::OutOfBounds)),
+            // TODO: See if this is true..
+            _ => Err(LibpdError::ArrayError(ArrayError::NonExistent)),
+        }
+    }
+}
+
+/// Reads values as much as `read_amount` from the array which is specified with the `source_name` argument
+/// and writes them to `destination` starting at `destination_offset`.
+///
+/// # Example
+/// ```no_run
+/// # use libpd_rs::mirror::*;
+/// let mut destination = [0.0_f64; 64];
+/// read_double_array_from("my_array", 32, &mut destination, 32).unwrap();
+/// ```
+/// # Errors
+/// This function performs no bounds checking on the destination.
+///
+/// If `destination_offset` + `read_amount` is greater than the size of the `destination` or
+/// the array which we're trying to read from is not existent it will return an error.
 pub fn read_double_array_from<T: AsRef<str>>(
     source_name: T,
-    source_offset: i32,
     read_amount: i32,
     destination: &mut [f64],
-) {
-    // TODO: Error handling and documentation.
+    destination_offset: i32,
+) -> Result<(), LibpdError> {
     unsafe {
         let name = CString::new(source_name.as_ref()).expect(C_STRING_FAILURE);
-        libpd_sys::libpd_read_array_double(
+        // Returns 0 on success or a negative error code if the array is non-existent
+        // or offset + n exceeds range of array
+        match libpd_sys::libpd_read_array_double(
             destination.as_mut_ptr(),
             name.as_ptr(),
-            source_offset,
+            destination_offset,
             read_amount,
-        );
+        ) {
+            0 => Ok(()),
+            -2 => Err(LibpdError::ArrayError(ArrayError::OutOfBounds)),
+            // TODO: See if this is true..
+            _ => Err(LibpdError::ArrayError(ArrayError::NonExistent)),
+        }
     }
 }
 
-/// read n values from src and write into named dest array starting at an offset
-/// note: performs no bounds checking on src
-/// note: only full-precision when compiled with PD_FLOATSIZE=64
-/// returns 0 on success or a negative error code if the array is non-existent
-/// or offset + n exceeds range of array
-/// double-precision variant of libpd_write_array()
-
+/// Reads values as much as `read_amount` from the array which is given as the `source` argument
+/// and writes them to a named array in pd which is specified with `destination_name` argument starting at `destination_offset`.
+///
+/// # Example
+/// ```no_run
+/// # use libpd_rs::mirror::*;
+/// let mut source = [1.0_f32; 64];
+/// write_float_array_to("my_array", 32, &source, 32).unwrap();
+/// ```
+/// # Errors
+/// This function performs no bounds checking on the destination.
+///
+/// If `destination_offset` + `read_amount` is greater than the size of the `destination` or
+/// the array which we're trying to read from is not existent it will return an error.
 pub fn write_double_array_to<T: AsRef<str>>(
-    destination: &mut [f64],
-    source_name: T,
-    source_offset: i32,
+    destination_name: T,
+    destination_offset: i32,
+    source: &[f64],
     read_amount: i32,
-) {
+) -> Result<(), LibpdError> {
     unsafe {
-        // TODO: Error handling and documentation.
-        let name = CString::new(source_name.as_ref()).expect(C_STRING_FAILURE);
-        libpd_sys::libpd_write_array_double(
+        let name = CString::new(destination_name.as_ref()).expect(C_STRING_FAILURE);
+        // Returns 0 on success or a negative error code if the array is non-existent
+        // or offset + n exceeds range of array
+        match libpd_sys::libpd_write_array_double(
             name.as_ptr(),
-            source_offset,
-            destination.as_mut_ptr(),
+            destination_offset,
+            source.as_ptr(),
             read_amount,
-        );
+        ) {
+            0 => Ok(()),
+            -2 => Err(LibpdError::ArrayError(ArrayError::OutOfBounds)),
+            // TODO: See if this is true..
+            _ => Err(LibpdError::ArrayError(ArrayError::NonExistent)),
+        }
     }
 }
 
@@ -1662,11 +1719,11 @@ pub fn send_sysex(port: i32, byte: i32) -> Result<(), LibpdError> {
 /// # use libpd_rs::mirror::*;
 /// # init();
 /// // Handle the error if the receiver object is not found
-/// send_sysex(0, 0x7F).unwrap_or_else(|err| {
+/// send_sys_realtime(0, 0x7F).unwrap_or_else(|err| {
 ///   dbg!("{err}");
 /// });
 /// // or don't care..
-/// let _ = send_sysex(0, 0x7F);
+/// let _ = send_sys_realtime(0, 0x7F);
 /// ```
 pub fn send_sys_realtime(port: i32, byte: i32) -> Result<(), LibpdError> {
     unsafe {
@@ -1677,10 +1734,6 @@ pub fn send_sys_realtime(port: i32, byte: i32) -> Result<(), LibpdError> {
         }
     }
 }
-
-// @attention Stayed here..
-
-// TODO: MIDI hooks / MIDI queued hooks
 
 /// MIDI note on receive hook signature
 /// channel is 0-indexed, pitch is 0-127, and value is 0-127

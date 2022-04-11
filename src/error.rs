@@ -57,6 +57,15 @@ pub enum SizeError {
     // Add more errors here..
 }
 
+#[derive(Error, Debug)]
+pub enum ArrayError {
+    #[error("The array which you're trying to access doesn't exist.")]
+    NonExistent,
+    #[error("The position in array which you're trying to write is out of bounds.")]
+    OutOfBounds,
+    // Add more errors here..
+}
+
 // TODO: Renew this error explanations.
 #[derive(Error, Debug)]
 pub enum LibpdError {
@@ -72,4 +81,6 @@ pub enum LibpdError {
     SubscriptionError(SubscriptionError),
     #[error("Error in sizes.")]
     SizeError(SizeError),
+    #[error("Error in array.")]
+    ArrayError(ArrayError),
 }
