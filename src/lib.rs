@@ -88,8 +88,8 @@ pub(crate) const C_STR_FAILURE: &str = "Converting a CStr to an &str is failed."
 /// Initializes libpd.
 ///
 /// Support for multi instances of pd is not implemented yet.
-/// This function should be called before any other in this crate.
-/// It initializes libpd globally and also initializes ring buffers for internal message passing.
+/// This function should be called after setting any listeners and before any other in this crate.
+/// It initializes libpd **globally** and also initializes ring buffers for internal message passing.
 /// Sets internal hooks. Then initializes `libpd` by calling the underlying
 /// C function which is [`libpd_init`](https://github.com/libpd/libpd/blob/master/libpd_wrapper/z_libpd.c#L68).
 /// See [`libpd_queued_init`](https://github.com/libpd/libpd/blob/master/libpd_wrapper/util/z_queued.c#L308) to
@@ -126,7 +126,7 @@ pub fn init() -> Result<(), LibpdError> {
 ///
 /// Currently I don't see a necessity to call this function in any case.
 /// So it is kept private.
-fn release_internal_queues() {
+pub fn release_internal_queues() {
     unsafe {
         libpd_sys::libpd_queued_release();
     };

@@ -161,7 +161,7 @@ pub fn on_bang<F: FnMut(&str) + Send + Sync + 'static>(mut user_provided_closure
             .cast::<unsafe extern "C" fn(*const i8)>()
     };
     std::mem::forget(callback);
-    unsafe { libpd_sys::libpd_set_banghook(Some(*ptr)) };
+    unsafe { libpd_sys::libpd_set_queued_banghook(Some(*ptr)) };
 }
 
 /// Sets a closure to be called when an `f32` is received from a subscribed receiver

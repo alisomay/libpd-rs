@@ -1,7 +1,11 @@
+// TODO: Make an Atom list macro like vec![]
+// TODO: Revisit Atoms and floating point numbers.
+
 /// A type to represent a pd Atom type in Rust side.
 ///
 /// Pd has floating point numbers and symbols as primitive types.
 /// This enum maps those to their Rust counterparts.
+#[non_exhaustive]
 #[derive(Debug, Clone)]
 pub enum Atom {
     /// A floating point number from pd.
@@ -13,8 +17,8 @@ pub enum Atom {
 macro_rules! atom_from_number_type {
     ($type:ty) => {
         impl From<$type> for Atom {
-            fn from(i: $type) -> Self {
-                Self::Float(i.into())
+            fn from(value: $type) -> Self {
+                Self::Float(value.into())
             }
         }
     };
@@ -28,6 +32,24 @@ atom_from_number_type!(u16);
 atom_from_number_type!(u32);
 atom_from_number_type!(f32);
 atom_from_number_type!(f64);
+
+impl Into<f64> for &Atom {
+    fn into(self) -> f64 {
+        match self {
+            Atom::Float(f) => *f,
+            _ => panic!("Cannot convert non-float atom to f64"),
+        }
+    }
+}
+
+impl Into<String> for &Atom {
+    fn into(self) -> String {
+        match self {
+            Atom::Symbol(s) => s.clone(),
+            _ => panic!("Cannot convert non-symbol atom to String"),
+        }
+    }
+}
 
 impl From<String> for Atom {
     fn from(s: String) -> Self {

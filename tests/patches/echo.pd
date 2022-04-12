@@ -1,0 +1,13 @@
+#N canvas 446 451 641 361 12;
+#X obj 29 18 r float_from_rust;
+#X obj 29 54 s float_from_pd;
+#X obj 162 18 r symbol_from_rust;
+#X obj 162 54 s symbol_from_pd;
+#X obj 296 18 r bang_from_rust;
+#X obj 296 54 s bang_from_pd;
+#X obj 424 18 r list_from_rust;
+#X obj 424 55 s list_from_pd;
+#X connect 0 0 1 0;
+#X connect 2 0 3 0;
+#X connect 4 0 5 0;
+#X connect 6 0 7 0;
