@@ -16,7 +16,6 @@ const C_STRING_FAILURE: &str =
     "Provided an invalid CString, check if your string contains null bytes in the middle.";
 const C_STR_FAILURE: &str = "Converting a CStr to an &str is failed.";
 
-// TODO: Use AsRef<Path>
 // TODO: Bring use statements visible in documentation.
 // TODO: Also please, change the titles of each individual function to look nice in doc.
 // TODO: We're compiling for f64 floats in pd, check how float and double functions behave and change documentation where necessary.
@@ -35,7 +34,8 @@ const C_STR_FAILURE: &str = "Converting a CStr to an &str is failed.";
 ///
 /// # Example
 /// ```rust
-/// # use libpd_rs::mirror::*;
+/// use libpd_rs::mirror::init;
+///
 /// assert_eq!(init().is_ok(), true);
 /// assert_eq!(init().is_err(), true);
 /// ```
@@ -105,8 +105,9 @@ pub fn add_to_search_paths<T: AsRef<Path>>(path: T) -> Result<(), LibpdError> {
 ///
 /// # Example
 /// ```no_run
-/// # use libpd_rs::mirror::*;
-/// # use std::path::PathBuf;
+/// use libpd_rs::mirror::open_patch;
+/// use std::path::PathBuf;
+///
 /// let absolute_path = PathBuf::from("/home/user/my_patch.pd");
 /// let relative_path = PathBuf::from("../my_patch.pd");
 /// let patch_name = PathBuf::from("my_patch.pd");
@@ -192,8 +193,9 @@ pub fn open_patch<T: AsRef<Path>>(path_to_patch: T) -> Result<PatchFileHandle, L
 ///
 /// # Example
 /// ```no_run
-/// # use std::path::PathBuf;
-/// # use libpd_rs::mirror::*;
+/// use std::path::PathBuf;
+/// use libpd_rs::mirror::{open_patch, close_patch};  
+///
 /// let patch = PathBuf::from("my_patch.pd");
 /// let patch_handle = open_patch(&patch).unwrap();
 ///
@@ -233,7 +235,8 @@ pub fn get_dollar_zero(handle: &PatchFileHandle) {
 /// # Examples
 ///
 /// ```rust
-/// # use libpd_rs::mirror::*;
+/// use libpd_rs::mirror::block_size;
+///
 /// let block_size = block_size();
 /// let output_channels = 2;
 /// let buffer_size = 1024;
@@ -275,7 +278,8 @@ pub fn initialize_audio(
 ///
 /// # Examples
 /// ```no_run
-/// # use libpd_rs::mirror::*;
+/// use libpd_rs::mirror::{process_float, block_size};
+///
 /// let output_channels = 2;
 /// // ...
 /// // After initializing audio and opening a patch file then in the audio callback..
@@ -318,7 +322,8 @@ pub fn process_float(ticks: i32, input_buffer: &[f32], output_buffer: &mut [f32]
 ///
 /// # Examples
 /// ```no_run
-/// # use libpd_rs::mirror::*;
+/// use libpd_rs::mirror::{process_short, block_size};
+///
 /// let output_channels = 2;
 /// // ...
 /// // After initializing audio and opening a patch file then in the audio callback..
@@ -357,7 +362,8 @@ pub fn process_short(ticks: i32, input_buffer: &[i16], output_buffer: &mut [i16]
 ///
 /// # Examples
 /// ```no_run
-/// # use libpd_rs::mirror::*;
+/// use libpd_rs::mirror::{process_double, block_size};
+///
 /// let output_channels = 2;
 /// // ...
 /// // After initializing audio and opening a patch file then in the audio callback..
@@ -396,7 +402,8 @@ pub fn process_double(ticks: i32, input_buffer: &[f64], output_buffer: &mut [f64
 ///
 /// # Examples
 /// ```no_run
-/// # use libpd_rs::mirror::*;
+/// use libpd_rs::mirror::process_raw;
+///
 /// // After initializing audio and opening a patch file then in the audio callback..
 ///
 /// // We can imagine that these are the buffers which has been handed to us by the audio callback.
@@ -435,7 +442,8 @@ pub fn process_raw(input_buffer: &[f32], output_buffer: &mut [f32]) {
 ///
 /// # Examples
 /// ```no_run
-/// # use libpd_rs::mirror::*;
+/// use libpd_rs::mirror::process_raw_short;
+///
 /// // After initializing audio and opening a patch file then in the audio callback..
 ///
 /// // We can imagine that these are the buffers which has been handed to us by the audio callback.
@@ -470,7 +478,8 @@ pub fn process_raw_short(input_buffer: &[i16], output_buffer: &mut [i16]) {
 ///
 /// # Examples
 /// ```no_run
-/// # use libpd_rs::mirror::*;
+/// use libpd_rs::mirror::process_raw_double;
+///
 /// // After initializing audio and opening a patch file then in the audio callback..
 ///
 /// // We can imagine that these are the buffers which has been handed to us by the audio callback.
@@ -499,7 +508,8 @@ pub fn process_raw_double(input_buffer: &[f64], output_buffer: &mut [f64]) {
 ///
 /// # Example
 /// ```no_run
-/// # use libpd_rs::mirror::*;
+/// use libpd_rs::mirror::array_size;
+///
 /// let size = array_size("my_array").unwrap();
 /// ```
 pub fn array_size<T: AsRef<str>>(name: T) -> Result<i32, LibpdError> {
@@ -520,7 +530,8 @@ pub fn array_size<T: AsRef<str>>(name: T) -> Result<i32, LibpdError> {
 ///
 /// # Example
 /// ```no_run
-/// # use libpd_rs::mirror::*;
+/// use libpd_rs::mirror::{array_size, resize_array};
+///
 /// resize_array("my_array", 1024).unwrap();
 /// let size = array_size("my_array").unwrap();
 /// assert_eq!(size, 1024);
@@ -545,7 +556,8 @@ pub fn resize_array<T: AsRef<str>>(name: T, size: i64) -> Result<(), LibpdError>
 ///
 /// # Example
 /// ```no_run
-/// # use libpd_rs::mirror::*;
+/// use libpd_rs::mirror::read_float_array_from;
+///
 /// let mut destination = [0.0_f32; 64];
 /// read_float_array_from("my_array", 32, &mut destination, 32).unwrap();
 /// ```
@@ -583,7 +595,8 @@ pub fn read_float_array_from<T: AsRef<str>>(
 ///
 /// # Example
 /// ```no_run
-/// # use libpd_rs::mirror::*;
+/// use libpd_rs::mirror::write_float_array_to;
+///
 /// let mut source = [1.0_f32; 64];
 /// write_float_array_to("my_array", 32, &source, 32).unwrap();
 /// ```
@@ -621,7 +634,8 @@ pub fn write_float_array_to<T: AsRef<str>>(
 ///
 /// # Example
 /// ```no_run
-/// # use libpd_rs::mirror::*;
+/// use libpd_rs::mirror::read_double_array_from;
+///
 /// let mut destination = [0.0_f64; 64];
 /// read_double_array_from("my_array", 32, &mut destination, 32).unwrap();
 /// ```
@@ -659,9 +673,10 @@ pub fn read_double_array_from<T: AsRef<str>>(
 ///
 /// # Example
 /// ```no_run
-/// # use libpd_rs::mirror::*;
-/// let mut source = [1.0_f32; 64];
-/// write_float_array_to("my_array", 32, &source, 32).unwrap();
+/// use libpd_rs::mirror::write_double_array_to;
+///
+/// let source = [1.0_f64; 64];
+/// write_double_array_to("my_array", 32, &source, 32).unwrap();
 /// ```
 /// # Errors
 /// This function performs no bounds checking on the destination.
@@ -699,7 +714,8 @@ pub fn write_double_array_to<T: AsRef<str>>(
 ///
 /// # Example
 /// ```no_run
-/// # use libpd_rs::mirror::*;
+/// use libpd_rs::mirror::send_bang_to;
+///
 /// // Handle the error if the receiver object is not found
 /// send_bang_to("foo").unwrap_or_else(|err| {
 ///   println!("{}", err);
@@ -726,7 +742,8 @@ pub fn send_bang_to<T: AsRef<str>>(receiver: T) -> Result<(), LibpdError> {
 ///
 /// # Example
 /// ```no_run
-/// # use libpd_rs::mirror::*;
+/// use libpd_rs::mirror::send_float_to;
+///
 /// // Handle the error if the receiver object is not found
 /// send_float_to("foo", 1.0).unwrap_or_else(|err| {
 ///   dbg!("{}", err);
@@ -753,7 +770,8 @@ pub fn send_float_to<T: AsRef<str>>(receiver: T, value: f32) -> Result<(), Libpd
 ///
 /// # Example
 /// ```no_run
-/// # use libpd_rs::mirror::*;
+/// use libpd_rs::mirror::send_double_to;
+///
 /// // Handle the error if the receiver object is not found
 /// send_double_to("foo", 1.0).unwrap_or_else(|err| {
 ///   dbg!("{err}");
@@ -780,7 +798,8 @@ pub fn send_double_to<T: AsRef<str>>(receiver: T, value: f64) -> Result<(), Libp
 ///
 /// # Example
 /// ```no_run
-/// # use libpd_rs::mirror::*;
+/// use libpd_rs::mirror::send_symbol_to;
+///
 /// // Handle the error if the receiver object is not found
 /// send_symbol_to("foo", "bar").unwrap_or_else(|err| {
 ///   dbg!("{err}");
@@ -812,8 +831,10 @@ pub fn send_symbol_to<T: AsRef<str>, S: AsRef<str>>(
 ///
 /// # Example
 /// ```rust
-/// # use libpd_rs::mirror::*;
-/// # init();
+/// use libpd_rs::mirror::{init, start_message};
+///
+/// init();
+///
 /// // Arbitrary length
 /// let message_length = 4;
 /// if start_message(message_length).is_ok() {
@@ -833,8 +854,10 @@ pub fn start_message(length: i32) -> Result<(), LibpdError> {
 ///
 /// # Example
 /// ```rust
-/// # use libpd_rs::mirror::*;
-/// # init();
+/// use libpd_rs::mirror::{init, start_message, add_float_to_started_message};
+///
+/// init();
+///
 /// // Arbitrary length
 /// let message_length = 4;
 /// if start_message(message_length).is_ok() {
@@ -856,8 +879,10 @@ pub fn add_float_to_started_message(value: f32) {
 ///
 /// # Example
 /// ```rust
-/// # use libpd_rs::mirror::*;
-/// # init();
+/// use libpd_rs::mirror::{init, start_message, add_double_to_started_message};
+///
+/// init();
+///
 /// // Arbitrary length
 /// let message_length = 4;
 /// if start_message(message_length).is_ok() {
@@ -879,8 +904,10 @@ pub fn add_double_to_started_message(value: f64) {
 ///
 /// # Example
 /// ```rust
-/// # use libpd_rs::mirror::*;
-/// # init();
+/// use libpd_rs::mirror::{init, start_message, add_symbol_to_started_message};
+///
+/// init();
+///
 /// // Arbitrary length
 /// let message_length = 4;
 /// if start_message(message_length).is_ok() {
@@ -906,8 +933,10 @@ pub fn add_symbol_to_started_message<T: AsRef<str>>(value: T) {
 ///
 /// # Example
 /// ```rust
-/// # use libpd_rs::mirror::*;
-/// # init();
+/// use libpd_rs::mirror::{init, start_message, add_symbol_to_started_message, add_float_to_started_message, finish_message_as_list_and_send_to};
+///
+/// init();
+///
 /// // Arbitrary length
 /// let message_length = 2;
 /// if start_message(message_length).is_ok() {
@@ -939,8 +968,10 @@ pub fn finish_message_as_list_and_send_to<T: AsRef<str>>(receiver: T) -> Result<
 ///
 /// # Example
 /// ```rust
-/// # use libpd_rs::mirror::*;
-/// # init();
+/// use libpd_rs::mirror::{init, start_message, add_float_to_started_message, finish_message_as_typed_message_and_send_to};
+///
+/// init();
+///
 /// // Arbitrary length
 /// let message_length = 1;
 /// if start_message(message_length).is_ok() {
@@ -973,9 +1004,11 @@ pub fn finish_message_as_typed_message_and_send_to<T: AsRef<str>, S: AsRef<str>>
 ///
 /// # Example
 /// ```rust
-/// # use libpd_rs::mirror::*;
-/// # init();
+/// use libpd_rs::mirror::{init, send_list_to};
 /// use libpd_rs::types::Atom;
+///
+/// init();
+///
 /// let list = vec![Atom::from(42.0), Atom::from("bar")];
 /// // Handle the error if the receiver object is not found
 /// send_list_to("foo", &list).unwrap_or_else(|err| {
@@ -1015,9 +1048,11 @@ pub fn send_list_to<T: AsRef<str>>(receiver: T, list: &[Atom]) -> Result<(), Lib
 ///
 /// # Example
 /// ```rust
-/// # use libpd_rs::mirror::*;
-/// # init();
+/// use libpd_rs::mirror::{init, send_message_to};
 /// use libpd_rs::types::Atom;
+///
+/// init();
+///
 /// let values = vec![Atom::from(1.0)];
 /// // Handle the error if the receiver object is not found
 /// send_message_to("pd", "dsp", &values).unwrap_or_else(|err| {
@@ -1061,10 +1096,12 @@ pub fn send_message_to<T: AsRef<str>>(
 ///
 /// # Example
 /// ```rust
-/// # use std::collections::HashMap;
-/// # use libpd_rs::mirror::*;
-/// # use libpd_rs::types::*;
-/// # init();
+/// use std::collections::HashMap;
+/// use libpd_rs::mirror::{init, start_listening_from};
+/// use libpd_rs::types::ReceiverHandle;
+///
+/// init();
+///
 /// let sources = vec!["foo", "bar"];
 /// // Maybe you would like to use the receiver handles later so you may store them..
 /// let mut handles: HashMap<String, ReceiverHandle> = HashMap::new();
@@ -1101,9 +1138,10 @@ pub fn start_listening_from<T: AsRef<str>>(sender: T) -> Result<ReceiverHandle, 
 ///
 /// # Example
 /// ```rust
-/// # use libpd_rs::mirror::*;
-/// # use libpd_rs::types::*;
-/// # init();
+/// use libpd_rs::mirror::{init, start_listening_from, stop_listening_from};
+///
+/// init();
+///
 /// let receiver_handle = start_listening_from("foo").unwrap();
 /// stop_listening_from(receiver_handle);
 /// ```
@@ -1117,13 +1155,16 @@ pub fn stop_listening_from(source: ReceiverHandle) {
     }
 }
 
+// @attention Stayed here..
+
 /// Check if a source to listen from exists.
 ///
 /// # Example
 /// ```rust
-/// # use libpd_rs::mirror::*;
-/// # use libpd_rs::types::*;
-/// # init();
+/// use libpd_rs::mirror::{init, source_to_listen_from_exists, start_listening_from};
+///
+/// init();
+///
 /// if source_to_listen_from_exists("foo") {
 ///   if let Ok(receiver_handle) = start_listening_from("foo") {
 ///     // Do something with the handle..
@@ -1144,11 +1185,13 @@ pub fn source_to_listen_from_exists<T: AsRef<str>>(sender: T) -> bool {
 ///
 /// # Example
 /// ```rust
-/// # use libpd_rs::mirror::*;
+/// use libpd_rs::mirror::{init, on_print};
+///
 /// on_print(|msg: &str| {
 ///  println!("pd is printing: {msg}");
 /// });
-/// # init();
+///
+/// init();
 /// ```
 pub fn on_print<F: FnMut(&str) + Send + Sync + 'static>(mut user_provided_closure: F) {
     let closure: &'static mut _ = Box::leak(Box::new(move |out: *const std::os::raw::c_char| {
@@ -1175,8 +1218,7 @@ pub fn on_print<F: FnMut(&str) + Send + Sync + 'static>(mut user_provided_closur
 ///
 /// # Example
 /// ```rust
-/// # use libpd_rs::mirror::*;
-/// # init();
+/// use libpd_rs::mirror::{init, on_bang, start_listening_from};
 ///
 /// on_bang(|source: &str| {
 ///   match source {
@@ -1185,6 +1227,8 @@ pub fn on_print<F: FnMut(&str) + Send + Sync + 'static>(mut user_provided_closur
 ///      _ => unreachable!(),
 ///   }
 /// });
+///
+/// init();
 ///
 /// let foo_receiver_handle = start_listening_from("foo").unwrap();
 /// let bar_receiver_handle = start_listening_from("bar").unwrap();
@@ -1214,8 +1258,7 @@ pub fn on_bang<F: FnMut(&str) + Send + Sync + 'static>(mut user_provided_closure
 ///
 /// # Example
 /// ```rust
-/// # use libpd_rs::mirror::*;
-/// # init();
+/// use libpd_rs::mirror::{init, on_float, start_listening_from};
 ///
 /// on_float(|source: &str, value: f32| {
 ///   match source {
@@ -1224,6 +1267,8 @@ pub fn on_bang<F: FnMut(&str) + Send + Sync + 'static>(mut user_provided_closure
 ///      _ => unreachable!(),
 ///   }
 /// });
+///
+/// init();
 ///
 /// let foo_receiver_handle = start_listening_from("foo").unwrap();
 /// let bar_receiver_handle = start_listening_from("bar").unwrap();
@@ -1254,8 +1299,7 @@ pub fn on_float<F: FnMut(&str, f32) + Send + Sync + 'static>(mut user_provided_c
 ///
 /// # Example
 /// ```rust
-/// # use libpd_rs::mirror::*;
-/// # init();
+/// use libpd_rs::mirror::{init, on_double, start_listening_from};
 ///
 /// on_double(|source: &str, value: f64| {
 ///   match source {
@@ -1264,6 +1308,8 @@ pub fn on_float<F: FnMut(&str, f32) + Send + Sync + 'static>(mut user_provided_c
 ///      _ => unreachable!(),
 ///   }
 /// });
+///
+/// init();
 ///
 /// let foo_receiver_handle = start_listening_from("foo").unwrap();
 /// let bar_receiver_handle = start_listening_from("bar").unwrap();
@@ -1291,8 +1337,7 @@ pub fn on_double<F: FnMut(&str, f64) + Send + Sync + 'static>(mut user_provided_
 ///
 /// # Example
 /// ```rust
-/// # use libpd_rs::mirror::*;
-/// # init();
+/// use libpd_rs::mirror::{init, on_symbol, start_listening_from};
 ///
 /// on_symbol(|source: &str, symbol: &str| {
 ///   match source {
@@ -1301,6 +1346,8 @@ pub fn on_double<F: FnMut(&str, f64) + Send + Sync + 'static>(mut user_provided_
 ///      _ => unreachable!(),
 ///   }
 /// });
+///
+/// init();
 ///
 /// let foo_receiver_handle = start_listening_from("foo").unwrap();
 /// let bar_receiver_handle = start_listening_from("bar").unwrap();
@@ -1329,9 +1376,9 @@ pub fn on_symbol<F: FnMut(&str, &str) + Send + Sync + 'static>(mut user_provided
 ///
 /// # Example
 /// ```rust
-/// # use libpd_rs::mirror::*;
-/// # use libpd_rs::types::*;
-/// # init();
+/// use libpd_rs::mirror::{init, on_list, start_listening_from};
+/// use libpd_rs::types::Atom;
+///
 /// on_list(|source: &str, list: &[Atom]| match source {
 ///     "foo" => {
 ///         for atom in list {
@@ -1361,6 +1408,8 @@ pub fn on_symbol<F: FnMut(&str, &str) + Send + Sync + 'static>(mut user_provided
 ///     }
 ///     _ => unreachable!(),
 /// });
+///
+/// init();
 ///
 /// let foo_receiver_handle = start_listening_from("foo").unwrap();
 /// let bar_receiver_handle = start_listening_from("bar").unwrap();
@@ -1405,9 +1454,9 @@ pub fn on_list<F: FnMut(&str, &[Atom]) + Send + Sync + 'static>(mut user_provide
 ///
 /// # Example
 /// ```rust
-/// # use libpd_rs::mirror::*;
-/// # use libpd_rs::types::*;
-/// # init();
+/// use libpd_rs::mirror::{init, on_message, start_listening_from};
+/// use libpd_rs::types::Atom;
+///
 /// on_message(|source: &str, message: &str, values: &[Atom]| match source {
 ///     "foo" => {
 ///         println!("Received a message from foo, message is: {message}");
@@ -1425,6 +1474,9 @@ pub fn on_list<F: FnMut(&str, &[Atom]) + Send + Sync + 'static>(mut user_provide
 ///     }
 ///     _ => unreachable!(),
 /// });
+///
+/// init();
+///
 /// let foo_receiver_handle = start_listening_from("foo").unwrap();
 /// ```
 pub fn on_message<F: FnMut(&str, &str, &[Atom]) + Send + Sync + 'static>(
@@ -1466,8 +1518,8 @@ pub fn on_message<F: FnMut(&str, &str, &[Atom]) + Send + Sync + 'static>(
 ///
 /// # Example
 /// ```no_run
-/// # use libpd_rs::mirror::*;
-/// # use libpd_rs::types::*;
+/// use libpd_rs::mirror::{start_listening_from, on_symbol, receive_messages_from_pd};
+///
 /// on_symbol(|source: &str, value: &str| {
 ///   match source {
 ///     "foo" => println!("Received a float from foo, value is: {value}"),   
@@ -1497,8 +1549,10 @@ pub fn receive_messages_from_pd() {
 ///
 /// # Example
 /// ```rust
-/// # use libpd_rs::mirror::*;
-/// # init();
+/// use libpd_rs::mirror::{init, send_note_on};
+///
+/// init();
+///
 /// // Handle the error if the receiver object is not found
 /// send_note_on(0, 48, 64).unwrap_or_else(|err| {
 ///   dbg!("{err}");
@@ -1526,8 +1580,10 @@ pub fn send_note_on(channel: i32, pitch: i32, velocity: i32) -> Result<(), Libpd
 ///
 /// # Example
 /// ```rust
-/// # use libpd_rs::mirror::*;
-/// # init();
+/// use libpd_rs::mirror::{init, send_control_change};
+///
+/// init();
+///
 /// // Handle the error if the receiver object is not found
 /// send_control_change(0, 0, 64).unwrap_or_else(|err| {
 ///   dbg!("{err}");
@@ -1555,8 +1611,10 @@ pub fn send_control_change(channel: i32, controller: i32, value: i32) -> Result<
 ///
 /// # Example
 /// ```rust
-/// # use libpd_rs::mirror::*;
-/// # init();
+/// use libpd_rs::mirror::{init, send_program_change};
+///
+/// init();
+///
 /// // Handle the error if the receiver object is not found
 /// send_program_change(0, 42).unwrap_or_else(|err| {
 ///   dbg!("{err}");
@@ -1586,8 +1644,10 @@ pub fn send_program_change(channel: i32, value: i32) -> Result<(), LibpdError> {
 ///
 /// # Example
 /// ```rust
-/// # use libpd_rs::mirror::*;
-/// # init();
+/// use libpd_rs::mirror::{init, send_pitch_bend};
+///
+/// init();
+///
 /// // Handle the error if the receiver object is not found
 /// send_pitch_bend(0, 8192).unwrap_or_else(|err| {
 ///   dbg!("{err}");
@@ -1615,8 +1675,10 @@ pub fn send_pitch_bend(channel: i32, value: i32) -> Result<(), LibpdError> {
 ///
 /// # Example
 /// ```rust
-/// # use libpd_rs::mirror::*;
-/// # init();
+/// use libpd_rs::mirror::{init, send_aftertouch};
+///
+/// init();
+///
 /// // Handle the error if the receiver object is not found
 /// send_aftertouch(0, 42).unwrap_or_else(|err| {
 ///   dbg!("{err}");
@@ -1644,8 +1706,10 @@ pub fn send_aftertouch(channel: i32, value: i32) -> Result<(), LibpdError> {
 ///
 /// # Example
 /// ```rust
-/// # use libpd_rs::mirror::*;
-/// # init();
+/// use libpd_rs::mirror::{init, send_poly_aftertouch};
+///
+/// init();
+///
 /// // Handle the error if the receiver object is not found
 /// send_poly_aftertouch(0, 48, 64).unwrap_or_else(|err| {
 ///   dbg!("{err}");
@@ -1671,8 +1735,10 @@ pub fn send_poly_aftertouch(channel: i32, pitch: i32, value: i32) -> Result<(), 
 ///
 /// # Example
 /// ```rust
-/// # use libpd_rs::mirror::*;
-/// # init();
+/// use libpd_rs::mirror::{init, send_midi_byte};
+///
+/// init();
+///
 /// // Handle the error if the receiver object is not found
 /// send_midi_byte(0, 0xFF).unwrap_or_else(|err| {
 ///   dbg!("{err}");
@@ -1698,8 +1764,10 @@ pub fn send_midi_byte(port: i32, byte: i32) -> Result<(), LibpdError> {
 ///
 /// # Example
 /// ```rust
-/// # use libpd_rs::mirror::*;
-/// # init();
+/// use libpd_rs::mirror::{init, send_sysex};
+///
+/// init();
+///
 /// // Handle the error if the receiver object is not found
 /// send_sysex(0, 0x7F).unwrap_or_else(|err| {
 ///   dbg!("{err}");
@@ -1725,8 +1793,10 @@ pub fn send_sysex(port: i32, byte: i32) -> Result<(), LibpdError> {
 ///
 /// # Example
 /// ```rust
-/// # use libpd_rs::mirror::*;
-/// # init();
+/// use libpd_rs::mirror::{init, send_sys_realtime};
+///
+/// init();
+///
 /// // Handle the error if the receiver object is not found
 /// send_sys_realtime(0, 0x7F).unwrap_or_else(|err| {
 ///   dbg!("{err}");
@@ -1746,8 +1816,6 @@ pub fn send_sys_realtime(port: i32, byte: i32) -> Result<(), LibpdError> {
     }
 }
 
-// @attention Stayed here..
-
 /// Sets a closure to be called when a MIDI note on event is received.
 ///
 /// You do not need to register this listener explicitly.
@@ -1762,8 +1830,10 @@ pub fn send_sys_realtime(port: i32, byte: i32) -> Result<(), LibpdError> {
 ///
 /// # Example
 /// ```rust
-/// # use libpd_rs::mirror::*;
-/// # init();
+/// use libpd_rs::mirror::{init, on_midi_note_on};
+///
+/// init();
+///
 /// on_midi_note_on(|channel: i32, pitch: i32, velocity: i32| {
 ///   println!("Note On: channel {channel}, pitch {pitch}, velocity {velocity}");
 /// });
@@ -1800,8 +1870,10 @@ pub fn on_midi_note_on<F: FnMut(i32, i32, i32) + Send + Sync + 'static>(
 ///
 /// # Example
 /// ```rust
-/// # use libpd_rs::mirror::*;
-/// # init();
+/// use libpd_rs::mirror::{init, on_midi_control_change};
+///
+/// init();
+///
 /// on_midi_control_change(|channel: i32, controller: i32, value: i32| {
 ///   println!("Control Change: channel {channel}, controller number {controller}, value {value}");
 /// });
@@ -1839,8 +1911,10 @@ pub fn on_midi_control_change<F: FnMut(i32, i32, i32) + Send + Sync + 'static>(
 ///
 /// # Example
 /// ```rust
-/// # use libpd_rs::mirror::*;
-/// # init();
+/// use libpd_rs::mirror::{init, on_midi_program_change};
+///
+/// init();
+///
 /// on_midi_program_change(|channel: i32, value: i32| {
 ///   println!("Program Change: channel {channel}, program number {value}");
 /// });
@@ -1875,8 +1949,10 @@ pub fn on_midi_program_change<F: FnMut(i32, i32) + Send + Sync + 'static>(
 ///
 /// # Example
 /// ```rust
-/// # use libpd_rs::mirror::*;
-/// # init();
+/// use libpd_rs::mirror::{init, on_midi_pitch_bend};
+///
+/// init();
+///
 /// on_midi_pitch_bend(|channel: i32, value: i32| {
 ///   println!("Pitch Bend: channel {channel}, bend amount {value}");
 /// });
@@ -1909,8 +1985,10 @@ pub fn on_midi_pitch_bend<F: FnMut(i32, i32) + Send + Sync + 'static>(
 ///
 /// # Example
 /// ```rust
-/// # use libpd_rs::mirror::*;
-/// # init();
+/// use libpd_rs::mirror::{init, on_midi_after_touch};
+///
+/// init();
+///
 /// on_midi_after_touch(|channel: i32, value: i32| {
 ///   println!("After Touch: channel {channel}, after touch amount {value}");
 /// });
@@ -1943,8 +2021,10 @@ pub fn on_midi_after_touch<F: FnMut(i32, i32) + Send + Sync + 'static>(
 ///
 /// # Example
 /// ```rust
-/// # use libpd_rs::mirror::*;
-/// # init();
+/// use libpd_rs::mirror::{init, on_midi_poly_after_touch};
+///
+/// init();
+///
 /// on_midi_poly_after_touch(|channel: i32, pitch: i32, value: i32| {
 ///   println!("Poly After Touch: channel {channel}, pitch {pitch}, after touch amount {value}");
 /// });
@@ -1979,8 +2059,10 @@ pub fn on_midi_poly_after_touch<F: FnMut(i32, i32, i32) + Send + Sync + 'static>
 ///
 /// # Example
 /// ```rust
-/// # use libpd_rs::mirror::*;
-/// # init();
+/// use libpd_rs::mirror::{init, on_midi_byte};
+///
+/// init();
+///
 /// on_midi_byte(|port: i32, byte: i32| {
 ///   println!("Raw MIDI Byte: port {port}, byte {byte}");
 /// });
@@ -2005,8 +2087,8 @@ pub fn on_midi_byte<F: FnMut(i32, i32) + Send + Sync + 'static>(mut user_provide
 ///
 /// # Example
 /// ```no_run
-/// # use libpd_rs::mirror::*;
-/// # use libpd_rs::types::*;
+/// use libpd_rs::mirror::{on_midi_byte, receive_midi_messages_from_pd};
+///
 /// on_midi_byte(|port: i32, byte: i32| {
 ///     println!("{port}, {byte}");
 /// });
@@ -2025,8 +2107,9 @@ pub fn receive_midi_messages_from_pd() {
 ///
 /// # Example
 /// ```no_run
-/// # use libpd_rs::mirror::*;
-/// # use std::path::PathBuf;
+/// use libpd_rs::mirror::start_gui;
+/// use std::path::PathBuf;
+///
 /// // In mac os probably it would look something like this,
 /// // The application name here is an example.
 /// let path_to_pd = PathBuf::from("/Applications/Pd-0.51-4.app/Contents/Resources/bin/pd");
@@ -2062,8 +2145,10 @@ pub fn stop_gui() {
 ///
 /// # Example
 /// ```no_run
-/// # use libpd_rs::mirror::*;
-/// # init();
+/// use libpd_rs::mirror::{init, poll_gui};
+///
+/// init();
+///
 /// loop {
 ///     while let Some(_) = poll_gui() {
 ///         // Do something

@@ -15,6 +15,7 @@ use std::{
 };
 
 #[test]
+#[ignore]
 fn main() {
     unsafe {
         let mut v = Arc::new(Mutex::new(vec![]));
