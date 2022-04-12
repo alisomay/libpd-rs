@@ -1,14 +1,15 @@
-// TODO: Remove this in the end.
-#![allow(clippy::wildcard_imports)]
-use crate::error::{ArrayError, SizeError, SubscriptionError};
-use crate::types::ReceiverHandle;
+use crate::{
+    error::{
+        ArrayError, CommunicationError, InitializationError, IoError, LibpdError, SizeError,
+        SubscriptionError,
+    },
+    helpers::{make_atom_list_from_t_atom_list, make_t_atom_list_from_atom_list},
+    types::{Atom, PatchFileHandle, ReceiverHandle},
+};
 
-use crate::error::{CommunicationError, InitializationError, IoError, LibpdError};
-use crate::helpers::*;
-use crate::types::{Atom, PatchFileHandle};
 use libffi::high::{ClosureMut1, ClosureMut2, ClosureMut3, ClosureMut4};
 use std::ffi::{CStr, CString};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 // TODO: Currently panicing is enough since this is a rare case, but may be improved later with a dedicated error.
 const C_STRING_FAILURE: &str =
@@ -79,14 +80,14 @@ pub fn clear_search_paths() {
 ///
 /// Relative paths are relative to the current working directory.
 /// Unlike the desktop pd application, **no** search paths are set by default.
-pub fn add_to_search_paths(path: &std::path::Path) -> Result<(), LibpdError> {
-    if !path.exists() {
+pub fn add_to_search_paths<T: AsRef<Path>>(path: T) -> Result<(), LibpdError> {
+    if !path.as_ref().exists() {
         return Err(LibpdError::IoError(IoError::PathDoesNotExist(
-            path.to_string_lossy().to_string(),
+            path.as_ref().to_string_lossy().to_string(),
         )));
     }
     unsafe {
-        let c_path = CString::new(&*path.to_string_lossy()).expect(C_STRING_FAILURE);
+        let c_path = CString::new(&*path.as_ref().to_string_lossy()).expect(C_STRING_FAILURE);
         libpd_sys::libpd_add_to_search_path(c_path.as_ptr());
         Ok(())
     }
@@ -113,13 +114,15 @@ pub fn add_to_search_paths(path: &std::path::Path) -> Result<(), LibpdError> {
 /// let patch_handle = open_patch(&patch_name).unwrap();
 /// // or others..
 /// ```
-pub fn open_patch(path_to_patch: &std::path::Path) -> Result<PatchFileHandle, LibpdError> {
+pub fn open_patch<T: AsRef<Path>>(path_to_patch: T) -> Result<PatchFileHandle, LibpdError> {
     let file_name = path_to_patch
+        .as_ref()
         .file_name()
         .ok_or(LibpdError::IoError(IoError::FailedToOpenPatch))?;
     let file_name = file_name.to_string_lossy();
     let file_name = file_name.as_ref();
     let parent_path = path_to_patch
+        .as_ref()
         .parent()
         .unwrap_or_else(|| std::path::Path::new("/"));
     let parent_path_string: String = parent_path.to_string_lossy().into();
@@ -2029,9 +2032,9 @@ pub fn receive_midi_messages_from_pd() {
 /// let path_to_pd = PathBuf::from("/Applications/Pd-0.51-4.app/Contents/Resources/bin/pd");
 /// start_gui(&path_to_pd);
 /// ```
-pub fn start_gui(path_to_pd: &std::path::Path) -> Result<(), LibpdError> {
-    if path_to_pd.exists() {
-        let path_to_pd = path_to_pd.to_string_lossy();
+pub fn start_gui<T: AsRef<Path>>(path_to_pd: T) -> Result<(), LibpdError> {
+    if path_to_pd.as_ref().exists() {
+        let path_to_pd = path_to_pd.as_ref().to_string_lossy();
         let path_to_pd = CString::new(path_to_pd.as_ref()).expect(C_STRING_FAILURE);
         unsafe {
             match libpd_sys::libpd_start_gui(path_to_pd.as_ptr()) {

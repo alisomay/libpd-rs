@@ -6,25 +6,19 @@ macro_rules! make_t_atom_list_from_atom_list {
     ($list: expr) => {
         $list
             .into_iter()
-            .map(|atom_variant| {
-                match atom_variant {
-                    // TODO:
-                    // There is only float in the atom type.
-                    // Probably precision changes depending on pd compilation float size.
-                    // Cover for that here.
-                    Atom::Float(value) => libpd_sys::t_atom {
-                        a_type: libpd_sys::t_atomtype_A_FLOAT,
-                        a_w: libpd_sys::word { w_float: *value },
+            .map(|atom_variant| match atom_variant {
+                Atom::Float(value) => libpd_sys::t_atom {
+                    a_type: libpd_sys::t_atomtype_A_FLOAT,
+                    a_w: libpd_sys::word { w_float: *value },
+                },
+                Atom::Symbol(value) => libpd_sys::t_atom {
+                    a_type: libpd_sys::t_atomtype_A_SYMBOL,
+                    a_w: libpd_sys::word {
+                        w_symbol: libpd_sys::gensym(
+                            CString::new(value.to_owned()).unwrap().as_ptr(),
+                        ),
                     },
-                    Atom::Symbol(value) => libpd_sys::t_atom {
-                        a_type: libpd_sys::t_atomtype_A_SYMBOL,
-                        a_w: libpd_sys::word {
-                            w_symbol: libpd_sys::gensym(
-                                CString::new(value.to_owned()).unwrap().as_ptr(),
-                            ),
-                        },
-                    },
-                }
+                },
             })
             .collect::<Vec<libpd_sys::t_atom>>()
     };
@@ -50,7 +44,6 @@ macro_rules! make_atom_list_from_t_atom_list {
                     let result = unsafe { CStr::from_ptr(sym) };
                     Atom::Symbol(result.to_str().unwrap().to_owned())
                 }
-                // TODO: Also missing double.. lets see how to cover these.
                 _ => unimplemented!(),
             })
             .collect::<Vec<Atom>>()
