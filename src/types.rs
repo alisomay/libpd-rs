@@ -1,12 +1,12 @@
-// TODO: Document enum variants
-
 /// A type to represent a pd Atom type in Rust side.
 ///
 /// Pd has floating point numbers and symbols as primitive types.
 /// This enum maps those to their Rust counterparts.
 #[derive(Debug, Clone)]
 pub enum Atom {
+    /// A floating point number from pd.
     Float(f64),
+    /// A symbol from pd. Symbols are interned in pd, but it can be treated as Strings in Rust.
     Symbol(String),
 }
 

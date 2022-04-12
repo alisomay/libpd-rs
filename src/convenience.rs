@@ -3,7 +3,7 @@ use crate::mirror::{
     add_float_to_started_message, finish_message_as_typed_message_and_send_to, start_message,
 };
 
-/// Activate audio in pd.
+/// Activates audio in pd.
 pub fn dsp_on() -> Result<(), LibpdError> {
     start_message(1)?;
     add_float_to_started_message(1.0);
@@ -11,7 +11,7 @@ pub fn dsp_on() -> Result<(), LibpdError> {
     Ok(())
 }
 
-/// De-activate audio in pd.
+/// De-activates audio in pd.
 pub fn dsp_off() -> Result<(), LibpdError> {
     start_message(1)?;
     add_float_to_started_message(0.0);
