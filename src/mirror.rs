@@ -16,7 +16,6 @@ const C_STRING_FAILURE: &str =
     "Provided an invalid CString, check if your string contains null bytes in the middle.";
 const C_STR_FAILURE: &str = "Converting a CStr to an &str is failed.";
 
-// TODO: Bring use statements visible in documentation.
 // TODO: Also please, change the titles of each individual function to look nice in doc.
 // TODO: We're compiling for f64 floats in pd, check how float and double functions behave and change documentation where necessary.
 
@@ -187,7 +186,7 @@ pub fn open_patch<T: AsRef<Path>>(path_to_patch: T) -> Result<PatchFileHandle, L
     }
 }
 
-/// Closes a pd patch.
+/// Closes a pd patch which has opened before.
 ///
 /// Handle needs to point to a valid opened patch file.
 ///
@@ -213,7 +212,7 @@ pub fn close_patch(handle: PatchFileHandle) -> Result<(), LibpdError> {
     }
 }
 
-/// Get the `$0` id of the running patch.
+/// Gets the `$0` of the running patch.
 ///
 /// `$0` id in pd could be thought as a auto generated unique identifier for the patch.
 pub fn get_dollar_zero(handle: &PatchFileHandle) {
@@ -222,7 +221,7 @@ pub fn get_dollar_zero(handle: &PatchFileHandle) {
     }
 }
 
-/// Return pd's fixed block size which is 64 by default.
+/// Returns pd's fixed block size which is 64 by default.
 ///
 /// The number of frames per 1 pd tick.
 ///
@@ -252,7 +251,7 @@ pub fn block_size() -> i32 {
     unsafe { libpd_sys::libpd_blocksize() }
 }
 
-/// Initialize audio rendering
+/// Initializes audio rendering
 pub fn initialize_audio(
     input_channels: i32,
     output_channels: i32,
@@ -268,9 +267,7 @@ pub fn initialize_audio(
     }
 }
 
-/// Process the audio buffer in place through the loaded pd patch.
-///
-/// Processes `f32` interleaved audio buffers.
+/// Processes the audio buffer of `f32` in place through the loaded pd patch.
 ///
 /// The processing order is like the following, `input_buffer -> libpd -> output_buffer`.
 ///
@@ -307,9 +304,7 @@ pub fn process_float(ticks: i32, input_buffer: &[f32], output_buffer: &mut [f32]
     }
 }
 
-/// Process the audio buffer in place through the loaded pd patch.
-///
-/// Processes `i16` interleaved audio buffers.
+/// Processes the audio buffer of `i16` in place through the loaded pd patch.
 ///
 /// The processing order is like the following, `input_buffer -> libpd -> output_buffer`.
 ///
@@ -352,9 +347,9 @@ pub fn process_short(ticks: i32, input_buffer: &[i16], output_buffer: &mut [i16]
     }
 }
 
-/// Process the audio buffer in place through the loaded pd patch.
+/// Processes the audio buffer of `f64` in place through the loaded pd patch.
 ///
-/// Processes `f64` interleaved audio buffers.
+/// The processing order is like the following, `input_buffer -> libpd -> output_buffer`.
 ///
 /// The processing order is like the following, `input_buffer -> libpd -> output_buffer`.
 ///
@@ -391,9 +386,7 @@ pub fn process_double(ticks: i32, input_buffer: &[f64], output_buffer: &mut [f64
     }
 }
 
-/// Process the audio buffer in place through the loaded pd patch.
-///
-/// Processes `f32` **non-interleaved** audio buffers.
+/// Processes the **non-interleaved** `f32` audio buffer in place through the loaded pd patch.
 ///
 /// The processing order is like the following, `input_buffer -> libpd -> output_buffer`.
 /// Copies buffer contents to/from libpd without striping.
@@ -426,9 +419,7 @@ pub fn process_raw(input_buffer: &[f32], output_buffer: &mut [f32]) {
     }
 }
 
-/// Process the audio buffer in place through the loaded pd patch.
-///
-/// Processes `i16` **non-interleaved** audio buffers.
+/// Processes the **non-interleaved** `i16` audio buffer in place through the loaded pd patch.
 ///
 /// The processing order is like the following, `input_buffer -> libpd -> output_buffer`.
 /// Copies buffer contents to/from libpd without striping.
@@ -467,9 +458,7 @@ pub fn process_raw_short(input_buffer: &[i16], output_buffer: &mut [i16]) {
     }
 }
 
-/// Process the audio buffer in place through the loaded pd patch.
-///
-/// Processes `f64` **non-interleaved** audio buffers.
+/// Processes the **non-interleaved** `f64` audio buffer in place through the loaded pd patch.
 ///
 /// The processing order is like the following, `input_buffer -> libpd -> output_buffer`.
 /// Copies buffer contents to/from libpd without striping.
@@ -551,6 +540,8 @@ pub fn resize_array<T: AsRef<str>>(name: T, size: i64) -> Result<(), LibpdError>
     }
 }
 
+/// Reads a named array from pd to a mutable slice of `f32`.
+///
 /// Reads values as much as `read_amount` from the array which is specified with the `source_name` argument
 /// and writes them to `destination` starting at `destination_offset`.
 ///
@@ -590,6 +581,8 @@ pub fn read_float_array_from<T: AsRef<str>>(
     }
 }
 
+/// Writes a slice of `f32` to a pd named array.
+///
 /// Reads values as much as `read_amount` from the array which is given as the `source` argument
 /// and writes them to a named array in pd which is specified with `destination_name` argument starting at `destination_offset`.
 ///
@@ -629,6 +622,8 @@ pub fn write_float_array_to<T: AsRef<str>>(
     }
 }
 
+/// Reads a named array from pd to a mutable slice of `f64`.
+///
 /// Reads values as much as `read_amount` from the array which is specified with the `source_name` argument
 /// and writes them to `destination` starting at `destination_offset`.
 ///
@@ -668,6 +663,8 @@ pub fn read_double_array_from<T: AsRef<str>>(
     }
 }
 
+/// Writes a slice of `f64` to a pd named array.
+///
 /// Reads values as much as `read_amount` from the array which is given as the `source` argument
 /// and writes them to a named array in pd which is specified with `destination_name` argument starting at `destination_offset`.
 ///
@@ -850,7 +847,7 @@ pub fn start_message(length: i32) -> Result<(), LibpdError> {
     }
 }
 
-/// Add an `f32` to the current message in the progress of composition
+/// Adds an `f32` to the current message in the progress of composition
 ///
 /// # Example
 /// ```rust
@@ -875,7 +872,7 @@ pub fn add_float_to_started_message(value: f32) {
     }
 }
 
-/// Add an `f64` to the current message in the progress of composition
+/// Adds an `f64` to the current message in the progress of composition
 ///
 /// # Example
 /// ```rust
@@ -900,7 +897,7 @@ pub fn add_double_to_started_message(value: f64) {
     }
 }
 
-/// Add a symbol to the current message in the progress of composition
+/// Adds a symbol to the current message in the progress of composition
 ///
 /// # Example
 /// ```rust
@@ -926,7 +923,7 @@ pub fn add_symbol_to_started_message<T: AsRef<str>>(value: T) {
     }
 }
 
-/// Finish the current message and send as a list to a receiver in the loaded pd patch
+/// Finishes the current message and send as a list to a receiver in the loaded pd patch
 ///
 /// The following example will send a list `42.0 bar` to `|s foo|` on the next tick.
 /// The list can be received from a `|r foo|` object in the loaded pd patch.
@@ -959,7 +956,7 @@ pub fn finish_message_as_list_and_send_to<T: AsRef<str>>(receiver: T) -> Result<
     }
 }
 
-/// Finish the current message and send as a typed message to a receiver in the loaded pd patch
+/// Finishes the current message and send as a typed message to a receiver in the loaded pd patch
 ///
 /// Typed message handling currently only supports up to 4 elements
 /// internally in pd, **additional elements may be ignored.**
@@ -997,7 +994,7 @@ pub fn finish_message_as_typed_message_and_send_to<T: AsRef<str>, S: AsRef<str>>
     }
 }
 
-/// Send a list to a receiver in the loaded pd patch
+/// Sends a list to a receiver in the loaded pd patch
 ///
 /// The following example will send a list `42.0 bar` to `|s foo|` on the next tick.
 /// The list can be received from a `|r foo|` object in the loaded pd patch.
@@ -1041,7 +1038,7 @@ pub fn send_list_to<T: AsRef<str>>(receiver: T, list: &[Atom]) -> Result<(), Lib
     }
 }
 
-/// Send a typed message to a receiver in the loaded pd patch
+/// Sends a typed message to a receiver in the loaded pd patch
 ///
 /// The following example will send a typed message `dsp 1` to the receiver `pd` on the next tick.
 /// The equivalent of this example message would have looked like `[; pd dsp 1]` in pd gui.
@@ -1155,9 +1152,7 @@ pub fn stop_listening_from(source: ReceiverHandle) {
     }
 }
 
-// @attention Stayed here..
-
-/// Check if a source to listen from exists.
+/// Checks if a source to listen from exists.
 ///
 /// # Example
 /// ```rust
@@ -1175,8 +1170,6 @@ pub fn source_to_listen_from_exists<T: AsRef<str>>(sender: T) -> bool {
     let send = CString::new(sender.as_ref()).expect(C_STRING_FAILURE);
     unsafe { matches!(libpd_sys::libpd_exists(send.as_ptr()), 1) }
 }
-
-// Hooks / queued hooks / print hook utils
 
 /// Sets a closure to be called when a message is written to the pd console.
 ///
@@ -1512,7 +1505,7 @@ pub fn on_message<F: FnMut(&str, &str, &[Atom]) + Send + Sync + 'static>(
     unsafe { libpd_sys::libpd_set_queued_messagehook(Some(*ptr)) };
 }
 
-/// Receive messages from pd message queue.
+/// Receives messages from pd message queue.
 ///
 /// This should be called repeatedly in the **application's main loop** to fetch messages from pd.
 ///
@@ -2081,7 +2074,7 @@ pub fn on_midi_byte<F: FnMut(i32, i32) + Send + Sync + 'static>(mut user_provide
     unsafe { libpd_sys::libpd_set_queued_midibytehook(Some(*ptr)) };
 }
 
-/// Receive messages from pd midi message queue.
+/// Receives messages from pd midi message queue.
 ///
 /// This should be called repeatedly in the **application's main loop** to fetch midi messages from pd.
 ///
@@ -2135,7 +2128,7 @@ pub fn stop_gui() {
     unsafe { libpd_sys::libpd_stop_gui() };
 }
 
-/// Manually update and handle any GUI messages
+/// Manually updates and handles any GUI messages
 ///
 /// This is called automatically when running any process function in the library. e.g. `process_float`.
 ///
