@@ -1,5 +1,5 @@
 use crate::error::LibpdError;
-use crate::mirror::{
+use crate::send::{
     add_float_to_started_message, finish_message_as_typed_message_and_send_to, start_message,
 };
 
