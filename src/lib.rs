@@ -59,14 +59,23 @@
     clippy::unreachable,
 )]
 
+/// TODO: Module doc.
 pub mod array;
+/// TODO: Module doc.
 pub mod convenience;
+/// TODO: Module doc.
 pub mod error;
+/// TODO: Module doc.
 pub mod gui;
+/// TODO: Module doc.
 pub(crate) mod helpers;
+/// TODO: Module doc.
 pub mod process;
+/// TODO: Module doc.
 pub mod receive;
+/// TODO: Module doc.
 pub mod send;
+/// TODO: Module doc.
 pub mod types;
 
 use crate::{

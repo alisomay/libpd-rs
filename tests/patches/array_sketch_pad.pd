@@ -1,0 +1,2 @@
+#N canvas 708 624 181 81 12;
+#X obj 28 24 table sketch_pad;

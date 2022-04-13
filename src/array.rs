@@ -27,7 +27,7 @@ pub fn array_size<T: AsRef<str>>(name: T) -> Result<i32, LibpdError> {
 
 /// Resizes an array found by name in the pd patch which is running.
 ///
-/// Sizes <= 0 are clipped to 1
+/// Sizes <= 0 or > size limit are clipped to 1
 ///
 /// # Example
 /// ```no_run

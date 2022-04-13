@@ -1,3 +1,11 @@
+///! Module wide intro and explanation about why these might be not functional and just are here for old pds.
+///!
+///! Currently this test is failing with this error.
+///! Error in startup script: couldn't read file
+///! "tests/pd_binary/mac/Pd-0.51-4.app/Contents/Resources/bin/pd/tcl/pd-gui.tcl": not a directory
+///!
+///! I think the reason for that is, this function is old and pd binary organization was changed.
+///! The tcl file is currently at "tests/pd_binary/mac/Pd-0.51-4.app/Contents/Resources/tcl/pd-gui.tcl"
 use crate::{
     error::{IoError, LibpdError},
     C_STRING_FAILURE,
