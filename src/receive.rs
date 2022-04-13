@@ -352,10 +352,11 @@ pub fn on_list<F: FnMut(&str, &[Atom]) + Send + Sync + 'static>(mut user_provide
     unsafe { libpd_sys::libpd_set_queued_listhook(Some(*ptr)) };
 }
 
-// TODO: Can we receive messages here without binding??
 /// Sets a closure to be called when a typed message is received from a subscribed receiver
 ///
 /// In a message like [; foo hello 1.0 merhaba] which is sent from the patch,
+///
+/// To receive the message, you need to subscribe to the receiver with the name "foo".
 ///
 /// The arguments of the closure would be:
 ///

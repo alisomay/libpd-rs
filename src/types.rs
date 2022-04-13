@@ -33,6 +33,7 @@ atom_from_number_type!(u32);
 atom_from_number_type!(f32);
 atom_from_number_type!(f64);
 
+// TODO: Re-visit these
 impl Into<f64> for &Atom {
     fn into(self) -> f64 {
         match self {
@@ -50,6 +51,7 @@ impl Into<String> for &Atom {
         }
     }
 }
+//
 
 impl From<String> for Atom {
     fn from(s: String) -> Self {
