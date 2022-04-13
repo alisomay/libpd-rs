@@ -63,14 +63,13 @@ fn send_and_receive_list() {
     });
 
     let list_sent: Vec<Atom> = vec![
-        // "daisy".into(),
-        // "bang".into(),
+        "daisy".into(),
         33.5_f64.into(),
-        33.5_f64.into(),
+        42_f64.into(),
+        "bang".into(),
         12.0_f64.into(),
-        12.0_f64.into(),
+        0.0_f64.into(),
     ];
-    dbg!(&list_sent);
 
     send_list_to("list_from_rust", &list_sent).unwrap();
 
@@ -80,21 +79,20 @@ fn send_and_receive_list() {
     tx.send(()).unwrap();
     handle.join().unwrap();
 
-    dbg!(list_received.lock().unwrap());
     list_received
         .lock()
         .unwrap()
         .iter()
         .zip(list_sent.iter())
         .for_each(|(a, b)| {
-            assert!(matches!(a, b));
-            // match a {
-            //     Atom::Float(a) => {
-            //         assert_eq!(*a, std::convert::Into::<f64>::into(b));
-            //     }
-            //     Atom::Symbol(a) => assert_eq!(*a, std::convert::Into::<String>::into(b)),
-            //     _ => panic!("Unexpected atom type"),
-            // }
+            //
+            match a {
+                Atom::Float(a) => {
+                    assert_eq!(*a, std::convert::Into::<f64>::into(b));
+                }
+                Atom::Symbol(a) => assert_eq!(*a, std::convert::Into::<String>::into(b)),
+                _ => panic!("Unexpected atom type"),
+            }
         });
 
     // Stop listening and close handle.
