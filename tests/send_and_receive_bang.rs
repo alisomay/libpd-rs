@@ -68,7 +68,7 @@ fn send_and_receive_bang() {
     tx.send(()).unwrap();
     handle.join().unwrap();
 
-    assert_eq!(5, bangs.lock().unwrap().len());
+    assert_eq!(bangs.lock().unwrap().len(), 5);
 
     // Stop listening and close handle.
     stop_listening_from(receiver_handle);

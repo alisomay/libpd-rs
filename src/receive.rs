@@ -739,3 +739,5 @@ pub fn on_midi_byte<F: FnMut(i32, i32) + Send + Sync + 'static>(mut user_provide
 pub fn receive_midi_messages_from_pd() {
     unsafe { libpd_sys::libpd_queued_receive_midi_messages() };
 }
+
+// TODO: Some unit tests where relevant.

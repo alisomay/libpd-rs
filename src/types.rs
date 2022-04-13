@@ -137,6 +137,8 @@ impl Into<*mut std::ffi::c_void> for ReceiverHandle {
     }
 }
 
+// TODO: Some unit tests where relevant.
+
 // TODO: Is really implementing all of these needed?
 // pub type t_word = word;
 // pub const t_atomtype_A_NULL: t_atomtype = 0;

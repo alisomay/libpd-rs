@@ -7,7 +7,7 @@ use libpd_rs::{
     convenience::dsp_on,
     init, initialize_audio, open_patch,
     process::process_float,
-    receive::{on_midi_note_on, receive_messages_from_pd},
+    receive::{on_midi_note_on, receive_midi_messages_from_pd},
     send::send_note_on,
 };
 
@@ -48,7 +48,7 @@ fn send_and_receive_note_on() {
                 approximate_buffer_duration as u64,
             ));
 
-            receive_messages_from_pd();
+            receive_midi_messages_from_pd();
             let ticks = output_buffer.len() as i32 / (block_size() * output_channels);
             process_float(ticks, &input_buffer, &mut output_buffer);
             match rx.try_recv() {
@@ -61,7 +61,9 @@ fn send_and_receive_note_on() {
     let mut channel: i32 = 0;
     let mut pitch: i32 = 0;
     let mut velocity: i32 = 1;
-    // Send 5 floats in sequence.
+
+    #[allow(clippy::explicit_counter_loop)]
+    // Send 5 note on messages in sequence.
     for _ in 0..5 {
         send_note_on(channel, pitch, velocity).unwrap();
         channel += 1;
@@ -75,15 +77,14 @@ fn send_and_receive_note_on() {
     tx.send(()).unwrap();
     handle.join().unwrap();
 
-    let notes_to_compare: Vec<(i32, i32, i32)> =
+    let values_to_compare: Vec<(i32, i32, i32)> =
         vec![(0, 0, 1), (1, 1, 2), (2, 2, 3), (3, 3, 4), (4, 4, 5)];
-    // dbg!(floats.lock().unwrap());
-    // dbg!(&floats_to_compare);
-    note_on_messages_received
-        .lock()
-        .unwrap()
-        .iter()
-        .zip(notes_to_compare.iter())
+
+    assert_eq!(note_on_messages_received.lock().unwrap().len(), 5);
+
+    values_to_compare
+        .into_iter()
+        .zip(note_on_messages_received.lock().unwrap().iter().cloned())
         .for_each(|((c1, p1, v1), (c2, p2, v2))| {
             assert_eq!(c1, c2);
             assert_eq!(p1, p2);

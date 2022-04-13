@@ -70,6 +70,8 @@ fn send_and_receive_double() {
     tx.send(()).unwrap();
     handle.join().unwrap();
 
+    assert_eq!(floats.lock().unwrap().len(), 5);
+
     let floats_to_compare: Vec<f64> = vec![1.0, 2.0, 3.0, 4.0, 5.0];
     floats
         .lock()

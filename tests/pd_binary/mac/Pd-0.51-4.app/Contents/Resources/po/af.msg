@@ -1,0 +1,7 @@
+set ::msgcat::header "Project-Id-Version: Pure Data 2.0.8pre1\nReport-Msgid-Bugs-To: pd-dev@iem.at\nPOT-Creation-Date: 2017-07-06 18:10+0200\nPO-Revision-Date: 2004-03-17 14:45+0200\nLast-Translator: Petri Jooste <rkwjpj@puk.ac.za>\nLanguage-Team: Afrikaans <i18n@af.org.za>\nLanguage: af\nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\n"
+::msgcat::mcset af "Copy" "Kopieer"
+::msgcat::mcset af "Right" "Regs"
+::msgcat::mcset af "Top" "Bo"
+::msgcat::mcset af "Bottom" "Onder"
+::msgcat::mcset af "Colors" "Kleure"
+::msgcat::mcset af "Graph" "Grafiek"

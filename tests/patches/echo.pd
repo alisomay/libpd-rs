@@ -1,4 +1,4 @@
-#N canvas 446 451 705 223 12;
+#N canvas 691 232 912 210 12;
 #X obj 29 18 r float_from_rust;
 #X obj 29 54 s float_from_pd;
 #X obj 162 18 r symbol_from_rust;
@@ -23,7 +23,8 @@
 #X obj 458 145 midiout;
 #X obj 519 105 sysexin;
 #X obj 519 146 midiout;
-#X text 389 185 realtimein and sysexout could not be found;
+#X obj 594 104 midirealtimein;
+#X obj 594 145 midiout;
 #X connect 0 0 1 0;
 #X connect 2 0 3 0;
 #X connect 4 0 5 0;
@@ -47,3 +48,5 @@
 #X connect 20 1 21 1;
 #X connect 22 0 23 0;
 #X connect 22 1 23 1;
+#X connect 24 0 25 0;
+#X connect 24 1 25 1;

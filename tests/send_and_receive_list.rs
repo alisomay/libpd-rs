@@ -8,7 +8,10 @@ use libpd_rs::{
     init, initialize_audio, open_patch,
     process::process_float,
     receive::{on_list, receive_messages_from_pd, start_listening_from, stop_listening_from},
-    send::send_list_to,
+    send::{
+        add_double_to_started_message, add_symbol_to_started_message,
+        finish_message_as_list_and_send_to, send_list_to, start_message,
+    },
     types::Atom,
 };
 
@@ -60,7 +63,21 @@ fn send_and_receive_list() {
         }
     });
 
-    let list_sent: Vec<Atom> = vec![
+    let list_to_send: Vec<Atom> = vec![
+        "daisy".into(),
+        33.5_f64.into(),
+        42_f64.into(),
+        "bang".into(),
+        12.0_f64.into(),
+        0.0_f64.into(),
+    ];
+    let list_to_compare: Vec<Atom> = vec![
+        "daisy".into(),
+        33.5_f64.into(),
+        42_f64.into(),
+        "bang".into(),
+        12.0_f64.into(),
+        0.0_f64.into(),
         "daisy".into(),
         33.5_f64.into(),
         42_f64.into(),
@@ -69,7 +86,16 @@ fn send_and_receive_list() {
         0.0_f64.into(),
     ];
 
-    send_list_to("list_from_rust", &list_sent).unwrap();
+    send_list_to("list_from_rust", &list_to_send).unwrap();
+
+    start_message(list_to_send.len() as i32).unwrap();
+    add_symbol_to_started_message("daisy");
+    add_double_to_started_message(33.5_f64);
+    add_double_to_started_message(42_f64);
+    add_symbol_to_started_message("bang");
+    add_double_to_started_message(12.0_f64);
+    add_double_to_started_message(0.0_f64);
+    finish_message_as_list_and_send_to("list_from_rust").unwrap();
 
     std::thread::sleep(std::time::Duration::from_millis(50));
 
@@ -77,11 +103,13 @@ fn send_and_receive_list() {
     tx.send(()).unwrap();
     handle.join().unwrap();
 
+    assert_eq!(list_received.lock().unwrap().len(), 12);
+
     list_received
         .lock()
         .unwrap()
         .iter()
-        .zip(list_sent.iter())
+        .zip(list_to_compare.iter())
         .for_each(|(a, b)| {
             //
             match a {

@@ -1,0 +1,20 @@
+#N canvas 559 70 518 291 12;
+#X msg 101 186 2;
+#X msg 403 92 \; pd dsp 0;
+#X msg 402 49 \; pd dsp 1;
+#X obj 78 227 print~;
+#X msg 78 151 bang;
+#X obj 41 122 phasor~ 1000;
+#X text 126 152 bang prints one vector;
+#X obj 402 27 loadbang;
+#X text 136 185 print two or more successive vectors;
+#X obj 35 14 print~;
+#X text 88 14 - print out raw values of a signal;
+#X text 218 239 Updated for Pd version 0.33;
+#X text 22 46 The print~ object takes a signal input and prints one
+or more vectors out when you send it a bang or a number. By default
+a vector is 64 samples., f 49;
+#X connect 0 0 3 0;
+#X connect 4 0 3 0;
+#X connect 5 0 3 0;
+#X connect 7 0 2 0;

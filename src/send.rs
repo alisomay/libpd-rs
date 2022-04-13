@@ -525,18 +525,18 @@ pub fn send_pitch_bend(channel: i32, value: i32) -> Result<(), LibpdError> {
 ///
 /// # Example
 /// ```rust
-/// use libpd_rs::send::{send_aftertouch};
+/// use libpd_rs::send::{send_after_touch};
 ///
 /// libpd_rs::init();
 ///
 /// // Handle the error if the receiver object is not found
-/// send_aftertouch(0, 42).unwrap_or_else(|err| {
+/// send_after_touch(0, 42).unwrap_or_else(|err| {
 ///   dbg!("{err}");
 /// });
 /// // or don't care..
-/// let _ = send_aftertouch(0, 42);
+/// let _ = send_after_touch(0, 42);
 /// ```
-pub fn send_aftertouch(channel: i32, value: i32) -> Result<(), LibpdError> {
+pub fn send_after_touch(channel: i32, value: i32) -> Result<(), LibpdError> {
     unsafe {
         // Returns 0 on success or -1 if an argument is out of range
         match libpd_sys::libpd_aftertouch(channel, value) {
@@ -556,18 +556,18 @@ pub fn send_aftertouch(channel: i32, value: i32) -> Result<(), LibpdError> {
 ///
 /// # Example
 /// ```rust
-/// use libpd_rs::send::{send_poly_aftertouch};
+/// use libpd_rs::send::{send_poly_after_touch};
 ///
 /// libpd_rs::init();
 ///
 /// // Handle the error if the receiver object is not found
-/// send_poly_aftertouch(0, 48, 64).unwrap_or_else(|err| {
+/// send_poly_after_touch(0, 48, 64).unwrap_or_else(|err| {
 ///   dbg!("{err}");
 /// });
 /// // or don't care..
-/// let _ = send_poly_aftertouch(0, 48, 64);
+/// let _ = send_poly_after_touch(0, 48, 64);
 /// ```
-pub fn send_poly_aftertouch(channel: i32, pitch: i32, value: i32) -> Result<(), LibpdError> {
+pub fn send_poly_after_touch(channel: i32, pitch: i32, value: i32) -> Result<(), LibpdError> {
     unsafe {
         // Returns 0 on success or -1 if an argument is out of range
         match libpd_sys::libpd_polyaftertouch(channel, pitch, value) {
@@ -637,7 +637,7 @@ pub fn send_sysex(port: i32, byte: i32) -> Result<(), LibpdError> {
     }
 }
 
-/// Sends a raw MIDI byte to `|realtimein|` objects in pd.
+/// Sends a raw MIDI byte to `|midirealtimein|` objects in pd.
 ///
 /// Port is 0-indexed and byte is 0-255
 ///
@@ -665,3 +665,5 @@ pub fn send_sys_realtime(port: i32, byte: i32) -> Result<(), LibpdError> {
         }
     }
 }
+
+// TODO: Some unit tests where relevant.

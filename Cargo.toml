@@ -11,6 +11,9 @@ repository = "https://github.com/alisomay/libpd-rs"
 documentation = "https://github.com/alisomay/libpd-rs#readme"
 keywords = ["puredata", "libpd", "audio", "midi", "bindings"]
 categories = ["multimedia"]
+exclude = [
+    "tests/*",
+]
 
 [dependencies]
 libpd-sys = { git = "https://github.com/alisomay/libpd-sys" }
@@ -37,3 +40,5 @@ doctest = true         # Documentation examples are tested by default.
 # edition = "2021"       # The edition of the target.
 # crate-type = ["lib"]   # The crate types to generate.
 # required-features = [] # Features required to build this target (N/A for lib).
+
+

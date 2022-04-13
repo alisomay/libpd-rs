@@ -1,0 +1,7 @@
+set ::msgcat::header "Project-Id-Version: Pure Data 0.43\nReport-Msgid-Bugs-To: pd-dev@iem.at\nPOT-Creation-Date: 2017-07-06 16:55+0200\nPO-Revision-Date: 2009-08-25 18:19-0400\nLast-Translator: Ben Bogart <ben@ekran.org>\nLanguage-Team: Canadian English <pd-list@iem.at>\nLanguage: en_CA\nMIME-Version: 1.0\nContent-Type: text/plain; charset=UTF-8\nContent-Transfer-Encoding: 8bit\n"
+::msgcat::mcset en_ca "Bezier curve" "B\u00e9ziercurve"
+::msgcat::mcset en_ca "Background color" "Background colour"
+::msgcat::mcset en_ca "Foreground color" "Foreground colour"
+::msgcat::mcset en_ca "Label color" "Label colour"
+::msgcat::mcset en_ca "Colors" "Colours"
+::msgcat::mcset en_ca "Compose color" "Compose colour"
