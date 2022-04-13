@@ -7,10 +7,15 @@ macro_rules! make_t_atom_list_from_atom_list {
         $list
             .into_iter()
             .map(|atom_variant| match atom_variant {
-                Atom::Float(value) => libpd_sys::t_atom {
-                    a_type: libpd_sys::t_atomtype_A_FLOAT,
-                    a_w: libpd_sys::word { w_float: *value },
-                },
+                Atom::Float(value) => {
+                    let t_atom = libpd_sys::t_atom {
+                        a_type: libpd_sys::t_atomtype_A_FLOAT,
+                        a_w: libpd_sys::word { w_float: *value },
+                    };
+                    let p = &t_atom as *const libpd_sys::t_atom as *mut libpd_sys::t_atom;
+                    libpd_sys::libpd_set_double(p, *value);
+                    t_atom
+                }
                 Atom::Symbol(value) => libpd_sys::t_atom {
                     a_type: libpd_sys::t_atomtype_A_SYMBOL,
                     a_w: libpd_sys::word {
