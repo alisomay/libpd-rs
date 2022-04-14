@@ -1,5 +1,5 @@
 use crate::{
-    error::{CommunicationError, SizeError},
+    error::{SendError, SizeError},
     helpers::make_t_atom_list_from_atom_list,
     types::Atom,
     C_STRING_FAILURE,
@@ -23,14 +23,12 @@ use std::ffi::CString;
 /// // or don't care..
 /// let _ = send_bang_to("foo");
 /// ```
-pub fn send_bang_to<T: AsRef<str>>(receiver: T) -> Result<(), CommunicationError> {
+pub fn send_bang_to<T: AsRef<str>>(receiver: T) -> Result<(), SendError> {
     let recv = CString::new(receiver.as_ref()).expect(C_STRING_FAILURE);
     unsafe {
         match libpd_sys::libpd_bang(recv.as_ptr()) {
             0 => Ok(()),
-            _ => Err(CommunicationError::MissingDestination(
-                receiver.as_ref().to_owned(),
-            )),
+            _ => Err(SendError::MissingDestination(receiver.as_ref().to_owned())),
         }
     }
 }
@@ -51,14 +49,12 @@ pub fn send_bang_to<T: AsRef<str>>(receiver: T) -> Result<(), CommunicationError
 /// // or don't care..
 /// let _ = send_float_to("foo", 1.0);
 /// ```
-pub fn send_float_to<T: AsRef<str>>(receiver: T, value: f32) -> Result<(), CommunicationError> {
+pub fn send_float_to<T: AsRef<str>>(receiver: T, value: f32) -> Result<(), SendError> {
     let recv = CString::new(receiver.as_ref()).expect(C_STRING_FAILURE);
     unsafe {
         match libpd_sys::libpd_float(recv.as_ptr(), value) {
             0 => Ok(()),
-            _ => Err(CommunicationError::MissingDestination(
-                receiver.as_ref().to_owned(),
-            )),
+            _ => Err(SendError::MissingDestination(receiver.as_ref().to_owned())),
         }
     }
 }
@@ -79,14 +75,12 @@ pub fn send_float_to<T: AsRef<str>>(receiver: T, value: f32) -> Result<(), Commu
 /// // or don't care..
 /// let _ = send_double_to("foo", 1.0);
 /// ```
-pub fn send_double_to<T: AsRef<str>>(receiver: T, value: f64) -> Result<(), CommunicationError> {
+pub fn send_double_to<T: AsRef<str>>(receiver: T, value: f64) -> Result<(), SendError> {
     let recv = CString::new(receiver.as_ref()).expect(C_STRING_FAILURE);
     unsafe {
         match libpd_sys::libpd_double(recv.as_ptr(), value) {
             0 => Ok(()),
-            _ => Err(CommunicationError::MissingDestination(
-                receiver.as_ref().to_owned(),
-            )),
+            _ => Err(SendError::MissingDestination(receiver.as_ref().to_owned())),
         }
     }
 }
@@ -110,15 +104,13 @@ pub fn send_double_to<T: AsRef<str>>(receiver: T, value: f64) -> Result<(), Comm
 pub fn send_symbol_to<T: AsRef<str>, S: AsRef<str>>(
     receiver: T,
     value: S,
-) -> Result<(), CommunicationError> {
+) -> Result<(), SendError> {
     let recv = CString::new(receiver.as_ref()).expect(C_STRING_FAILURE);
     let sym = CString::new(value.as_ref()).expect(C_STRING_FAILURE);
     unsafe {
         match libpd_sys::libpd_symbol(recv.as_ptr(), sym.as_ptr()) {
             0 => Ok(()),
-            _ => Err(CommunicationError::MissingDestination(
-                receiver.as_ref().to_owned(),
-            )),
+            _ => Err(SendError::MissingDestination(receiver.as_ref().to_owned())),
         }
     }
 }
@@ -247,16 +239,12 @@ pub fn add_symbol_to_started_message<T: AsRef<str>>(value: T) {
 ///   });
 /// }
 /// ```
-pub fn finish_message_as_list_and_send_to<T: AsRef<str>>(
-    receiver: T,
-) -> Result<(), CommunicationError> {
+pub fn finish_message_as_list_and_send_to<T: AsRef<str>>(receiver: T) -> Result<(), SendError> {
     let recv = CString::new(receiver.as_ref()).expect(C_STRING_FAILURE);
     unsafe {
         match libpd_sys::libpd_finish_list(recv.as_ptr()) {
             0 => Ok(()),
-            _ => Err(CommunicationError::MissingDestination(
-                receiver.as_ref().to_owned(),
-            )),
+            _ => Err(SendError::MissingDestination(receiver.as_ref().to_owned())),
         }
     }
 }
@@ -286,15 +274,13 @@ pub fn finish_message_as_list_and_send_to<T: AsRef<str>>(
 pub fn finish_message_as_typed_message_and_send_to<T: AsRef<str>, S: AsRef<str>>(
     receiver: T,
     message_header: S,
-) -> Result<(), CommunicationError> {
+) -> Result<(), SendError> {
     let recv = CString::new(receiver.as_ref()).expect(C_STRING_FAILURE);
     let msg = CString::new(message_header.as_ref()).expect(C_STRING_FAILURE);
     unsafe {
         match libpd_sys::libpd_finish_message(recv.as_ptr(), msg.as_ptr()) {
             0 => Ok(()),
-            _ => Err(CommunicationError::MissingDestination(
-                receiver.as_ref().to_owned(),
-            )),
+            _ => Err(SendError::MissingDestination(receiver.as_ref().to_owned())),
         }
     }
 }
@@ -320,7 +306,7 @@ pub fn finish_message_as_typed_message_and_send_to<T: AsRef<str>, S: AsRef<str>>
 /// let _ = send_list_to("foo", &list);
 /// ```
 
-pub fn send_list_to<T: AsRef<str>>(receiver: T, list: &[Atom]) -> Result<(), CommunicationError> {
+pub fn send_list_to<T: AsRef<str>>(receiver: T, list: &[Atom]) -> Result<(), SendError> {
     let recv = CString::new(receiver.as_ref()).expect(C_STRING_FAILURE);
 
     unsafe {
@@ -336,9 +322,7 @@ pub fn send_list_to<T: AsRef<str>>(receiver: T, list: &[Atom]) -> Result<(), Com
             atom_list_slice.as_mut_ptr(),
         ) {
             0 => Ok(()),
-            _ => Err(CommunicationError::MissingDestination(
-                receiver.as_ref().to_owned(),
-            )),
+            _ => Err(SendError::MissingDestination(receiver.as_ref().to_owned())),
         }
     }
 }
@@ -367,7 +351,7 @@ pub fn send_message_to<T: AsRef<str>>(
     receiver: T,
     message: T,
     list: &[Atom],
-) -> Result<(), CommunicationError> {
+) -> Result<(), SendError> {
     let recv = CString::new(receiver.as_ref()).expect(C_STRING_FAILURE);
     let msg = CString::new(message.as_ref()).expect(C_STRING_FAILURE);
     unsafe {
@@ -384,9 +368,7 @@ pub fn send_message_to<T: AsRef<str>>(
             atom_list_slice.as_mut_ptr(),
         ) {
             0 => Ok(()),
-            _ => Err(CommunicationError::MissingDestination(
-                receiver.as_ref().to_owned(),
-            )),
+            _ => Err(SendError::MissingDestination(receiver.as_ref().to_owned())),
         }
     }
 }
@@ -412,12 +394,12 @@ pub fn send_message_to<T: AsRef<str>>(
 /// // or don't care..
 /// let _ = send_note_on(0, 48, 64);
 /// ```
-pub fn send_note_on(channel: i32, pitch: i32, velocity: i32) -> Result<(), CommunicationError> {
+pub fn send_note_on(channel: i32, pitch: i32, velocity: i32) -> Result<(), SendError> {
     unsafe {
         // Returns 0 on success or -1 if an argument is out of range
         match libpd_sys::libpd_noteon(channel, pitch, velocity) {
             0 => Ok(()),
-            _ => Err(CommunicationError::OutOfRange),
+            _ => Err(SendError::OutOfRange),
         }
     }
 }
@@ -441,16 +423,12 @@ pub fn send_note_on(channel: i32, pitch: i32, velocity: i32) -> Result<(), Commu
 /// // or don't care..
 /// let _ = send_control_change(0, 0, 64);
 /// ```
-pub fn send_control_change(
-    channel: i32,
-    controller: i32,
-    value: i32,
-) -> Result<(), CommunicationError> {
+pub fn send_control_change(channel: i32, controller: i32, value: i32) -> Result<(), SendError> {
     unsafe {
         // Returns 0 on success or -1 if an argument is out of range
         match libpd_sys::libpd_controlchange(channel, controller, value) {
             0 => Ok(()),
-            _ => Err(CommunicationError::OutOfRange),
+            _ => Err(SendError::OutOfRange),
         }
     }
 }
@@ -474,12 +452,12 @@ pub fn send_control_change(
 /// // or don't care..
 /// let _ = send_program_change(0, 42);
 /// ```
-pub fn send_program_change(channel: i32, value: i32) -> Result<(), CommunicationError> {
+pub fn send_program_change(channel: i32, value: i32) -> Result<(), SendError> {
     unsafe {
         // Returns 0 on success or -1 if an argument is out of range
         match libpd_sys::libpd_programchange(channel, value) {
             0 => Ok(()),
-            _ => Err(CommunicationError::OutOfRange),
+            _ => Err(SendError::OutOfRange),
         }
     }
 }
@@ -505,12 +483,12 @@ pub fn send_program_change(channel: i32, value: i32) -> Result<(), Communication
 /// // or don't care..
 /// let _ = send_pitch_bend(0, 8192);
 /// ```
-pub fn send_pitch_bend(channel: i32, value: i32) -> Result<(), CommunicationError> {
+pub fn send_pitch_bend(channel: i32, value: i32) -> Result<(), SendError> {
     unsafe {
         // Returns 0 on success or -1 if an argument is out of range
         match libpd_sys::libpd_pitchbend(channel, value) {
             0 => Ok(()),
-            _ => Err(CommunicationError::OutOfRange),
+            _ => Err(SendError::OutOfRange),
         }
     }
 }
@@ -534,12 +512,12 @@ pub fn send_pitch_bend(channel: i32, value: i32) -> Result<(), CommunicationErro
 /// // or don't care..
 /// let _ = send_after_touch(0, 42);
 /// ```
-pub fn send_after_touch(channel: i32, value: i32) -> Result<(), CommunicationError> {
+pub fn send_after_touch(channel: i32, value: i32) -> Result<(), SendError> {
     unsafe {
         // Returns 0 on success or -1 if an argument is out of range
         match libpd_sys::libpd_aftertouch(channel, value) {
             0 => Ok(()),
-            _ => Err(CommunicationError::OutOfRange),
+            _ => Err(SendError::OutOfRange),
         }
     }
 }
@@ -563,16 +541,12 @@ pub fn send_after_touch(channel: i32, value: i32) -> Result<(), CommunicationErr
 /// // or don't care..
 /// let _ = send_poly_after_touch(0, 48, 64);
 /// ```
-pub fn send_poly_after_touch(
-    channel: i32,
-    pitch: i32,
-    value: i32,
-) -> Result<(), CommunicationError> {
+pub fn send_poly_after_touch(channel: i32, pitch: i32, value: i32) -> Result<(), SendError> {
     unsafe {
         // Returns 0 on success or -1 if an argument is out of range
         match libpd_sys::libpd_polyaftertouch(channel, pitch, value) {
             0 => Ok(()),
-            _ => Err(CommunicationError::OutOfRange),
+            _ => Err(SendError::OutOfRange),
         }
     }
 }
@@ -594,12 +568,12 @@ pub fn send_poly_after_touch(
 /// // or don't care..
 /// let _ = send_midi_byte(0, 0xFF);
 /// ```
-pub fn send_midi_byte(port: i32, byte: i32) -> Result<(), CommunicationError> {
+pub fn send_midi_byte(port: i32, byte: i32) -> Result<(), SendError> {
     unsafe {
         // Returns 0 on success or -1 if an argument is out of range
         match libpd_sys::libpd_midibyte(port, byte) {
             0 => Ok(()),
-            _ => Err(CommunicationError::OutOfRange),
+            _ => Err(SendError::OutOfRange),
         }
     }
 }
@@ -621,12 +595,12 @@ pub fn send_midi_byte(port: i32, byte: i32) -> Result<(), CommunicationError> {
 /// // or don't care..
 /// let _ = send_sysex(0, 0x7F);
 /// ```
-pub fn send_sysex(port: i32, byte: i32) -> Result<(), CommunicationError> {
+pub fn send_sysex(port: i32, byte: i32) -> Result<(), SendError> {
     unsafe {
         // Returns 0 on success or -1 if an argument is out of range
         match libpd_sys::libpd_sysex(port, byte) {
             0 => Ok(()),
-            _ => Err(CommunicationError::OutOfRange),
+            _ => Err(SendError::OutOfRange),
         }
     }
 }
@@ -648,12 +622,12 @@ pub fn send_sysex(port: i32, byte: i32) -> Result<(), CommunicationError> {
 /// // or don't care..
 /// let _ = send_sys_realtime(0, 0x7F);
 /// ```
-pub fn send_sys_realtime(port: i32, byte: i32) -> Result<(), CommunicationError> {
+pub fn send_sys_realtime(port: i32, byte: i32) -> Result<(), SendError> {
     unsafe {
         // Returns 0 on success or -1 if an argument is out of range
         match libpd_sys::libpd_sysrealtime(port, byte) {
             0 => Ok(()),
-            _ => Err(CommunicationError::OutOfRange),
+            _ => Err(SendError::OutOfRange),
         }
     }
 }

@@ -121,6 +121,8 @@ pub mod send;
 pub mod types;
 
 pub(crate) mod helpers;
+use error::{AudioInitializationError, PatchLifeCycleError};
+
 use crate::{
     error::{InitializationError, IoError},
     types::PatchFileHandle,
@@ -234,11 +236,13 @@ pub fn add_to_search_paths<T: AsRef<Path>>(path: T) -> Result<(), IoError> {
 /// let patch_handle = open_patch(&patch_name).unwrap();
 /// // or others..
 /// ```
-pub fn open_patch<T: AsRef<Path>>(path_to_patch: T) -> Result<PatchFileHandle, IoError> {
+pub fn open_patch<T: AsRef<Path>>(
+    path_to_patch: T,
+) -> Result<PatchFileHandle, PatchLifeCycleError> {
     let file_name = path_to_patch
         .as_ref()
         .file_name()
-        .ok_or(IoError::FailedToOpenPatch)?;
+        .ok_or(PatchLifeCycleError::FailedToOpenPatch)?;
     let file_name = file_name.to_string_lossy();
     let file_name = file_name.as_ref();
     let parent_path = path_to_patch
@@ -252,8 +256,8 @@ pub fn open_patch<T: AsRef<Path>>(path_to_patch: T) -> Result<PatchFileHandle, I
 
     // "../some.pd" --> prepend working directory
     if parent_path.is_relative() {
-        let mut app_dir =
-            std::env::current_exe().map_err(|_| -> IoError { IoError::FailedToOpenPatch })?;
+        let mut app_dir = std::env::current_exe()
+            .map_err(|_| -> PatchLifeCycleError { PatchLifeCycleError::FailedToOpenPatch })?;
         app_dir.pop();
         app_dir.push(parent_path);
         let parent_path_str = app_dir.to_string_lossy();
@@ -269,8 +273,8 @@ pub fn open_patch<T: AsRef<Path>>(path_to_patch: T) -> Result<PatchFileHandle, I
     }
     // "some.pd" --> prepend working directory
     if parent_path_string.is_empty() {
-        let mut app_dir =
-            std::env::current_exe().map_err(|_| -> IoError { IoError::FailedToOpenPatch })?;
+        let mut app_dir = std::env::current_exe()
+            .map_err(|_| -> PatchLifeCycleError { PatchLifeCycleError::FailedToOpenPatch })?;
         app_dir.pop();
         app_dir.push(file_name);
         let parent_path_str = app_dir.to_string_lossy();
@@ -286,7 +290,7 @@ pub fn open_patch<T: AsRef<Path>>(path_to_patch: T) -> Result<PatchFileHandle, I
     // Invalid path.
     let calculated_patch_path = PathBuf::from(&directory).join(file_name);
     if !calculated_patch_path.exists() {
-        return Err(IoError::PathDoesNotExist(
+        return Err(PatchLifeCycleError::PathDoesNotExist(
             calculated_patch_path.to_string_lossy().to_string(),
         ));
     }
@@ -297,7 +301,7 @@ pub fn open_patch<T: AsRef<Path>>(path_to_patch: T) -> Result<PatchFileHandle, I
         let file_handle =
             libpd_sys::libpd_openfile(name.as_ptr(), directory.as_ptr()).cast::<std::ffi::c_void>();
         if file_handle.is_null() {
-            return Err(IoError::FailedToOpenPatch);
+            return Err(PatchLifeCycleError::FailedToOpenPatch);
         }
         Ok(file_handle.into())
     }
@@ -317,11 +321,11 @@ pub fn open_patch<T: AsRef<Path>>(path_to_patch: T) -> Result<PatchFileHandle, I
 ///
 /// assert!(close_patch(patch_handle).is_ok());
 /// ```
-pub fn close_patch(handle: PatchFileHandle) -> Result<(), IoError> {
+pub fn close_patch(handle: PatchFileHandle) -> Result<(), PatchLifeCycleError> {
     unsafe {
         let ptr: *mut std::ffi::c_void = handle.into();
         if ptr.is_null() {
-            Err(IoError::FailedToClosePatch)
+            Err(PatchLifeCycleError::FailedToClosePatch)
         } else {
             libpd_sys::libpd_closefile(ptr);
             Ok(())
@@ -332,10 +336,10 @@ pub fn close_patch(handle: PatchFileHandle) -> Result<(), IoError> {
 /// Gets the `$0` of the running patch.
 ///
 /// `$0` id in pd could be thought as a auto generated unique identifier for the patch.
-pub fn get_dollar_zero(handle: &PatchFileHandle) -> Result<i32, IoError> {
+pub fn get_dollar_zero(handle: &PatchFileHandle) -> Result<i32, PatchLifeCycleError> {
     unsafe {
         match libpd_sys::libpd_getdollarzero(handle.as_mut_ptr()) {
-            0 => Err(IoError::PatchIsNotOpen),
+            0 => Err(PatchLifeCycleError::PatchIsNotOpen),
             other => Ok(other),
         }
     }
@@ -376,11 +380,11 @@ pub fn initialize_audio(
     input_channels: i32,
     output_channels: i32,
     sample_rate: i32,
-) -> Result<(), InitializationError> {
+) -> Result<(), AudioInitializationError> {
     unsafe {
         match libpd_sys::libpd_init_audio(input_channels, output_channels, sample_rate) {
             0 => Ok(()),
-            _ => Err(InitializationError::AudioInitializationFailed),
+            _ => Err(AudioInitializationError::InitializationFailed),
         }
     }
 }

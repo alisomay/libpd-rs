@@ -87,7 +87,7 @@ pub fn read_float_array_from<T: AsRef<str>>(
         ) {
             0 => Ok(()),
             -2 => Err(ArrayError::OutOfBounds),
-            _ => Err(ArrayError::NonExistent),
+            _ => Err(ArrayError::FailedToFindArray),
         }
     }
 }
@@ -127,7 +127,7 @@ pub fn write_float_array_to<T: AsRef<str>>(
         ) {
             0 => Ok(()),
             -2 => Err(ArrayError::OutOfBounds),
-            _ => Err(ArrayError::NonExistent),
+            _ => Err(ArrayError::FailedToFindArray),
         }
     }
 }
@@ -167,7 +167,7 @@ pub fn read_double_array_from<T: AsRef<str>>(
         ) {
             0 => Ok(()),
             -2 => Err(ArrayError::OutOfBounds),
-            _ => Err(ArrayError::NonExistent),
+            _ => Err(ArrayError::FailedToFindArray),
         }
     }
 }
@@ -207,7 +207,7 @@ pub fn write_double_array_to<T: AsRef<str>>(
         ) {
             0 => Ok(()),
             -2 => Err(ArrayError::OutOfBounds),
-            _ => Err(ArrayError::NonExistent),
+            _ => Err(ArrayError::FailedToFindArray),
         }
     }
 }
