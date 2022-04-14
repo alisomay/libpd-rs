@@ -58,11 +58,32 @@
     clippy::unreachable,
 )]
 
-/// TODO: Module doc.
+//! This is the crate level doc.
+//!
+//! Provides an abstraction over a queue.  When the abstraction is used
+//! there are these advantages:
+//! - Fast
+//! - [`Easy`]
+//!
+//! [`Easy`]: http://thatwaseasy.example.com
+
+/// Work with pd arrays.
+///
+/// This module provides all tools to work with pd named arrays which are exposed by libpd with some extra safety such as bounds checking.
+///
+/// Corresponding libpd functions in [libpd repository](https://github.com/libpd/libpd) could be explored [here](https://github.com/libpd/libpd/blob/master/libpd_wrapper/z_libpd.h#L115).
 pub mod array;
-/// TODO: Module doc.
+/// Convenience functions which encapsulate common actions when communicating with pd.
+///
+/// This crate is a thing wrapper around [libpd](https://github.com/libpd/libpd).
+/// This module aims to provide functions or structs to add a layer which is easier and quick to use.
+/// Now small but might grow in the future.
 pub mod convenience;
-/// TODO: Module doc.
+/// All errors related to libpd_rs.
+///
+/// [`LibpdError`] is the umbrella error type for all errors related to libpd.
+/// All functions which might fail would return a`Result<T, LibpdError>`.
+/// From there on one may use pattern matching to get more detailed.
 pub mod error;
 /// TODO: Module doc.
 pub mod gui;
@@ -91,8 +112,6 @@ pub(crate) const C_STRING_FAILURE: &str =
     "Provided an invalid CString, check if your string contains null bytes in the middle.";
 pub(crate) const C_STR_FAILURE: &str = "Converting a CStr to an &str is failed.";
 
-// TODO: Also please, change the titles of each individual function to look nice in doc.
-// TODO: We're compiling for f64 floats in pd, check how float and double functions behave and change documentation where necessary.
 // TODO: Add errors fields to documentation.
 
 /// Initializes libpd.

@@ -1,4 +1,5 @@
-#[macro_export]
+#![allow(clippy::redundant_pub_crate)]
+
 /// Transforms an iterable of type `Atom` to a `Vec<libpd_sys::t_atom>`.
 macro_rules! make_t_atom_list_from_atom_list {
     ($list: expr) => {
@@ -31,7 +32,6 @@ macro_rules! make_t_atom_list_from_atom_list {
     };
 }
 
-#[macro_export]
 /// Transforms an iterable of type `t_atom` to a `Vec<Atom>`.
 macro_rules! make_atom_list_from_t_atom_list {
     ($list: expr) => {
@@ -59,6 +59,6 @@ macro_rules! make_atom_list_from_t_atom_list {
     };
 }
 
-pub use {make_atom_list_from_t_atom_list, make_t_atom_list_from_atom_list};
+pub(crate) use {make_atom_list_from_t_atom_list, make_t_atom_list_from_atom_list};
 
 // TODO: Unit tests
