@@ -1,7 +1,6 @@
 // @attention Multi instance features implementation is scheduled for later.
 // @attention If there is a necessity emerges, I'll give time to implement them.
 
-// TODO: Mention why only queued versions are implemented in the main doc.
 #![warn(
     clippy::all,
     clippy::pedantic,
@@ -87,6 +86,7 @@ use std::ffi::CString;
 use std::path::{Path, PathBuf};
 
 // TODO: Currently panicing is enough since this is a rare case, but may be improved later with a dedicated error.
+// Proper errors?
 pub(crate) const C_STRING_FAILURE: &str =
     "Provided an invalid CString, check if your string contains null bytes in the middle.";
 pub(crate) const C_STR_FAILURE: &str = "Converting a CStr to an &str is failed.";
@@ -241,11 +241,9 @@ pub fn open_patch<T: AsRef<Path>>(path_to_patch: T) -> Result<PatchFileHandle, L
     // Invalid path.
     let calculated_patch_path = PathBuf::from(&directory).join(file_name);
     if !calculated_patch_path.exists() {
-        return Err(LibpdError::IoError(IoError::FailedToOpenPatch));
-        // TODO: Update returned errors when umbrella error type is in action.
-        // return Err(IoError::PathDoesNotExist(
-        //     path.to_string_lossy().to_string(),
-        // ));
+        return Err(LibpdError::IoError(IoError::PathDoesNotExist(
+            calculated_patch_path.to_string_lossy().to_string(),
+        )));
     }
     // All good.
     unsafe {

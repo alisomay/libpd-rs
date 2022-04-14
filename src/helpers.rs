@@ -1,6 +1,4 @@
-#![allow(clippy::redundant_pub_crate)]
-// TODO: Finish covering cases for these macros.
-
+#[macro_export]
 /// Transforms an iterable of type `Atom` to a `Vec<libpd_sys::t_atom>`.
 macro_rules! make_t_atom_list_from_atom_list {
     ($list: expr) => {
@@ -27,11 +25,13 @@ macro_rules! make_t_atom_list_from_atom_list {
                         ),
                     },
                 },
+                // TODO: See if there are more cases to be covered.
             })
             .collect::<Vec<libpd_sys::t_atom>>()
     };
 }
 
+#[macro_export]
 /// Transforms an iterable of type `t_atom` to a `Vec<Atom>`.
 macro_rules! make_atom_list_from_t_atom_list {
     ($list: expr) => {
@@ -52,13 +52,13 @@ macro_rules! make_atom_list_from_t_atom_list {
                     let result = unsafe { CStr::from_ptr(sym) };
                     Atom::Symbol(result.to_str().unwrap().to_owned())
                 }
+                // TODO: See if there are more cases to be covered.
                 _ => unimplemented!(),
             })
             .collect::<Vec<Atom>>()
     };
 }
 
-// TODO: Find out how to correctly export these. ( I think I did :) )
-pub(crate) use {make_atom_list_from_t_atom_list, make_t_atom_list_from_atom_list};
+pub use {make_atom_list_from_t_atom_list, make_t_atom_list_from_atom_list};
 
 // TODO: Unit tests

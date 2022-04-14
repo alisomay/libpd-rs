@@ -35,7 +35,6 @@ pub fn start_gui<T: AsRef<Path>>(path_to_pd: T) -> Result<(), LibpdError> {
         unsafe {
             match libpd_sys::libpd_start_gui(path_to_pd.as_ptr()) {
                 0 => return Ok(()),
-                // TODO: This can be a different error.
                 _ => return Err(LibpdError::IoError(IoError::FailedToOpenGui)),
             }
         }

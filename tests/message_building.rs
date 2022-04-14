@@ -21,8 +21,8 @@ fn send_and_receive_bang() {
 
     let patch_handle = open_patch("tests/patches/echo.pd").unwrap();
 
-    // This is strange! I don't think that a message can have this much of length.
-    // TODO: Research this.
+    // TODO: This is strange! I don't think that a message can have this much of length.
+    // Research this.
     let result = start_message(i32::MAX);
     assert!(result.is_ok());
     //

@@ -12,14 +12,10 @@ use libpd_rs::{
     verbose_print_state,
 };
 
-// TODO: This test may improve.
-// TODO: Learn more about these kinds of messages.
 #[test]
 fn send_and_receive_typed_message() {
     let sample_rate = 44100;
     let output_channels = 2;
-
-    // let console = Arc::new(Mutex::new(String::new()));
 
     let _ = init().unwrap();
     let _ = initialize_audio(0, output_channels, sample_rate).unwrap();
@@ -27,15 +23,6 @@ fn send_and_receive_typed_message() {
     verbose_print_state(true);
 
     let patch_handle = open_patch("tests/patches/echo.pd").unwrap();
-
-    // let console_to_fill = console.clone();
-
-    // on_print(move |value| {
-    //     console_to_fill
-    //         .lock()
-    //         .unwrap()
-    //         .push_str(&format!("{value}\n"));
-    // });
 
     let message_count = Arc::new(Mutex::new(0));
     let mc = message_count.clone();

@@ -88,5 +88,21 @@ fn apply_array_operations_in_a_row() {
     // TODO: Research why this is not working.
     assert_ne!(read_to, will_write_d);
 
+    // Bounds
+    // TODO: It seems that bounds checking do not work properly in libpd.
+    // Research if this is the case. If so do the bounds checking in Rust wrapper.
+
+    // let will_write_long_array: Vec<f64> = vec![0.0; 1024];
+    // let result = write_double_array_to(sketch_pad, 4, &will_write_long_array, 1024);
+    // assert!(result.is_err());
+
+    // let mut read_to: Vec<f64> = vec![0.0; 4];
+    // let result = read_double_array_from(sketch_pad, 50, &mut read_to, 0);
+    // assert!(result.is_err());
+
+    // let mut read_to: Vec<f64> = vec![0.0; 1024];
+    // let result = read_double_array_from(sketch_pad, 1024, &mut read_to, 0);
+    // assert!(result.is_err());
+
     close_patch(handle).unwrap();
 }

@@ -26,7 +26,7 @@ use std::ffi::{CStr, CString};
 /// let mut handles: HashMap<String, ReceiverHandle> = HashMap::new();
 /// for source in sources {
 ///     start_listening_from(&source).map_or_else(|err| {
-///         // Handle the error if there is no source to listen from
+///         // Handle the error creating a receiving endpoint failed.
 ///         dbg!(err);
 ///     }, |handle| {
 ///         // Start listening from a source and keep the handle for later
@@ -739,5 +739,3 @@ pub fn on_midi_byte<F: FnMut(i32, i32) + Send + Sync + 'static>(mut user_provide
 pub fn receive_midi_messages_from_pd() {
     unsafe { libpd_sys::libpd_queued_receive_midi_messages() };
 }
-
-// TODO: Some unit tests where relevant.

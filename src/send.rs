@@ -665,5 +665,3 @@ pub fn send_sys_realtime(port: i32, byte: i32) -> Result<(), LibpdError> {
         }
     }
 }
-
-// TODO: Some unit tests where relevant.

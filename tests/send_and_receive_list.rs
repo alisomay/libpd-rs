@@ -111,14 +111,7 @@ fn send_and_receive_list() {
         .iter()
         .zip(list_to_compare.iter())
         .for_each(|(a, b)| {
-            //
-            match a {
-                Atom::Float(a) => {
-                    assert_eq!(*a, std::convert::Into::<f64>::into(b));
-                }
-                Atom::Symbol(a) => assert_eq!(*a, std::convert::Into::<String>::into(b)),
-                _ => panic!("Unexpected atom type"),
-            }
+            assert_eq!(a, b);
         });
 
     // Stop listening and close handle.
