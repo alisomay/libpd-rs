@@ -93,6 +93,7 @@ pub(crate) const C_STR_FAILURE: &str = "Converting a CStr to an &str is failed."
 
 // TODO: Also please, change the titles of each individual function to look nice in doc.
 // TODO: We're compiling for f64 floats in pd, check how float and double functions behave and change documentation where necessary.
+// TODO: Add errors fields to documentation.
 
 /// Initializes libpd.
 ///
