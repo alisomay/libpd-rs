@@ -6,10 +6,7 @@
 ///!
 ///! I think the reason for that is, this function is old and pd binary organization was changed.
 ///! The tcl file is currently at "tests/pd_binary/mac/Pd-0.51-4.app/Contents/Resources/tcl/pd-gui.tcl"
-use crate::{
-    error::{IoError, LibpdError},
-    C_STRING_FAILURE,
-};
+use crate::{error::IoError, C_STRING_FAILURE};
 
 use std::ffi::CString;
 use std::path::Path;
@@ -28,18 +25,18 @@ use std::path::Path;
 /// let path_to_pd = PathBuf::from("/Applications/Pd-0.51-4.app/Contents/Resources/bin/pd");
 /// start_gui(&path_to_pd);
 /// ```
-pub fn start_gui<T: AsRef<Path>>(path_to_pd: T) -> Result<(), LibpdError> {
+pub fn start_gui<T: AsRef<Path>>(path_to_pd: T) -> Result<(), IoError> {
     if path_to_pd.as_ref().exists() {
         let path_to_pd = path_to_pd.as_ref().to_string_lossy();
         let path_to_pd = CString::new(path_to_pd.as_ref()).expect(C_STRING_FAILURE);
         unsafe {
             match libpd_sys::libpd_start_gui(path_to_pd.as_ptr()) {
                 0 => return Ok(()),
-                _ => return Err(LibpdError::IoError(IoError::FailedToOpenGui)),
+                _ => return Err(IoError::FailedToOpenGui),
             }
         }
     }
-    Err(LibpdError::IoError(IoError::FailedToOpenGui))
+    Err(IoError::FailedToOpenGui)
 }
 
 /// Stops the current running pd vanilla GUI if it is running.

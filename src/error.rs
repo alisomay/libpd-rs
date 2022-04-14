@@ -1,3 +1,5 @@
+// TODO: Revisit error handling completely.
+
 use thiserror::Error;
 
 /// Errors related to initialization.
@@ -84,26 +86,52 @@ pub enum ArrayError {
     OutOfBounds,
 }
 
-/// The umbrella error type for all errors in this crate.
-#[non_exhaustive]
-#[derive(Error, Debug)]
-pub enum LibpdError {
-    /// Errors related to initialization.
-    #[error("")]
-    InitializationError(InitializationError),
-    /// Errors related to io and filesystem access.
-    #[error("")]
-    IoError(IoError),
-    /// Errors related communication between the rust app and pd.
-    #[error("")]
-    CommunicationError(CommunicationError),
-    /// Errors related to subscription to senders in a pd patch.
-    #[error("")]
-    SubscriptionError(SubscriptionError),
-    /// Errors related to sizes of entities.
-    #[error("")]
-    SizeError(SizeError),
-    /// Errors related to pd arrays.
-    #[error("")]
-    ArrayError(ArrayError),
+pub trait LibpdError: std::error::Error + Send + Sync + 'static {}
+
+macro_rules! impl_from_error {
+    ($from:ty) => {
+        impl From<$from> for Box<dyn LibpdError> {
+            fn from(e: $from) -> Self {
+                Box::new(e)
+            }
+        }
+    };
 }
+
+impl LibpdError for InitializationError {}
+impl LibpdError for IoError {}
+impl LibpdError for CommunicationError {}
+impl LibpdError for SubscriptionError {}
+impl LibpdError for SizeError {}
+impl LibpdError for ArrayError {}
+
+impl_from_error!(InitializationError);
+impl_from_error!(IoError);
+impl_from_error!(CommunicationError);
+impl_from_error!(SubscriptionError);
+impl_from_error!(SizeError);
+impl_from_error!(ArrayError);
+
+// The umbrella error type for all errors in this crate.
+// #[non_exhaustive]
+// #[derive(Error, Debug)]
+// pub enum LibpdError {
+//     /// Errors related to initialization.
+//     #[error("")]
+//     InitializationError(InitializationError),
+//     /// Errors related to io and filesystem access.
+//     #[error("")]
+//     IoError(IoError),
+//     /// Errors related communication between the rust app and pd.
+//     #[error("")]
+//     CommunicationError(CommunicationError),
+//     /// Errors related to subscription to senders in a pd patch.
+//     #[error("")]
+//     SubscriptionError(SubscriptionError),
+//     /// Errors related to sizes of entities.
+//     #[error("")]
+//     SizeError(SizeError),
+//     /// Errors related to pd arrays.
+//     #[error("")]
+//     ArrayError(ArrayError),
+// }

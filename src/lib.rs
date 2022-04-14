@@ -69,25 +69,25 @@
 
 // TODO: Provide examples in module docs.
 
-/// Work with pd arrays.
+/// Work with pd arrays
 ///
 /// This module provides all tools to work with pd named arrays which are exposed by libpd with some extra safety such as bounds checking.
 ///
 /// Corresponding libpd functions in [libpd repository](https://github.com/libpd/libpd) could be explored [here](https://github.com/libpd/libpd/blob/master/libpd_wrapper/z_libpd.h#L115).
 pub mod array;
-/// Convenience functions which encapsulate common actions when communicating with pd.
+/// Convenience functions which encapsulate common actions when communicating with pd
 ///
 /// This crate is a thing wrapper around [libpd](https://github.com/libpd/libpd).
 /// This module aims to provide functions or structs to add a layer which is easier and quick to use.
 /// Now small but might grow in the future.
 pub mod convenience;
-/// All errors.
+/// All errors
 ///
 /// [`LibpdError`] is the umbrella error type for all errors related to libpd.
-/// All functions which might fail would return a`Result<T, LibpdError>`.
+/// All functions which might fail would return a`Result<T, Box<dyn LibpdError>>`.
 /// From there on one may use pattern matching to get more detailed.
 pub mod error;
-/// Start, stop, poll pd gui.
+/// Start, stop, poll pd gui
 ///
 /// # Warning
 /// Currently starting the gui will fail with this error in tests.
@@ -101,28 +101,28 @@ pub mod error;
 /// The tcl file is currently at `tests/pd_binary/mac/Pd-0.51-4.app/Contents/Resources/tcl/pd-gui.tcl`
 pub mod gui;
 
-/// Audio processing.
+/// Audio processing
 ///
 /// Process functions which you call in the audio callback are collected here.
 ///
 /// These functions also run the scheduler of pd. The chosen function needs to be called in a loop to keep pd "running".
 pub mod process;
-/// Receive messages from pd.
+/// Receive messages from pd
 ///
 /// Collection of endpoints where listeners (hooks) may be registered to receive messages from pd.
 pub mod receive;
-/// Send messages to pd.
+/// Send messages to pd
 ///
 /// Collection of functions where messages may be sent to pd
 pub mod send;
-/// Types for working with pd.
+/// Types for working with pd
 ///
 /// TODO: Explain Atom type or provide examples.
 pub mod types;
 
 pub(crate) mod helpers;
 use crate::{
-    error::{InitializationError, IoError, LibpdError},
+    error::{InitializationError, IoError},
     types::PatchFileHandle,
 };
 
@@ -139,15 +139,24 @@ pub(crate) const C_STR_FAILURE: &str = "Converting a CStr to an &str is failed."
 
 /// Initializes libpd.
 ///
-/// Support for multi instances of pd is not implemented yet.
-/// This function should be called after setting any listeners and before any other in this crate.
+/// This function should be called **before** any other in this crate.
 /// It initializes libpd **globally** and also initializes ring buffers for internal message passing.
-/// Sets internal hooks. Then initializes `libpd` by calling the underlying
+///
+/// After setting internal hooks, it initializes `libpd` by calling the underlying
 /// C function which is [`libpd_init`](https://github.com/libpd/libpd/blob/master/libpd_wrapper/z_libpd.c#L68).
 /// See [`libpd_queued_init`](https://github.com/libpd/libpd/blob/master/libpd_wrapper/util/z_queued.c#L308) to
 /// explore what it is doing.
 ///
-/// A second call to this function will return an error.
+/// **Note**: *Support for multi instances of pd is not implemented yet.*
+///
+/// # Errors
+/// A second call to this function will return the error, [`InitializationError::AlreadyInitialized`] wrapped in a [`LibpdError::InitializationError`].
+///
+/// Other errors  could be returned from this function are,
+///
+/// - [`InitializationError::RingBufferInitializationError`]
+///
+/// - [`InitializationError::InitializationFailed`]
 ///
 /// # Example
 /// ```rust
@@ -156,19 +165,13 @@ pub(crate) const C_STR_FAILURE: &str = "Converting a CStr to an &str is failed."
 /// assert_eq!(init().is_ok(), true);
 /// assert_eq!(init().is_err(), true);
 /// ```
-pub fn init() -> Result<(), LibpdError> {
+pub fn init() -> Result<(), InitializationError> {
     unsafe {
         match libpd_sys::libpd_queued_init() {
             0 => Ok(()),
-            -1 => Err(LibpdError::InitializationError(
-                InitializationError::AlreadyInitialized,
-            )),
-            -2 => Err(LibpdError::InitializationError(
-                InitializationError::RingBufferInitializationError,
-            )),
-            _ => Err(LibpdError::InitializationError(
-                InitializationError::InitializationFailed,
-            )),
+            -1 => Err(InitializationError::AlreadyInitialized),
+            -2 => Err(InitializationError::RingBufferInitializationError),
+            _ => Err(InitializationError::InitializationFailed),
         }
     }
 }
@@ -196,11 +199,11 @@ pub fn clear_search_paths() {
 ///
 /// Relative paths are relative to the current working directory.
 /// Unlike the desktop pd application, **no** search paths are set by default.
-pub fn add_to_search_paths<T: AsRef<Path>>(path: T) -> Result<(), LibpdError> {
+pub fn add_to_search_paths<T: AsRef<Path>>(path: T) -> Result<(), IoError> {
     if !path.as_ref().exists() {
-        return Err(LibpdError::IoError(IoError::PathDoesNotExist(
+        return Err(IoError::PathDoesNotExist(
             path.as_ref().to_string_lossy().to_string(),
-        )));
+        ));
     }
     unsafe {
         let c_path = CString::new(&*path.as_ref().to_string_lossy()).expect(C_STRING_FAILURE);
@@ -231,11 +234,11 @@ pub fn add_to_search_paths<T: AsRef<Path>>(path: T) -> Result<(), LibpdError> {
 /// let patch_handle = open_patch(&patch_name).unwrap();
 /// // or others..
 /// ```
-pub fn open_patch<T: AsRef<Path>>(path_to_patch: T) -> Result<PatchFileHandle, LibpdError> {
+pub fn open_patch<T: AsRef<Path>>(path_to_patch: T) -> Result<PatchFileHandle, IoError> {
     let file_name = path_to_patch
         .as_ref()
         .file_name()
-        .ok_or(LibpdError::IoError(IoError::FailedToOpenPatch))?;
+        .ok_or(IoError::FailedToOpenPatch)?;
     let file_name = file_name.to_string_lossy();
     let file_name = file_name.as_ref();
     let parent_path = path_to_patch
@@ -250,7 +253,7 @@ pub fn open_patch<T: AsRef<Path>>(path_to_patch: T) -> Result<PatchFileHandle, L
     // "../some.pd" --> prepend working directory
     if parent_path.is_relative() {
         let mut app_dir =
-            std::env::current_exe().map_err(|_| LibpdError::IoError(IoError::FailedToOpenPatch))?;
+            std::env::current_exe().map_err(|_| -> IoError { IoError::FailedToOpenPatch })?;
         app_dir.pop();
         app_dir.push(parent_path);
         let parent_path_str = app_dir.to_string_lossy();
@@ -267,7 +270,7 @@ pub fn open_patch<T: AsRef<Path>>(path_to_patch: T) -> Result<PatchFileHandle, L
     // "some.pd" --> prepend working directory
     if parent_path_string.is_empty() {
         let mut app_dir =
-            std::env::current_exe().map_err(|_| LibpdError::IoError(IoError::FailedToOpenPatch))?;
+            std::env::current_exe().map_err(|_| -> IoError { IoError::FailedToOpenPatch })?;
         app_dir.pop();
         app_dir.push(file_name);
         let parent_path_str = app_dir.to_string_lossy();
@@ -283,9 +286,9 @@ pub fn open_patch<T: AsRef<Path>>(path_to_patch: T) -> Result<PatchFileHandle, L
     // Invalid path.
     let calculated_patch_path = PathBuf::from(&directory).join(file_name);
     if !calculated_patch_path.exists() {
-        return Err(LibpdError::IoError(IoError::PathDoesNotExist(
+        return Err(IoError::PathDoesNotExist(
             calculated_patch_path.to_string_lossy().to_string(),
-        )));
+        ));
     }
     // All good.
     unsafe {
@@ -294,7 +297,7 @@ pub fn open_patch<T: AsRef<Path>>(path_to_patch: T) -> Result<PatchFileHandle, L
         let file_handle =
             libpd_sys::libpd_openfile(name.as_ptr(), directory.as_ptr()).cast::<std::ffi::c_void>();
         if file_handle.is_null() {
-            return Err(LibpdError::IoError(IoError::FailedToOpenPatch));
+            return Err(IoError::FailedToOpenPatch);
         }
         Ok(file_handle.into())
     }
@@ -314,11 +317,11 @@ pub fn open_patch<T: AsRef<Path>>(path_to_patch: T) -> Result<PatchFileHandle, L
 ///
 /// assert!(close_patch(patch_handle).is_ok());
 /// ```
-pub fn close_patch(handle: PatchFileHandle) -> Result<(), LibpdError> {
+pub fn close_patch(handle: PatchFileHandle) -> Result<(), IoError> {
     unsafe {
         let ptr: *mut std::ffi::c_void = handle.into();
         if ptr.is_null() {
-            Err(LibpdError::IoError(IoError::FailedToClosePatch))
+            Err(IoError::FailedToClosePatch)
         } else {
             libpd_sys::libpd_closefile(ptr);
             Ok(())
@@ -329,16 +332,16 @@ pub fn close_patch(handle: PatchFileHandle) -> Result<(), LibpdError> {
 /// Gets the `$0` of the running patch.
 ///
 /// `$0` id in pd could be thought as a auto generated unique identifier for the patch.
-pub fn get_dollar_zero(handle: &PatchFileHandle) -> Result<i32, LibpdError> {
+pub fn get_dollar_zero(handle: &PatchFileHandle) -> Result<i32, IoError> {
     unsafe {
         match libpd_sys::libpd_getdollarzero(handle.as_mut_ptr()) {
-            0 => Err(LibpdError::IoError(IoError::PatchIsNotOpen)),
+            0 => Err(IoError::PatchIsNotOpen),
             other => Ok(other),
         }
     }
 }
 
-/// Returns pd's fixed block size which is 64 by default.
+/// Returns pd's fixed block size which is `64` by default.
 ///
 /// The number of frames per 1 pd tick.
 ///
@@ -373,13 +376,11 @@ pub fn initialize_audio(
     input_channels: i32,
     output_channels: i32,
     sample_rate: i32,
-) -> Result<(), LibpdError> {
+) -> Result<(), InitializationError> {
     unsafe {
         match libpd_sys::libpd_init_audio(input_channels, output_channels, sample_rate) {
             0 => Ok(()),
-            _ => Err(LibpdError::InitializationError(
-                InitializationError::AudioInitializationFailed,
-            )),
+            _ => Err(InitializationError::AudioInitializationFailed),
         }
     }
 }

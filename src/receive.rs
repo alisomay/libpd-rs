@@ -1,5 +1,5 @@
 use crate::{
-    error::{LibpdError, SubscriptionError},
+    error::SubscriptionError,
     helpers::make_atom_list_from_t_atom_list,
     types::{Atom, ReceiverHandle},
     C_STRING_FAILURE, C_STR_FAILURE,
@@ -34,14 +34,14 @@ use std::ffi::{CStr, CString};
 ///     });
 /// }
 /// ```
-pub fn start_listening_from<T: AsRef<str>>(sender: T) -> Result<ReceiverHandle, LibpdError> {
+pub fn start_listening_from<T: AsRef<str>>(sender: T) -> Result<ReceiverHandle, SubscriptionError> {
     let send = CString::new(sender.as_ref()).expect(C_STRING_FAILURE);
 
     unsafe {
         let handle = libpd_sys::libpd_bind(send.as_ptr());
         if handle.is_null() {
-            Err(LibpdError::SubscriptionError(
-                SubscriptionError::FailedToSubscribeToSender(sender.as_ref().to_owned()),
+            Err(SubscriptionError::FailedToSubscribeToSender(
+                sender.as_ref().to_owned(),
             ))
         } else {
             Ok(ReceiverHandle::from(handle))

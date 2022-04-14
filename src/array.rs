@@ -1,5 +1,5 @@
 use crate::{
-    error::{ArrayError, LibpdError, SizeError},
+    error::{ArrayError, SizeError},
     C_STRING_FAILURE,
 };
 
@@ -13,7 +13,7 @@ use std::ffi::CString;
 ///
 /// let size = array_size("my_array").unwrap();
 /// ```
-pub fn array_size<T: AsRef<str>>(name: T) -> Result<i32, LibpdError> {
+pub fn array_size<T: AsRef<str>>(name: T) -> Result<i32, SizeError> {
     unsafe {
         let name = CString::new(name.as_ref()).expect(C_STRING_FAILURE);
         // Returns size or negative error code if non-existent
@@ -21,7 +21,7 @@ pub fn array_size<T: AsRef<str>>(name: T) -> Result<i32, LibpdError> {
         if result >= 0 {
             return Ok(result);
         }
-        Err(LibpdError::SizeError(SizeError::CouldNotDetermine))
+        Err(SizeError::CouldNotDetermine)
     }
 }
 
@@ -41,13 +41,13 @@ pub fn array_size<T: AsRef<str>>(name: T) -> Result<i32, LibpdError> {
 /// let size = array_size("my_array").unwrap();
 /// assert_eq!(size, 1);
 /// ```
-pub fn resize_array<T: AsRef<str>>(name: T, size: i64) -> Result<(), LibpdError> {
+pub fn resize_array<T: AsRef<str>>(name: T, size: i64) -> Result<(), SizeError> {
     unsafe {
         let name = CString::new(name.as_ref()).expect(C_STRING_FAILURE);
         // returns 0 on success or negative error code if non-existent
         match libpd_sys::libpd_resize_array(name.as_ptr(), size) {
             0 => Ok(()),
-            _ => Err(LibpdError::SizeError(SizeError::CouldNotDetermine)),
+            _ => Err(SizeError::CouldNotDetermine),
         }
     }
 }
@@ -74,7 +74,7 @@ pub fn read_float_array_from<T: AsRef<str>>(
     read_amount: i32,
     destination: &mut [f32],
     destination_offset: i32,
-) -> Result<(), LibpdError> {
+) -> Result<(), ArrayError> {
     unsafe {
         let name = CString::new(source_name.as_ref()).expect(C_STRING_FAILURE);
         // Returns 0 on success or a negative error code if the array is non-existent
@@ -86,8 +86,8 @@ pub fn read_float_array_from<T: AsRef<str>>(
             read_amount,
         ) {
             0 => Ok(()),
-            -2 => Err(LibpdError::ArrayError(ArrayError::OutOfBounds)),
-            _ => Err(LibpdError::ArrayError(ArrayError::NonExistent)),
+            -2 => Err(ArrayError::OutOfBounds),
+            _ => Err(ArrayError::NonExistent),
         }
     }
 }
@@ -114,7 +114,7 @@ pub fn write_float_array_to<T: AsRef<str>>(
     destination_offset: i32,
     source: &[f32],
     read_amount: i32,
-) -> Result<(), LibpdError> {
+) -> Result<(), ArrayError> {
     unsafe {
         let name = CString::new(destination_name.as_ref()).expect(C_STRING_FAILURE);
         // Returns 0 on success or a negative error code if the array is non-existent
@@ -126,8 +126,8 @@ pub fn write_float_array_to<T: AsRef<str>>(
             read_amount,
         ) {
             0 => Ok(()),
-            -2 => Err(LibpdError::ArrayError(ArrayError::OutOfBounds)),
-            _ => Err(LibpdError::ArrayError(ArrayError::NonExistent)),
+            -2 => Err(ArrayError::OutOfBounds),
+            _ => Err(ArrayError::NonExistent),
         }
     }
 }
@@ -154,7 +154,7 @@ pub fn read_double_array_from<T: AsRef<str>>(
     read_amount: i32,
     destination: &mut [f64],
     destination_offset: i32,
-) -> Result<(), LibpdError> {
+) -> Result<(), ArrayError> {
     unsafe {
         let name = CString::new(source_name.as_ref()).expect(C_STRING_FAILURE);
         // Returns 0 on success or a negative error code if the array is non-existent
@@ -166,8 +166,8 @@ pub fn read_double_array_from<T: AsRef<str>>(
             read_amount,
         ) {
             0 => Ok(()),
-            -2 => Err(LibpdError::ArrayError(ArrayError::OutOfBounds)),
-            _ => Err(LibpdError::ArrayError(ArrayError::NonExistent)),
+            -2 => Err(ArrayError::OutOfBounds),
+            _ => Err(ArrayError::NonExistent),
         }
     }
 }
@@ -194,7 +194,7 @@ pub fn write_double_array_to<T: AsRef<str>>(
     destination_offset: i32,
     source: &[f64],
     read_amount: i32,
-) -> Result<(), LibpdError> {
+) -> Result<(), ArrayError> {
     unsafe {
         let name = CString::new(destination_name.as_ref()).expect(C_STRING_FAILURE);
         // Returns 0 on success or a negative error code if the array is non-existent
@@ -206,8 +206,8 @@ pub fn write_double_array_to<T: AsRef<str>>(
             read_amount,
         ) {
             0 => Ok(()),
-            -2 => Err(LibpdError::ArrayError(ArrayError::OutOfBounds)),
-            _ => Err(LibpdError::ArrayError(ArrayError::NonExistent)),
+            -2 => Err(ArrayError::OutOfBounds),
+            _ => Err(ArrayError::NonExistent),
         }
     }
 }
