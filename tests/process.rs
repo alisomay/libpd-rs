@@ -1,5 +1,3 @@
-// TODO: Tests for process functions
-
 #![allow(clippy::restriction)]
 
 use std::any::type_name;
@@ -12,8 +10,6 @@ use libpd_rs::{
         process_double, process_float, process_raw, process_raw_double, process_raw_short,
         process_short,
     },
-    receive::{on_bang, receive_messages_from_pd, start_listening_from, stop_listening_from},
-    send::send_bang_to,
 };
 
 fn type_of<T>(_: T) -> &'static str {

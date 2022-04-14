@@ -28,6 +28,9 @@ pub enum IoError {
     /// Failed to close patch, because the handle which was provided is null.
     #[error("Failed to close patch, because the handle which was provided is null.")]
     FailedToClosePatch,
+    /// The patch which is trying to be communicated with is not open.
+    #[error("The patch which is trying to be communicated with is not open.")]
+    PatchIsNotOpen,
     /// Failed to open gui, most probably because the path is invalid to the pd binary.
     #[error("Failed to open gui, please provide a valid path to the pd binary.")]
     FailedToOpenGui,

@@ -130,11 +130,10 @@ pub fn init() -> Result<(), LibpdError> {
     }
 }
 
-#[allow(dead_code)]
 /// Frees the queued ring buffers.
 ///
 /// Currently I don't see a necessity to call this function in any case.
-/// So it is kept private.
+/// Maybe there is a reason.
 pub fn release_internal_queues() {
     unsafe {
         libpd_sys::libpd_queued_release();
@@ -289,9 +288,12 @@ pub fn close_patch(handle: PatchFileHandle) -> Result<(), LibpdError> {
 /// Gets the `$0` of the running patch.
 ///
 /// `$0` id in pd could be thought as a auto generated unique identifier for the patch.
-pub fn get_dollar_zero(handle: &PatchFileHandle) {
+pub fn get_dollar_zero(handle: &PatchFileHandle) -> Result<i32, LibpdError> {
     unsafe {
-        libpd_sys::libpd_getdollarzero(handle.as_mut_ptr());
+        match libpd_sys::libpd_getdollarzero(handle.as_mut_ptr()) {
+            0 => Err(LibpdError::IoError(IoError::PatchIsNotOpen)),
+            other => Ok(other),
+        }
     }
 }
 
