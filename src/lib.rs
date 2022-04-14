@@ -67,6 +67,8 @@
 //!
 //! [`Easy`]: http://thatwaseasy.example.com
 
+// TODO: Provide examples in module docs.
+
 /// Work with pd arrays.
 ///
 /// This module provides all tools to work with pd named arrays which are exposed by libpd with some extra safety such as bounds checking.
@@ -79,25 +81,46 @@ pub mod array;
 /// This module aims to provide functions or structs to add a layer which is easier and quick to use.
 /// Now small but might grow in the future.
 pub mod convenience;
-/// All errors related to libpd_rs.
+/// All errors.
 ///
 /// [`LibpdError`] is the umbrella error type for all errors related to libpd.
 /// All functions which might fail would return a`Result<T, LibpdError>`.
 /// From there on one may use pattern matching to get more detailed.
 pub mod error;
-/// TODO: Module doc.
+/// Start, stop, poll pd gui.
+///
+/// # Warning
+/// Currently starting the gui will fail with this error in tests.
+/// Error in startup script: couldn't read file
+///
+/// ```sh
+/// "tests/pd_binary/mac/Pd-0.51-4.app/Contents/Resources/bin/pd/tcl/pd-gui.tcl": not a directory
+/// ```
+///
+/// I think the reason for that is, this function is old and pd binary organization was changed.
+/// The tcl file is currently at `tests/pd_binary/mac/Pd-0.51-4.app/Contents/Resources/tcl/pd-gui.tcl`
 pub mod gui;
-/// TODO: Module doc.
-pub(crate) mod helpers;
-/// TODO: Module doc.
+
+/// Audio processing.
+///
+/// Process functions which you call in the audio callback are collected here.
+///
+/// These functions also run the scheduler of pd. The chosen function needs to be called in a loop to keep pd "running".
 pub mod process;
-/// TODO: Module doc.
+/// Receive messages from pd.
+///
+/// Collection of endpoints where listeners (hooks) may be registered to receive messages from pd.
 pub mod receive;
-/// TODO: Module doc.
+/// Send messages to pd.
+///
+/// Collection of functions where messages may be sent to pd
 pub mod send;
-/// TODO: Module doc.
+/// Types for working with pd.
+///
+/// TODO: Explain Atom type or provide examples.
 pub mod types;
 
+pub(crate) mod helpers;
 use crate::{
     error::{InitializationError, IoError, LibpdError},
     types::PatchFileHandle,
