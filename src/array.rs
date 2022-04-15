@@ -41,10 +41,21 @@ pub fn array_size<T: AsRef<str>>(name: T) -> Result<i32, SizeError> {
 /// let size = array_size("my_array").unwrap();
 /// assert_eq!(size, 1);
 /// ```
-pub fn resize_array<T: AsRef<str>>(name: T, size: i64) -> Result<(), SizeError> {
+pub fn resize_array<T: AsRef<str>>(name: T, size: i32) -> Result<(), SizeError> {
     unsafe {
         let name = CString::new(name.as_ref()).expect(C_STRING_FAILURE);
         // returns 0 on success or negative error code if non-existent
+        #[cfg(target_os = "macos")]
+        match libpd_sys::libpd_resize_array(name.as_ptr(), i64::from(size)) {
+            0 => Ok(()),
+            _ => Err(SizeError::CouldNotDetermine),
+        }
+        #[cfg(target_os = "linux")]
+        match libpd_sys::libpd_resize_array(name.as_ptr(), i64::from(size)) {
+            0 => Ok(()),
+            _ => Err(SizeError::CouldNotDetermine),
+        }
+        #[cfg(target_os = "windows")]
         match libpd_sys::libpd_resize_array(name.as_ptr(), size) {
             0 => Ok(()),
             _ => Err(SizeError::CouldNotDetermine),

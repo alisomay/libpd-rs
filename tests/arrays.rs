@@ -33,7 +33,7 @@ fn apply_array_operations_in_a_row() {
     assert_eq!(size, 1);
 
     // Protected with size limits. Over the limit is also 1.
-    resize_array(sketch_pad, i64::MAX).unwrap();
+    resize_array(sketch_pad, i32::MAX).unwrap();
     let size = array_size(sketch_pad).unwrap();
     assert_eq!(size, 1);
 
