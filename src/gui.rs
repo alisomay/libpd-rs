@@ -1,11 +1,3 @@
-///! Module wide intro and explanation about why these might be not functional and just are here for old pds.
-///!
-///! Currently this test is failing with this error.
-///! Error in startup script: couldn't read file
-///! "tests/pd_binary/mac/Pd-0.51-4.app/Contents/Resources/bin/pd/tcl/pd-gui.tcl": not a directory
-///!
-///! I think the reason for that is, this function is old and pd binary organization was changed.
-///! The tcl file is currently at "tests/pd_binary/mac/Pd-0.51-4.app/Contents/Resources/tcl/pd-gui.tcl"
 use crate::{error::GuiLifeCycleError, C_STRING_FAILURE};
 
 use std::ffi::CString;
@@ -13,7 +5,7 @@ use std::path::Path;
 
 /// Opens the current patch within a pd vanilla GUI
 ///
-/// This function requires that there is a valid pd installation in your computer and a path to the pd binary.
+/// This function requires that there is a valid pd installation in your computer and a path to pd's main folder which contains bin/, tcl/, etc.
 ///
 /// # Example
 /// ```no_run
@@ -22,7 +14,7 @@ use std::path::Path;
 ///
 /// // In mac os probably it would look something like this,
 /// // The application name here is an example.
-/// let path_to_pd = PathBuf::from("/Applications/Pd-0.51-4.app/Contents/Resources/bin/pd");
+/// let path_to_pd = PathBuf::from("/Applications/Pd-0.51-4.app/Contents/Resources");
 /// start_gui(&path_to_pd);
 /// ```
 pub fn start_gui<T: AsRef<Path>>(path_to_pd: T) -> Result<(), GuiLifeCycleError> {

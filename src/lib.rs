@@ -88,17 +88,6 @@ pub mod convenience;
 /// From there on one may use pattern matching to get more detailed.
 pub mod error;
 /// Start, stop, poll pd gui
-///
-/// # Warning
-/// Currently starting the gui will fail with this error in tests.
-/// Error in startup script: couldn't read file
-///
-/// ```sh
-/// "tests/pd_binary/mac/Pd-0.51-4.app/Contents/Resources/bin/pd/tcl/pd-gui.tcl": not a directory
-/// ```
-///
-/// I think the reason for that is, this function is old and pd binary organization was changed.
-/// The tcl file is currently at `tests/pd_binary/mac/Pd-0.51-4.app/Contents/Resources/tcl/pd-gui.tcl`
 pub mod gui;
 
 /// Audio processing
