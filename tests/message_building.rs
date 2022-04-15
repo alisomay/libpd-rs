@@ -11,7 +11,7 @@ use libpd_rs::{
 };
 
 #[test]
-fn send_and_receive_bang() {
+fn message_building() {
     let sample_rate = 44100;
     let output_channels = 2;
 
