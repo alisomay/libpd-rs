@@ -5,4 +5,6 @@
 
 Safe rust abstractions over [libpd-sys](https://github.com/alisomay/libpd-sys).
 
-This crate is very much under construction and rather sketchy, when the development passes a certain threshold, a detailed readme will be provided.
+The crate is almost ready, a detailed readme will be added before publishing to [crates.io](https://crates.io).
+
+Until then, if you'd like to give it a try please check integration tests.
