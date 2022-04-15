@@ -20,9 +20,6 @@ libpd-sys = { git = "https://github.com/alisomay/libpd-sys" }
 thiserror = "1.0.30"
 libffi = "3.0.0"
 
-[dev-dependencies]
-cpal = "0.13.5"
-
 # For local development currently.
 # [patch."https://github.com/alisomay/libpd-sys"]
 # libpd-sys = { path = "../libpd-sys" }
