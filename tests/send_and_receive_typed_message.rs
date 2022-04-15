@@ -64,7 +64,7 @@ fn send_and_receive_typed_message() {
 
     send_message_to("pd", "audiostatus", &[]).unwrap();
 
-    std::thread::sleep(std::time::Duration::from_millis(100));
+    std::thread::sleep(std::time::Duration::from_millis(1000));
 
     assert_eq!(*message_count.lock().unwrap(), 2);
     // Stop pd.
