@@ -21,10 +21,13 @@ fn send_and_receive_bang() {
 
     let patch_handle = open_patch("tests/patches/echo.pd").unwrap();
 
-    // TODO: This is strange! I don't think that a message can have this much of length.
-    // Research this.
+    // TODO: This is strange! Why is this the case? Research this.
     let result = start_message(i32::MAX);
+    #[cfg(target_os = "macos")]
     assert!(result.is_ok());
+
+    #[cfg(target_os = "linux")]
+    assert!(result.is_err());
     //
 
     add_double_to_started_message(0.23);
