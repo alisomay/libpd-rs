@@ -42,6 +42,24 @@ pub fn array_size<T: AsRef<str>>(name: T) -> Result<i32, SizeError> {
 /// assert_eq!(size, 1);
 /// ```
 pub fn resize_array<T: AsRef<str>>(name: T, size: i32) -> Result<(), SizeError> {
+    // The size argument is a `long` but bindgen interprets it as i64
+    // Also libpd has this,
+    // if (MSVC)
+    // set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} -DHAVE_STRUCT_TIMESPEC")
+    // add_definitions("/D_CRT_SECURE_NO_WARNINGS /wd4091 /wd4996")
+    // if(${CMAKE_SIZEOF_VOID_P} EQUAL 8)
+    //     # Select appropriate long int type on 64-bit Windows
+    //     set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} -DPD_LONGINTTYPE=\"long long\"")
+    // endif()
+    // else()
+    // set(CMAKE_C_FLAGS         "${CMAKE_C_FLAGS} -Wno-int-to-pointer-cast -Wno-pointer-to-int-cast")
+    // set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS} -ffast-math -funroll-loops -fomit-frame-pointer -O3")
+    // set(CMAKE_C_FLAGS_DEBUG   "${CMAKE_C_FLAGS} -g -O0")
+    // if(NOT APPLE AND NOT WIN32)
+    //     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-Bsymbolic")
+    // endif()
+    // endif()
+    // TODO: Find the right approach in this mess.
     unsafe {
         let name = CString::new(name.as_ref()).expect(C_STRING_FAILURE);
         // returns 0 on success or negative error code if non-existent
