@@ -11,7 +11,6 @@ use libpd_rs::{
     send::send_sys_realtime,
 };
 
-#[test]
 fn send_and_receive_sys_realtime() {
     let sample_rate = 44100;
     let output_channels = 2;

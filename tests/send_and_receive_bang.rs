@@ -11,18 +11,20 @@ use libpd_rs::{
     send::send_bang_to,
 };
 
-#[test]
 fn send_and_receive_bang() {
     let sample_rate = 44100;
     let output_channels = 2;
 
     let bangs: Arc<Mutex<Vec<&str>>> = Arc::new(Mutex::new(vec![]));
 
-    let _ = init().unwrap();
-    let _ = initialize_audio(0, output_channels, sample_rate).unwrap();
+    let a = init().unwrap();
+    dbg!(a);
+    let b = initialize_audio(0, output_channels, sample_rate).unwrap();
+    dbg!(b);
     dsp_on().unwrap();
 
     let patch_handle = open_patch("tests/patches/echo.pd").unwrap();
+    dbg!(&patch_handle);
 
     let bangs_to_fill = bangs.clone();
     on_bang(move |source| {
@@ -30,6 +32,7 @@ fn send_and_receive_bang() {
         bangs_to_fill.lock().unwrap().push("bang");
     });
     let receiver_handle = start_listening_from("bang_from_pd").unwrap();
+    dbg!(&receiver_handle);
 
     // Mimic audio callback buffers.
     let input_buffer = [0.0f32; 512];
@@ -48,6 +51,7 @@ fn send_and_receive_bang() {
             ));
 
             receive_messages_from_pd();
+            dbg!("Runs?");
             let ticks = output_buffer.len() as i32 / (block_size() * output_channels);
             process_float(ticks, &input_buffer, &mut output_buffer);
             match rx.try_recv() {
@@ -62,12 +66,13 @@ fn send_and_receive_bang() {
         send_bang_to("bang_from_rust").unwrap();
     }
 
-    std::thread::sleep(std::time::Duration::from_millis(50));
+    std::thread::sleep(std::time::Duration::from_millis(2000));
 
     // Stop pd.
     tx.send(()).unwrap();
     handle.join().unwrap();
 
+    dbg!(bangs.lock().unwrap());
     assert_eq!(bangs.lock().unwrap().len(), 5);
 
     // Stop listening and close handle.
