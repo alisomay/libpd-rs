@@ -63,16 +63,17 @@ fn send_and_receive_double() {
         send_double_to("float_from_rust", float).unwrap();
         float += 1.0;
     }
-
+    send_double_to("float_from_rust", f64::MAX).unwrap();
+    send_double_to("float_from_rust", f64::MIN).unwrap();
     std::thread::sleep(std::time::Duration::from_millis(50));
 
     // Stop pd.
     tx.send(()).unwrap();
     handle.join().unwrap();
 
-    assert_eq!(floats.lock().unwrap().len(), 5);
+    assert_eq!(floats.lock().unwrap().len(), 7);
 
-    let floats_to_compare: Vec<f64> = vec![1.0, 2.0, 3.0, 4.0, 5.0];
+    let floats_to_compare: Vec<f64> = vec![1.0, 2.0, 3.0, 4.0, 5.0, f64::MAX, f64::MIN];
     floats
         .lock()
         .unwrap()

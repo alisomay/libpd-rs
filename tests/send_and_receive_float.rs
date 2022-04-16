@@ -63,16 +63,17 @@ fn send_and_receive_float() {
         send_float_to("float_from_rust", float).unwrap();
         float *= 2.0;
     }
-
+    send_float_to("float_from_rust", f32::MAX).unwrap();
+    send_float_to("float_from_rust", f32::MIN).unwrap();
     std::thread::sleep(std::time::Duration::from_millis(50));
 
     // Stop pd.
     tx.send(()).unwrap();
     handle.join().unwrap();
 
-    let floats_to_compare: Vec<f32> = vec![2.0, 4.0, 8.0, 16.0, 32.0];
+    let floats_to_compare: Vec<f32> = vec![2.0, 4.0, 8.0, 16.0, 32.0, f32::MAX, f32::MIN];
 
-    assert_eq!(floats.lock().unwrap().len(), 5);
+    assert_eq!(floats.lock().unwrap().len(), 7);
 
     floats
         .lock()
@@ -80,6 +81,7 @@ fn send_and_receive_float() {
         .iter()
         .zip(floats_to_compare.iter())
         .for_each(|(a, b)| {
+            // Can be better :)
             assert_eq!((a - b) as i32, 0);
         });
 
