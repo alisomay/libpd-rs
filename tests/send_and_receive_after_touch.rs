@@ -12,6 +12,7 @@ use libpd_rs::{
 };
 
 #[test]
+#[ignore]
 fn send_and_receive_after_touch() {
     let sample_rate = 44100;
     let output_channels = 2;
