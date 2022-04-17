@@ -11,6 +11,7 @@ use libpd_rs::{
     send::send_note_on,
 };
 
+#[test]
 fn send_and_receive_note_on() {
     let sample_rate = 44100;
     let output_channels = 2;

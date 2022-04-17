@@ -17,12 +17,6 @@ fn send_and_receive_float() {
     let output_channels = 2;
 
     let floats: Arc<Mutex<Vec<f32>>> = Arc::new(Mutex::new(vec![]));
-    let floats_to_fill = floats.clone();
-    on_float(move |source, value| {
-        dbg!("RECEIVES?");
-        assert_eq!(source, "float_from_pd");
-        floats_to_fill.lock().unwrap().push(value);
-    });
 
     let _ = init().unwrap();
     let _ = initialize_audio(0, output_channels, sample_rate).unwrap();
@@ -30,6 +24,11 @@ fn send_and_receive_float() {
 
     let patch_handle = open_patch("tests/patches/echo.pd").unwrap();
 
+    let floats_to_fill = floats.clone();
+    on_float(move |source, value| {
+        assert_eq!(source, "float_from_pd");
+        floats_to_fill.lock().unwrap().push(value);
+    });
     let receiver_handle = start_listening_from("float_from_pd").unwrap();
 
     // Mimic audio callback buffers.

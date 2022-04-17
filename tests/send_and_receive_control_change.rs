@@ -11,6 +11,7 @@ use libpd_rs::{
     send::send_control_change,
 };
 
+#[test]
 fn send_and_receive_control_change() {
     let sample_rate = 44100;
     let output_channels = 2;

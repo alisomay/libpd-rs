@@ -11,6 +11,7 @@ use libpd_rs::{
     send::send_midi_byte,
 };
 
+#[test]
 fn send_and_receive_midi_byte() {
     let sample_rate = 44100;
     let output_channels = 2;

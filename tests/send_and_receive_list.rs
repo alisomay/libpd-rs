@@ -15,6 +15,7 @@ use libpd_rs::{
     types::Atom,
 };
 
+#[test]
 fn send_and_receive_list() {
     let sample_rate = 44100;
     let output_channels = 2;

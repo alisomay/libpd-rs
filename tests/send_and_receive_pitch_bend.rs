@@ -11,6 +11,7 @@ use libpd_rs::{
     send::send_pitch_bend,
 };
 
+#[test]
 fn send_and_receive_pitch_bend() {
     let sample_rate = 44100;
     let output_channels = 2;

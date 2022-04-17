@@ -12,6 +12,7 @@ use libpd_rs::{
     verbose_print_state,
 };
 
+#[test]
 fn send_and_receive_typed_message() {
     let sample_rate = 44100;
     let output_channels = 2;

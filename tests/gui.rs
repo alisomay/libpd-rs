@@ -1,4 +1,5 @@
 #![allow(clippy::restriction)]
+#![allow(unused)]
 
 use libpd_rs::gui::{poll_gui, start_gui, stop_gui};
 use std::{env, path::PathBuf};
