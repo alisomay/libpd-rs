@@ -80,20 +80,40 @@ fn apply_array_operations_in_a_row() {
     assert_eq!(read_to, vec![0.0, 0.0, 1.0, 1.0, 0.0, 0.0]);
 
     // Bounds
-    // TODO: It seems that bounds checking do not work properly in libpd.
-    // Research if this is the case. If so do the bounds checking in Rust wrapper.
 
-    // let will_write_long_array: Vec<f64> = vec![0.0; 1024];
-    // let result = write_double_array_to(sketch_pad, 4, &will_write_long_array, 1024);
-    // assert!(result.is_err());
+    // Double
+    let will_write_long_array: Vec<f64> = vec![0.0; 1024];
+    let result = write_double_array_to(sketch_pad, 4, &will_write_long_array, 1024);
+    assert!(result.is_err());
 
-    // let mut read_to: Vec<f64> = vec![0.0; 4];
-    // let result = read_double_array_from(sketch_pad, 50, &mut read_to, 0);
-    // assert!(result.is_err());
+    let mut read_to: Vec<f64> = vec![0.0; 4];
+    let result = read_double_array_from(sketch_pad, 50, &mut read_to, 0);
+    assert!(result.is_err());
 
-    // let mut read_to: Vec<f64> = vec![0.0; 1024];
-    // let result = read_double_array_from(sketch_pad, 1024, &mut read_to, 0);
-    // assert!(result.is_err());
+    let mut read_to: Vec<f64> = vec![0.0; 1024];
+    let result = read_double_array_from(sketch_pad, 1024, &mut read_to, 0);
+    assert!(result.is_err());
+
+    let mut read_to: Vec<f64> = vec![0.0; 1024];
+    let result = read_double_array_from(sketch_pad, -1, &mut read_to, 0);
+    assert!(result.is_err());
+
+    // Float
+    let will_write_long_array: Vec<f32> = vec![0.0; 1024];
+    let result = write_float_array_to(sketch_pad, 4, &will_write_long_array, 1024);
+    assert!(result.is_err());
+
+    let mut read_to: Vec<f32> = vec![0.0; 4];
+    let result = read_float_array_from(sketch_pad, 50, &mut read_to, 0);
+    assert!(result.is_err());
+
+    let mut read_to: Vec<f32> = vec![0.0; 1024];
+    let result = read_float_array_from(sketch_pad, 1024, &mut read_to, 0);
+    assert!(result.is_err());
+
+    let mut read_to: Vec<f32> = vec![0.0; 1024];
+    let result = read_float_array_from(sketch_pad, -1, &mut read_to, 0);
+    assert!(result.is_err());
 
     close_patch(handle).unwrap();
 }

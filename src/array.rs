@@ -108,6 +108,14 @@ pub fn read_float_array_from<T: AsRef<str>>(
         let name = CString::new(source_name.as_ref()).expect(C_STRING_FAILURE);
         // Returns 0 on success or a negative error code if the array is non-existent
         // or offset + n exceeds range of array
+
+        if destination_offset + read_amount
+            > array_size(source_name.as_ref()).map_err(|_| ArrayError::FailedToFindArray)? as i32
+            || read_amount < 0
+        {
+            return Err(ArrayError::OutOfBounds);
+        }
+
         match libpd_sys::libpd_read_array(
             destination.as_mut_ptr(),
             name.as_ptr(),
@@ -115,7 +123,6 @@ pub fn read_float_array_from<T: AsRef<str>>(
             read_amount,
         ) {
             0 => Ok(()),
-            -2 => Err(ArrayError::OutOfBounds),
             _ => Err(ArrayError::FailedToFindArray),
         }
     }
@@ -148,6 +155,18 @@ pub fn write_float_array_to<T: AsRef<str>>(
         let name = CString::new(destination_name.as_ref()).expect(C_STRING_FAILURE);
         // Returns 0 on success or a negative error code if the array is non-existent
         // or offset + n exceeds range of array
+
+        // We check this manually in the predicate.
+        #[allow(clippy::cast_sign_loss)]
+        if destination_offset + read_amount
+            > array_size(destination_name.as_ref()).map_err(|_| ArrayError::FailedToFindArray)?
+                as i32
+            || read_amount < 0
+            || read_amount as usize > source.len()
+        {
+            return Err(ArrayError::OutOfBounds);
+        }
+
         match libpd_sys::libpd_write_array(
             name.as_ptr(),
             destination_offset,
@@ -155,7 +174,6 @@ pub fn write_float_array_to<T: AsRef<str>>(
             read_amount,
         ) {
             0 => Ok(()),
-            -2 => Err(ArrayError::OutOfBounds),
             _ => Err(ArrayError::FailedToFindArray),
         }
     }
@@ -188,6 +206,14 @@ pub fn read_double_array_from<T: AsRef<str>>(
         let name = CString::new(source_name.as_ref()).expect(C_STRING_FAILURE);
         // Returns 0 on success or a negative error code if the array is non-existent
         // or offset + n exceeds range of array
+
+        if destination_offset + read_amount
+            > array_size(source_name.as_ref()).map_err(|_| ArrayError::FailedToFindArray)? as i32
+            || read_amount < 0
+        {
+            return Err(ArrayError::OutOfBounds);
+        }
+
         match libpd_sys::libpd_read_array_double(
             destination.as_mut_ptr(),
             name.as_ptr(),
@@ -195,7 +221,6 @@ pub fn read_double_array_from<T: AsRef<str>>(
             read_amount,
         ) {
             0 => Ok(()),
-            -2 => Err(ArrayError::OutOfBounds),
             _ => Err(ArrayError::FailedToFindArray),
         }
     }
@@ -228,6 +253,18 @@ pub fn write_double_array_to<T: AsRef<str>>(
         let name = CString::new(destination_name.as_ref()).expect(C_STRING_FAILURE);
         // Returns 0 on success or a negative error code if the array is non-existent
         // or offset + n exceeds range of array
+
+        // We check this manually in the predicate.
+        #[allow(clippy::cast_sign_loss)]
+        if destination_offset + read_amount
+            > array_size(destination_name.as_ref()).map_err(|_| ArrayError::FailedToFindArray)?
+                as i32
+            || read_amount < 0
+            || read_amount as usize > source.len()
+        {
+            return Err(ArrayError::OutOfBounds);
+        }
+
         match libpd_sys::libpd_write_array_double(
             name.as_ptr(),
             destination_offset,
@@ -235,7 +272,6 @@ pub fn write_double_array_to<T: AsRef<str>>(
             read_amount,
         ) {
             0 => Ok(()),
-            -2 => Err(ArrayError::OutOfBounds),
             _ => Err(ArrayError::FailedToFindArray),
         }
     }
