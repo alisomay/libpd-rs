@@ -44,49 +44,40 @@ fn apply_array_operations_in_a_row() {
     resize_array(sketch_pad, 8).unwrap();
 
     // Reading and writing works floats.
-    let will_write_a: Vec<f32> = vec![0.0, 0.0, 1.0, 1.0];
-    let will_write_b: Vec<f32> = vec![1.0, 1.0, 0.0, 0.0];
+    let will_write_f: Vec<f32> = vec![0.0, 0.0, 1.0, 1.0];
     let mut read_to: Vec<f32> = vec![0.0; 4];
 
-    write_float_array_to(sketch_pad, 0, &will_write_a, 4).unwrap();
+    write_float_array_to(sketch_pad, 0, &will_write_f, 4).unwrap();
     read_float_array_from(sketch_pad, 4, &mut read_to, 0).unwrap();
-    assert_eq!(read_to, will_write_a);
+    assert_eq!(read_to, will_write_f);
 
-    // Reading and writing works doubles.
-    let will_write_c: Vec<f64> = vec![0.0, 0.0, 1.0, 1.0];
-    let will_write_d: Vec<f64> = vec![1.0, 1.0, 0.0, 0.0];
+    let will_write_d: Vec<f64> = vec![0.0, 0.0, 1.0, 1.0];
     let mut read_to: Vec<f64> = vec![0.0; 4];
 
-    write_double_array_to(sketch_pad, 0, &will_write_c, 4).unwrap();
+    write_double_array_to(sketch_pad, 0, &will_write_d, 4).unwrap();
     read_double_array_from(sketch_pad, 4, &mut read_to, 0).unwrap();
-    assert_eq!(read_to, will_write_c);
+    assert_eq!(read_to, will_write_d);
     //
 
     // Clear float arrays.
-    let mut read_to: Vec<f32> = vec![0.0; 4];
+    let mut read_to: Vec<f32> = vec![0.0; 6];
     write_float_array_to(sketch_pad, 0, &[0.0, 0.0, 0.0, 0.0], 4).unwrap();
 
     // Offsets
-    write_float_array_to(sketch_pad, 2, &will_write_b, 4).unwrap();
-    read_float_array_from(sketch_pad, 4, &mut read_to, 0).unwrap();
+    write_float_array_to(sketch_pad, 2, &[1.0, 1.0, 0.0, 0.0], 4).unwrap();
+    read_float_array_from(sketch_pad, 6, &mut read_to, 0).unwrap();
 
-    // Although offsets do not work.
-    // This should be assert_eq!(read_to, will_write_a);
-    // TODO: Research why this is not working.
-    assert_ne!(read_to, will_write_b);
+    assert_eq!(read_to, vec![0.0, 0.0, 1.0, 1.0, 0.0, 0.0]);
 
     // Clear float arrays.
-    let mut read_to: Vec<f64> = vec![0.0; 4];
-    write_float_array_to(sketch_pad, 0, &[0.0, 0.0, 0.0, 0.0], 4).unwrap();
+    let mut read_to: Vec<f64> = vec![0.0; 6];
+    write_double_array_to(sketch_pad, 0, &[0.0, 0.0, 0.0, 0.0, 0.0, 0.0], 6).unwrap();
 
     // Offsets
-    write_double_array_to(sketch_pad, 2, &will_write_d, 4).unwrap();
-    read_double_array_from(sketch_pad, 4, &mut read_to, 0).unwrap();
+    write_double_array_to(sketch_pad, 2, &[1.0, 1.0, 0.0, 0.0], 4).unwrap();
+    read_double_array_from(sketch_pad, 6, &mut read_to, 0).unwrap();
 
-    // Although offsets do not work.
-    // This should be assert_eq!(read_to, will_write_a);
-    // TODO: Research why this is not working.
-    assert_ne!(read_to, will_write_d);
+    assert_eq!(read_to, vec![0.0, 0.0, 1.0, 1.0, 0.0, 0.0]);
 
     // Bounds
     // TODO: It seems that bounds checking do not work properly in libpd.
