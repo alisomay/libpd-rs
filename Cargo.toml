@@ -21,8 +21,8 @@ thiserror = "1.0.30"
 libffi = "3.0.0"
 
 #For local development currently.
-[patch."https://github.com/alisomay/libpd-sys"]
-libpd-sys = { path = "../libpd-sys" }
+# [patch."https://github.com/alisomay/libpd-sys"]
+# libpd-sys = { path = "../libpd-sys" }
 
 [lib]
 # name = "foo"           # The name of the target.
