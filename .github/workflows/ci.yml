@@ -8,51 +8,51 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # build_and_test_linux:
-  #   name: build-and-test-linux
-  #   runs-on: ubuntu-latest
-  #   strategy:
-  #     matrix:
-  #       toolchain:
-  #         - stable
-  #         # - beta
-  #         # - nightly
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
-  #     - run: cargo build --verbose
-  #     - run: cargo test --verbose
+  build_and_test_linux:
+    name: build-and-test-linux
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        toolchain:
+          - stable
+          # - beta
+          # - nightly
+    steps:
+      - uses: actions/checkout@v3
+      - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
+      - run: cargo build --verbose
+      - run: cargo test --verbose
 
-  #     - uses: actions-rs/tarpaulin@v0.1
-  #       with:
-  #         version: "0.15.0"
-  #         args: "-- --test-threads 1"
+      - uses: actions-rs/tarpaulin@v0.1
+        with:
+          version: "0.15.0"
+          args: "-- --test-threads 1"
 
-  #     - name: Upload to codecov.io
-  #       uses: codecov/codecov-action@v1.0.2
-  #       with:
-  #         token: ${{secrets.CODECOV_TOKEN}}
+      - name: Upload to codecov.io
+        uses: codecov/codecov-action@v1.0.2
+        with:
+          token: ${{secrets.CODECOV_TOKEN}}
 
-  #     - name: Archive code coverage results
-  #       uses: actions/upload-artifact@v1
-  #       with:
-  #         name: code-coverage-report
-  #         path: cobertura.xml
+      - name: Archive code coverage results
+        uses: actions/upload-artifact@v1
+        with:
+          name: code-coverage-report
+          path: cobertura.xml
 
-  # build_and_test_mac:
-  #   name: build-and-test-mac
-  #   runs-on: macos-latest
-  #   strategy:
-  #     matrix:
-  #       toolchain:
-  #         - stable
-  #         # - beta
-  #         # - nightly
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
-  #     - run: cargo build --verbose
-  #     - run: cargo test --verbose
+  build_and_test_mac:
+    name: build-and-test-mac
+    runs-on: macos-latest
+    strategy:
+      matrix:
+        toolchain:
+          - stable
+          # - beta
+          # - nightly
+    steps:
+      - uses: actions/checkout@v3
+      - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
+      - run: cargo build --verbose
+      - run: cargo test --verbose
 
   build_and_test_windows:
     name: build-and-test-windows
