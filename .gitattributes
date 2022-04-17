@@ -1,0 +1,3 @@
+# Ignore test data in language statistics.
+tests/pd_binary/* linguist-vendored
+tests/patches/* linguist-vendored
