@@ -55,24 +55,49 @@ pub fn calculate_ticks(channels: i32, buffer_size: i32) -> i32 {
     buffer_size / (block_size * channels)
 }
 
-// TODO:
-/// Explain the role of this struct.
+/// An abstraction provided for convenience to track the state of pd and execute some common functions.
+///
+/// Pd initializes globally.
+///
+/// This is one of the reasons that there are more bare functions in this crate than data structures and abstractions.
+/// This has some advantages and dis-advantages. In the case of [`PdGlobal`] we can not fully trust the state we track here.
+/// To trust it we need to not mix some bare functions and [`PdGlobal`] together.
+///
+/// # Example of an unwanted mix
+///
+/// ```rust
+/// use libpd_rs::convenience::PdGlobal;
+/// use libpd_rs::convenience::dsp_off;
+///
+/// let pd = PdGlobal::init_and_configure(1, 2, 44100).unwrap();
+///
+/// // We call the member function of [`PdGlobal`] to activate audio which calls [`dsp_on`] internally which sends a message to globally initialized pd.
+/// pd.activate_audio(true).unwrap();
+///
+/// // So far so good.
+/// assert_eq!(pd.audio_active(), true);
+///
+/// // But we can send messages to globally initialized pd many ways and this is one of the ways we can do it.
+/// dsp_off().unwrap();
+///
+/// // But now [`PdGlobal`] is not aware of the state of the globally initialized pd in the background.
+/// // The information it holds is outdated ad not true.
+/// assert_eq!(pd.audio_active(), true);
+/// ```
+///
+/// To avoid this situation if you use [`PdGlobal`] check its member functions and only use them and **not** their bare counterparts.
+///
+/// There are many bare functions in this crate which is not wrapped by [`PdGlobal`] and those are safe to use while using [`PdGlobal`] related functions.
 pub struct PdGlobal {
-    /// Explain
     audio_active: bool,
-    /// Explain
     input_channels: i32,
-    /// Explain
     output_channels: i32,
-    /// Explain
     sample_rate: i32,
-    /// Explain
     running_patch: Option<PatchFileHandle>,
-    /// Explain
     temporary_evaluated_patch: Option<NamedTempFile>,
-    /// Explain
+    /// A store to keep track of subscriptions which are made to senders in pd through the app lifecycle.
     pub subscriptions: HashMap<String, ReceiverHandle>,
-    /// Explain
+    /// A store to keep track of paths which are added to pd search paths through the app lifecycle.
     pub search_paths: Vec<PathBuf>,
 }
 
