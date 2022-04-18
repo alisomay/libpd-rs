@@ -9,8 +9,6 @@ use crate::{
     types::{PatchFileHandle, ReceiverHandle},
 };
 
-// TODO: Add examples to docs.
-
 /// Activates audio in pd.
 ///
 /// # Errors
@@ -48,6 +46,8 @@ pub fn dsp_off() -> Result<(), Box<dyn LibpdError>> {
 }
 
 /// Find the number of pd ticks according to the case.
+///
+/// The calculation is `buffer_size / (block_size * channels)`
 #[must_use]
 #[allow(clippy::integer_division)]
 pub fn calculate_ticks(channels: i32, buffer_size: i32) -> i32 {
@@ -83,6 +83,13 @@ impl PdGlobal {
     /// It would be wise to call this function before anything pd related.
     ///
     /// Please use only one instance of this struct, because of how [`libpd`](https://github.com/libpd/libpd) is designed the underlying initialization is scoped globally.
+    ///
+    /// # Examples
+    /// ```rust
+    /// use libpd_rs::convenience::PdGlobal;
+    ///
+    /// let pd = PdGlobal::init_and_configure(1, 2, 44100).unwrap();
+    /// ```
     ///
     /// # Errors
     ///
@@ -184,6 +191,14 @@ impl PdGlobal {
     ///
     /// Tha function **first** checks the executable directory and **then** the manifest directory.
     ///
+    /// # Examples
+    /// ```no_run
+    /// use libpd_rs::convenience::PdGlobal;
+    ///
+    /// let pd = PdGlobal::init_and_configure(1, 2, 44100).unwrap();
+    /// assert!(pd.open_patch("tests/patches/sine.pd").is_ok());
+    /// ```
+    ///
     /// # Errors
     ///
     /// A list of errors that can occur:
@@ -207,6 +222,27 @@ impl PdGlobal {
     /// and saves it into the [`PdGlobal`] struct holding onto it until the patch is closed or the instantiated [`PdGlobal`] is dropped.
     ///
     /// Note: The patch opened after this evaluation could be closed safely with [`close_patch`](PdGlobal::close_patch).
+    ///
+    /// # Examples
+    /// ```rust
+    /// use libpd_rs::convenience::PdGlobal;
+    ///
+    /// let pd = PdGlobal::init_and_configure(1, 2, 44100).unwrap();
+    ///     
+    /// assert!(pd.eval_patch(
+    /// r#"
+    /// #N canvas 577 549 158 168 12;
+    /// #X obj 23 116 dac~;
+    /// #X obj 23 17 osc~ 440;
+    /// #X obj 23 66 *~ 0.1;
+    /// #X obj 81 67 *~ 0.1;
+    /// #X connect 1 0 2 0;
+    /// #X connect 1 0 3 0;
+    /// #X connect 2 0 0 0;
+    /// #X connect 3 0 0 1;
+    /// "#
+    /// ,).is_ok());
+    /// ```
     ///
     /// # Errors
     ///
@@ -242,6 +278,15 @@ impl PdGlobal {
     ///
     /// If the source is already being listened to, this function will early return not doing anything without an error.
     ///
+    /// # Examples
+    /// ```no_run
+    /// use libpd_rs::convenience::PdGlobal;
+    ///
+    /// let pd = PdGlobal::init_and_configure(1, 2, 44100).unwrap();
+    /// pd.open_patch("tests/patches/sine.pd").unwrap();
+    /// pd.subscribe_to("sender").unwrap();
+    /// ```
+    ///
     /// # Errors
     ///
     /// A list of errors that can occur:
@@ -263,6 +308,15 @@ impl PdGlobal {
     /// Starts listening messages from many source.
     ///
     /// If the any source is already being listened to, this function will will ignore them.
+    ///
+    /// # Examples
+    /// ```no_run
+    /// use libpd_rs::convenience::PdGlobal;
+    ///
+    /// let pd = PdGlobal::init_and_configure(1, 2, 44100).unwrap();
+    /// pd.open_patch("tests/patches/sine.pd").unwrap();
+    /// pd.subscribe_to_many(&["sender", "other_sender"]).unwrap();
+    /// ```
     ///
     /// # Errors
     ///
@@ -288,6 +342,16 @@ impl PdGlobal {
     }
 
     /// Stops listening messages from a source.
+    ///
+    /// # Examples
+    /// ```no_run
+    /// use libpd_rs::convenience::PdGlobal;
+    ///
+    /// let pd = PdGlobal::init_and_configure(1, 2, 44100).unwrap();
+    /// pd.open_patch("tests/patches/sine.pd").unwrap();
+    /// pd.subscribe_to("sender").unwrap();
+    /// pd.unsubscribe_from("sender");
+    /// ```
     pub fn unsubscribe_from<T: AsRef<str>>(&mut self, source: T) {
         if let Some(handle) = self.subscriptions.remove(source.as_ref()) {
             crate::receive::stop_listening_from(handle);
@@ -295,6 +359,17 @@ impl PdGlobal {
     }
 
     /// Stops listening messages from many sources.
+    ///
+    /// # Examples
+    /// ```no_run
+    /// use libpd_rs::convenience::PdGlobal;
+    ///
+    /// let pd = PdGlobal::init_and_configure(1, 2, 44100).unwrap();
+    /// pd.open_patch("tests/patches/sine.pd").unwrap();
+    /// pd.subscribe_to_many(&["sender", "other_sender"]).unwrap();
+    ///
+    /// pd.unsubscribe_from_many(&["sender", "other_sender"]);
+    /// ```
     pub fn unsubscribe_from_many<T: AsRef<str>>(&mut self, sources: &[T]) {
         for source in sources {
             if let Some(handle) = self.subscriptions.remove(source.as_ref()) {
@@ -304,6 +379,17 @@ impl PdGlobal {
     }
 
     /// Stops listening from all sources.
+    ///
+    /// # Examples
+    /// ```no_run
+    /// use libpd_rs::convenience::PdGlobal;
+    ///
+    /// let pd = PdGlobal::init_and_configure(1, 2, 44100).unwrap();
+    /// pd.open_patch("tests/patches/sine.pd").unwrap();
+    /// pd.subscribe_to_many(&["sender", "other_sender"]).unwrap();
+    ///
+    /// pd.unsubscribe_from_all();
+    /// ```
     pub fn unsubscribe_from_all(&mut self) {
         let sources: Vec<String> = self.subscriptions.keys().cloned().collect();
         for source in &sources {
@@ -367,19 +453,31 @@ impl PdGlobal {
         Ok(())
     }
 
-    /// Explain
+    /// Gets the sample rate which pd is configured with.
+    ///
+    /// The state is tracked by [`PdGlobal`].
+    ///
+    /// If anything else changes the internal state of pd it will not be reflected in this struct.
     #[must_use]
     pub const fn sample_rate(&self) -> i32 {
         self.sample_rate
     }
 
-    /// Explain
+    /// Gets the number of input channels which pd is configured with.
+    ///
+    /// The state is tracked by [`PdGlobal`].
+    ///
+    /// If anything else changes the internal state of pd it will not be reflected in this struct.
     #[must_use]
     pub const fn input_channels(&self) -> i32 {
         self.input_channels
     }
 
-    /// Explain
+    /// Gets the number of output channels which pd is configured with.
+    ///
+    /// The state is tracked by [`PdGlobal`].
+    ///
+    /// If anything else changes the internal state of pd it will not be reflected in this struct.
     #[must_use]
     pub const fn output_channels(&self) -> i32 {
         self.output_channels

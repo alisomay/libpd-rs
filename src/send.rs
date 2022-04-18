@@ -10,6 +10,7 @@ use std::ffi::CString;
 /// Sends a `bang` to the pd receiver object specified in `receiver` the argument
 ///
 /// `send_bang_to("foo")` will send a bang to `|s foo|` on the next tick.
+///
 /// The `bang` can be received from a `|r foo|` object in the loaded pd patch.
 ///
 /// # Example
@@ -41,6 +42,7 @@ pub fn send_bang_to<T: AsRef<str>>(receiver: T) -> Result<(), SendError> {
 /// Sends an `f32` value to the pd receiver object specified in the `receiver` argument
 ///
 /// `send_float_to("foo", 1.0)` will send the `f32` value to `|s foo|` on the next tick.
+///
 /// The value can be received from a `|r foo|` object in the loaded pd patch.
 ///
 /// # Example
@@ -72,6 +74,7 @@ pub fn send_float_to<T: AsRef<str>>(receiver: T, value: f32) -> Result<(), SendE
 /// Sends an `f64` value to the pd receiver object specified in the `receiver` argument
 ///
 /// `send_double_to("foo", 1.0)` will send the `f64` value to `|s foo|` on the next tick.
+///
 /// The value can be received from a `|r foo|` object in the loaded pd patch.
 ///
 /// # Example
@@ -103,6 +106,7 @@ pub fn send_double_to<T: AsRef<str>>(receiver: T, value: f64) -> Result<(), Send
 /// Sends a symbol to the pd receiver object specified in the `receiver` argument
 ///
 /// `send_symbol_to("foo", "bar")` will send the symbol value to `|s foo|` on the next tick.
+///
 /// The value can be received from a `|r foo|` object in the loaded pd patch.
 ///
 /// # Example
@@ -246,6 +250,7 @@ pub fn add_symbol_to_started_message<T: AsRef<str>>(value: T) {
 /// Finishes the current message and send as a list to a receiver in the loaded pd patch
 ///
 /// The following example will send a list `42.0 bar` to `|s foo|` on the next tick.
+///
 /// The list can be received from a `|r foo|` object in the loaded pd patch.
 ///
 /// # Example
@@ -286,6 +291,7 @@ pub fn finish_message_as_list_and_send_to<T: AsRef<str>>(receiver: T) -> Result<
 ///
 /// The following example will send a message `; pd dsp 1` on the next tick.
 ///
+///
 /// # Example
 /// ```rust
 /// use libpd_rs::send::{start_message, add_float_to_started_message, finish_message_as_typed_message_and_send_to};
@@ -323,6 +329,7 @@ pub fn finish_message_as_typed_message_and_send_to<T: AsRef<str>, S: AsRef<str>>
 /// Sends a list to a receiver in the loaded pd patch
 ///
 /// The following example will send a list `42.0 bar` to `|s foo|` on the next tick.
+///
 /// The list can be received from a `|r foo|` object in the loaded pd patch.
 ///
 /// # Example
@@ -369,6 +376,7 @@ pub fn send_list_to<T: AsRef<str>>(receiver: T, list: &[Atom]) -> Result<(), Sen
 /// Sends a typed message to a receiver in the loaded pd patch
 ///
 /// The following example will send a typed message `dsp 1` to the receiver `pd` on the next tick.
+///
 /// The equivalent of this example message would have looked like `[; pd dsp 1]` in pd gui.
 ///
 /// # Example
