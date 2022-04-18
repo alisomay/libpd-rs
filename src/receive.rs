@@ -34,6 +34,11 @@ use std::ffi::{CStr, CString};
 ///     });
 /// }
 /// ```
+///
+/// # Errors
+///
+/// A list of errors that can occur:
+/// - [`FailedToSubscribeToSender`](crate::error::SubscriptionError::FailedToSubscribeToSender)
 pub fn start_listening_from<T: AsRef<str>>(sender: T) -> Result<ReceiverHandle, SubscriptionError> {
     let send = CString::new(sender.as_ref()).expect(C_STRING_FAILURE);
 

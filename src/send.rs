@@ -23,6 +23,11 @@ use std::ffi::CString;
 /// // or don't care..
 /// let _ = send_bang_to("foo");
 /// ```
+///
+/// # Errors
+///
+/// A list of errors that can occur:
+/// - [`MissingDestination`](crate::error::SendError::MissingDestination)
 pub fn send_bang_to<T: AsRef<str>>(receiver: T) -> Result<(), SendError> {
     let recv = CString::new(receiver.as_ref()).expect(C_STRING_FAILURE);
     unsafe {
@@ -49,6 +54,11 @@ pub fn send_bang_to<T: AsRef<str>>(receiver: T) -> Result<(), SendError> {
 /// // or don't care..
 /// let _ = send_float_to("foo", 1.0);
 /// ```
+///
+/// # Errors
+///
+/// A list of errors that can occur:
+/// - [`MissingDestination`](crate::error::SendError::MissingDestination)
 pub fn send_float_to<T: AsRef<str>>(receiver: T, value: f32) -> Result<(), SendError> {
     let recv = CString::new(receiver.as_ref()).expect(C_STRING_FAILURE);
     unsafe {
@@ -75,6 +85,11 @@ pub fn send_float_to<T: AsRef<str>>(receiver: T, value: f32) -> Result<(), SendE
 /// // or don't care..
 /// let _ = send_double_to("foo", 1.0);
 /// ```
+///
+/// # Errors
+///
+/// A list of errors that can occur:
+/// - [`MissingDestination`](crate::error::SendError::MissingDestination)
 pub fn send_double_to<T: AsRef<str>>(receiver: T, value: f64) -> Result<(), SendError> {
     let recv = CString::new(receiver.as_ref()).expect(C_STRING_FAILURE);
     unsafe {
@@ -101,6 +116,11 @@ pub fn send_double_to<T: AsRef<str>>(receiver: T, value: f64) -> Result<(), Send
 /// // or don't care..
 /// let _ = send_symbol_to("foo", "bar");
 /// ```
+///
+/// # Errors
+///
+/// A list of errors that can occur:
+/// - [`MissingDestination`](crate::error::SendError::MissingDestination)
 pub fn send_symbol_to<T: AsRef<str>, S: AsRef<str>>(
     receiver: T,
     value: S,
@@ -133,6 +153,11 @@ pub fn send_symbol_to<T: AsRef<str>, S: AsRef<str>>(
 ///   // Add some values to the message..
 /// }
 /// ```
+///
+/// # Errors
+///
+/// A list of errors that can occur:
+/// - [`TooLarge`](crate::error::SizeError::TooLarge)
 pub fn start_message(length: i32) -> Result<(), SizeError> {
     unsafe {
         match libpd_sys::libpd_start_message(length) {
@@ -239,6 +264,11 @@ pub fn add_symbol_to_started_message<T: AsRef<str>>(value: T) {
 ///   });
 /// }
 /// ```
+///
+/// # Errors
+///
+/// A list of errors that can occur:
+/// - [`MissingDestination`](crate::error::SendError::MissingDestination)
 pub fn finish_message_as_list_and_send_to<T: AsRef<str>>(receiver: T) -> Result<(), SendError> {
     let recv = CString::new(receiver.as_ref()).expect(C_STRING_FAILURE);
     unsafe {
@@ -271,6 +301,11 @@ pub fn finish_message_as_list_and_send_to<T: AsRef<str>>(receiver: T) -> Result<
 ///   });
 /// }
 /// ```
+///
+/// # Errors
+///
+/// A list of errors that can occur:
+/// - [`MissingDestination`](crate::error::SendError::MissingDestination)
 pub fn finish_message_as_typed_message_and_send_to<T: AsRef<str>, S: AsRef<str>>(
     receiver: T,
     message_header: S,
@@ -305,7 +340,11 @@ pub fn finish_message_as_typed_message_and_send_to<T: AsRef<str>, S: AsRef<str>>
 /// // or don't care..
 /// let _ = send_list_to("foo", &list);
 /// ```
-
+///
+/// # Errors
+///
+/// A list of errors that can occur:
+/// - [`MissingDestination`](crate::error::SendError::MissingDestination)
 pub fn send_list_to<T: AsRef<str>>(receiver: T, list: &[Atom]) -> Result<(), SendError> {
     let recv = CString::new(receiver.as_ref()).expect(C_STRING_FAILURE);
 
@@ -347,6 +386,11 @@ pub fn send_list_to<T: AsRef<str>>(receiver: T, list: &[Atom]) -> Result<(), Sen
 /// // or don't care..
 /// let _ = send_message_to("pd", "dsp", &values);
 /// ```
+///
+/// # Errors
+///
+/// A list of errors that can occur:
+/// - [`MissingDestination`](crate::error::SendError::MissingDestination)
 pub fn send_message_to<T: AsRef<str>>(
     receiver: T,
     message: T,
@@ -394,6 +438,11 @@ pub fn send_message_to<T: AsRef<str>>(
 /// // or don't care..
 /// let _ = send_note_on(0, 48, 64);
 /// ```
+///
+/// # Errors
+///
+/// A list of errors that can occur:
+/// - [`OutOfRange`](crate::error::SendError::OutOfRange)
 pub fn send_note_on(channel: i32, pitch: i32, velocity: i32) -> Result<(), SendError> {
     unsafe {
         // Returns 0 on success or -1 if an argument is out of range
@@ -423,6 +472,11 @@ pub fn send_note_on(channel: i32, pitch: i32, velocity: i32) -> Result<(), SendE
 /// // or don't care..
 /// let _ = send_control_change(0, 0, 64);
 /// ```
+///
+/// # Errors
+///
+/// A list of errors that can occur:
+/// - [`OutOfRange`](crate::error::SendError::OutOfRange)
 pub fn send_control_change(channel: i32, controller: i32, value: i32) -> Result<(), SendError> {
     unsafe {
         // Returns 0 on success or -1 if an argument is out of range
@@ -452,6 +506,11 @@ pub fn send_control_change(channel: i32, controller: i32, value: i32) -> Result<
 /// // or don't care..
 /// let _ = send_program_change(0, 42);
 /// ```
+///
+/// # Errors
+///
+/// A list of errors that can occur:
+/// - [`OutOfRange`](crate::error::SendError::OutOfRange)
 pub fn send_program_change(channel: i32, value: i32) -> Result<(), SendError> {
     unsafe {
         // Returns 0 on success or -1 if an argument is out of range
@@ -483,6 +542,11 @@ pub fn send_program_change(channel: i32, value: i32) -> Result<(), SendError> {
 /// // or don't care..
 /// let _ = send_pitch_bend(0, 8192);
 /// ```
+///
+/// # Errors
+///
+/// A list of errors that can occur:
+/// - [`OutOfRange`](crate::error::SendError::OutOfRange)
 pub fn send_pitch_bend(channel: i32, value: i32) -> Result<(), SendError> {
     unsafe {
         // Returns 0 on success or -1 if an argument is out of range
@@ -512,6 +576,11 @@ pub fn send_pitch_bend(channel: i32, value: i32) -> Result<(), SendError> {
 /// // or don't care..
 /// let _ = send_after_touch(0, 42);
 /// ```
+///
+/// # Errors
+///
+/// A list of errors that can occur:
+/// - [`OutOfRange`](crate::error::SendError::OutOfRange)
 pub fn send_after_touch(channel: i32, value: i32) -> Result<(), SendError> {
     unsafe {
         // Returns 0 on success or -1 if an argument is out of range
@@ -541,6 +610,11 @@ pub fn send_after_touch(channel: i32, value: i32) -> Result<(), SendError> {
 /// // or don't care..
 /// let _ = send_poly_after_touch(0, 48, 64);
 /// ```
+///
+/// # Errors
+///
+/// A list of errors that can occur:
+/// - [`OutOfRange`](crate::error::SendError::OutOfRange)
 pub fn send_poly_after_touch(channel: i32, pitch: i32, value: i32) -> Result<(), SendError> {
     unsafe {
         // Returns 0 on success or -1 if an argument is out of range
@@ -568,6 +642,11 @@ pub fn send_poly_after_touch(channel: i32, pitch: i32, value: i32) -> Result<(),
 /// // or don't care..
 /// let _ = send_midi_byte(0, 0xFF);
 /// ```
+///
+/// # Errors
+///
+/// A list of errors that can occur:
+/// - [`OutOfRange`](crate::error::SendError::OutOfRange)
 pub fn send_midi_byte(port: i32, byte: i32) -> Result<(), SendError> {
     unsafe {
         // Returns 0 on success or -1 if an argument is out of range
@@ -595,6 +674,11 @@ pub fn send_midi_byte(port: i32, byte: i32) -> Result<(), SendError> {
 /// // or don't care..
 /// let _ = send_sysex(0, 0x7F);
 /// ```
+///
+/// # Errors
+///
+/// A list of errors that can occur:
+/// - [`OutOfRange`](crate::error::SendError::OutOfRange)
 pub fn send_sysex(port: i32, byte: i32) -> Result<(), SendError> {
     unsafe {
         // Returns 0 on success or -1 if an argument is out of range
@@ -622,6 +706,11 @@ pub fn send_sysex(port: i32, byte: i32) -> Result<(), SendError> {
 /// // or don't care..
 /// let _ = send_sys_realtime(0, 0x7F);
 /// ```
+///
+/// # Errors
+///
+/// A list of errors that can occur:
+/// - [`OutOfRange`](crate::error::SendError::OutOfRange)
 pub fn send_sys_realtime(port: i32, byte: i32) -> Result<(), SendError> {
     unsafe {
         // Returns 0 on success or -1 if an argument is out of range
