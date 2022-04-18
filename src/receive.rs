@@ -101,7 +101,8 @@ pub fn source_to_listen_from_exists<T: AsRef<str>>(sender: T) -> bool {
 /// Sets a closure to be called when a message is written to the pd console.
 ///
 /// There is also no prior call to `start_listening_from` to listen from pd console.
-///  Do not register this listener while pd DSP is running.
+///
+/// Note: Do not register this listener while pd DSP is running.
 ///
 /// # Example
 /// ```rust
@@ -134,7 +135,7 @@ pub fn on_print<F: FnMut(&str) + Send + Sync + 'static>(mut user_provided_closur
 
 /// Sets a closure to be called when a bang is received from a subscribed receiver
 ///
-/// Do not register this listener while pd DSP is running.
+/// Note: Do not register this listener while pd DSP is running.
 ///
 /// # Example
 /// ```rust
@@ -171,10 +172,11 @@ pub fn on_bang<F: FnMut(&str) + Send + Sync + 'static>(mut user_provided_closure
 
 /// Sets a closure to be called when an `f32` is received from a subscribed receiver
 ///
-/// You may either have `on_double` registered or `on_float` registered. **Not both**.
+/// You may either have [`on_double`] registered or [`on_float`] registered. **Not both**.
+///
 /// If you set both, the one you have set the latest will **overwrite the previously set one**.
 ///
-/// Do not register this listener while pd DSP is running.
+/// Note: Do not register this listener while pd DSP is running.
 ///
 /// # Example
 /// ```rust
@@ -212,10 +214,11 @@ pub fn on_float<F: FnMut(&str, f32) + Send + Sync + 'static>(mut user_provided_c
 
 /// Sets a closure to be called when an `f64` is received from a subscribed receiver
 ///
-/// You may either have `on_double` registered or `on_float` registered. **Not both**.
+/// You may either have [`on_double`] registered or [`on_float`] registered. **Not both**.
+///
 /// If you set both, the one you have set the latest will **overwrite the previously set one**.
 ///
-/// Do not register this listener while pd DSP is running.
+/// Note: Do not register this listener while pd DSP is running.
 ///
 /// # Example
 /// ```rust
@@ -253,7 +256,7 @@ pub fn on_double<F: FnMut(&str, f64) + Send + Sync + 'static>(mut user_provided_
 
 /// Sets a closure to be called when a symbol is received from a subscribed receiver
 ///
-/// Do not register this listener while pd DSP is running.
+/// Note: Do not register this listener while pd DSP is running.
 ///
 /// # Example
 /// ```rust
@@ -292,7 +295,7 @@ pub fn on_symbol<F: FnMut(&str, &str) + Send + Sync + 'static>(mut user_provided
 
 /// Sets a closure to be called when a list is received from a subscribed receiver
 ///
-/// Do not register this listener while pd DSP is running.
+/// Note: Do not register this listener while pd DSP is running.
 ///
 /// # Example
 /// ```rust
@@ -359,9 +362,9 @@ pub fn on_list<F: FnMut(&str, &[Atom]) + Send + Sync + 'static>(mut user_provide
 
 /// Sets a closure to be called when a typed message is received from a subscribed receiver
 ///
-/// In a message like [; foo hello 1.0 merhaba] which is sent from the patch,
+/// In a message like `[; foo hello 1.0 merhaba]` which is sent from the patch,
 ///
-/// To receive the message, you need to subscribe to the receiver with the name "foo".
+/// To receive the message, you need to subscribe to the receiver with the name `foo`.
 ///
 /// The arguments of the closure would be:
 ///
@@ -371,7 +374,7 @@ pub fn on_list<F: FnMut(&str, &[Atom]) + Send + Sync + 'static>(mut user_provide
 /// values: [Atom::from(1.0), Atom::from("merhaba")]
 /// ```
 ///
-/// Do not register this listener while pd DSP is running.
+/// Note: Do not register this listener while pd DSP is running.
 ///
 /// # Example
 /// ```rust
@@ -464,7 +467,7 @@ pub fn receive_messages_from_pd() {
 ///
 /// You do not need to register this listener explicitly.
 ///
-/// Channel is 0-indexed, pitch is 0-127 and velocity is 0-127.
+/// Channel is zero-indexed, pitch is `0-127` and velocity is `0-127`.
 ///
 /// Channels encode MIDI ports via: `libpd_channel = pd_channel + 16 * pd_port`
 ///
@@ -506,7 +509,7 @@ pub fn on_midi_note_on<F: FnMut(i32, i32, i32) + Send + Sync + 'static>(
 ///
 /// You do not need to register this listener explicitly.
 ///
-/// Channel is 0-indexed, controller is 0-127 and value is 0-127.
+/// Channel is zero-indexed, controller is `0-127` and value is `0-127`.
 ///
 /// Channels encode MIDI ports via: `libpd_channel = pd_channel + 16 * pd_port`
 ///
@@ -547,7 +550,7 @@ pub fn on_midi_control_change<F: FnMut(i32, i32, i32) + Send + Sync + 'static>(
 ///
 /// You do not need to register this listener explicitly.
 ///
-/// Channel is 0-indexed, value is 0-127.
+/// Channel is zero-indexed, value is `0-127`.
 ///
 /// Channels encode MIDI ports via: `libpd_channel = pd_channel + 16 * pd_port`
 ///
@@ -583,12 +586,12 @@ pub fn on_midi_program_change<F: FnMut(i32, i32) + Send + Sync + 'static>(
 ///
 /// You do not need to register this listener explicitly.
 ///
-/// Channel is 0-indexed, value is -8192-8192.
+/// Channel is zero-indexed, value is `-8192 to 8192`.
 ///
 /// Channels encode MIDI ports via: `libpd_channel = pd_channel + 16 * pd_port`
 ///
 /// Note:
-///  - `|bendin|` object in pd outputs 0-16383 while `|bendout|` accepts -8192 to +8192.
+///  - `|bendin|` object in pd outputs 0-16383 while `|bendout|` accepts `-8192 to +8192`.
 ///  - Out of range values which are sent from the patch are clamped.
 ///
 /// # Example
@@ -621,7 +624,7 @@ pub fn on_midi_pitch_bend<F: FnMut(i32, i32) + Send + Sync + 'static>(
 ///
 /// You do not need to register this listener explicitly.
 ///
-/// Channel is 0-indexed, value is 0-127.
+/// Channel is zero-indexed, value is `0-127`.
 ///
 /// Channels encode MIDI ports via: `libpd_channel = pd_channel + 16 * pd_port`
 ///
@@ -657,7 +660,7 @@ pub fn on_midi_after_touch<F: FnMut(i32, i32) + Send + Sync + 'static>(
 ///
 /// You do not need to register this listener explicitly.
 ///
-/// Channel is 0-indexed, pitch is 0-127 and value is 0-127.
+/// Channel is zero-indexed, pitch is `0-127` and value is `0-127`.
 ///
 /// Channels encode MIDI ports via: `libpd_channel = pd_channel + 16 * pd_port`
 ///
@@ -697,7 +700,7 @@ pub fn on_midi_poly_after_touch<F: FnMut(i32, i32, i32) + Send + Sync + 'static>
 ///
 /// You do not need to register this listener explicitly.
 ///
-/// Port is 0-indexed and byte is 0-255
+/// Port is zero-indexed and byte is `0-255`
 ///
 /// Note: Out of range values which are sent from the patch are clamped.
 ///
