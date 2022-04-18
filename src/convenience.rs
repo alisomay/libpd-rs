@@ -3,26 +3,22 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-use crate::error::{InitializationError, LibpdError};
-use crate::send::{
-    add_float_to_started_message, finish_message_as_typed_message_and_send_to, start_message,
-};
+use crate::error::{InitializationError, LibpdError, PatchLifeCycleError};
 use crate::types::{PatchFileHandle, ReceiverHandle};
-use crate::{init, initialize_audio};
 
 /// Activates audio in pd.
 pub fn dsp_on() -> Result<(), Box<dyn LibpdError>> {
-    start_message(1)?;
-    add_float_to_started_message(1.0);
-    finish_message_as_typed_message_and_send_to("pd", "dsp")?;
+    crate::send::start_message(1)?;
+    crate::send::add_float_to_started_message(1.0);
+    crate::send::finish_message_as_typed_message_and_send_to("pd", "dsp")?;
     Ok(())
 }
 
 /// De-activates audio in pd.
 pub fn dsp_off() -> Result<(), Box<dyn LibpdError>> {
-    start_message(1)?;
-    add_float_to_started_message(0.0);
-    finish_message_as_typed_message_and_send_to("pd", "dsp")?;
+    crate::send::start_message(1)?;
+    crate::send::add_float_to_started_message(0.0);
+    crate::send::finish_message_as_typed_message_and_send_to("pd", "dsp")?;
     Ok(())
 }
 
@@ -41,6 +37,7 @@ pub struct PdGlobal {
     sample_rate: i32,
     running_patch: Option<PatchFileHandle>,
     subscriptions: HashMap<String, ReceiverHandle>,
+    search_paths: Vec<PathBuf>,
 }
 
 impl PdGlobal {
@@ -49,7 +46,7 @@ impl PdGlobal {
         output_channels: i32,
         sample_rate: i32,
     ) -> Result<Self, Box<dyn LibpdError>> {
-        match init() {
+        match crate::init() {
             Ok(_) => (),
             Err(err) => match err {
                 // Ignore re-initialization errors.
@@ -57,7 +54,7 @@ impl PdGlobal {
                 err => return Err(err.into()),
             },
         }
-        initialize_audio(input_channels, output_channels, sample_rate)?;
+        crate::initialize_audio(input_channels, output_channels, sample_rate)?;
         Ok(Self {
             audio_active: false,
             input_channels,
@@ -65,7 +62,37 @@ impl PdGlobal {
             sample_rate,
             running_patch: None,
             subscriptions: HashMap::default(),
+            search_paths: vec![],
         })
+    }
+
+    pub fn add_path_to_search_paths<T: AsRef<Path>>(
+        &mut self,
+        path: T,
+    ) -> Result<(), Box<dyn LibpdError>> {
+        let path = path.as_ref().to_path_buf();
+        if !self.search_paths.contains(&path) {
+            crate::add_to_search_paths(path.clone())?;
+            self.search_paths.push(path);
+        }
+        Ok(())
+    }
+    pub fn add_paths_to_search_paths<T: AsRef<Path>>(
+        &mut self,
+        paths: &[T],
+    ) -> Result<(), Box<dyn LibpdError>> {
+        for path in paths {
+            if !self.search_paths.contains(&path.as_ref().to_path_buf()) {
+                crate::add_to_search_paths(path)?;
+                self.search_paths.push(path.as_ref().to_path_buf());
+            }
+        }
+        Ok(())
+    }
+
+    pub fn clear_all_search_paths<T: AsRef<Path>>(&mut self) {
+        crate::clear_search_paths();
+        self.search_paths.clear();
     }
 
     /// Closes a pd patch.
@@ -77,7 +104,16 @@ impl PdGlobal {
     }
 
     /// Opens a pd patch.
+    ///
+    /// The argument should be an absolute path to the patch file.
+    /// Absolute and relative paths are supported.
+    /// Relative paths and single file names are tried in executable directory and manifest directory.
+    ///
+    /// Tha function **first** checks the executable directory and **then** the manifest directory.
     pub fn open_patch<T: AsRef<Path>>(&mut self, path: T) -> Result<(), Box<dyn LibpdError>> {
+        if self.running_patch.is_some() {
+            self.close_patch()?;
+        }
         self.running_patch = Some(crate::open_patch(path)?);
         Ok(())
     }
@@ -143,6 +179,20 @@ impl PdGlobal {
         }
     }
 
+    /// Gets the `$0` of the running patch.
+    ///
+    /// `$0` id in pd could be thought as a auto generated unique identifier for the patch.
+    ///
+    /// # Errors
+    /// The returned error could be down casted to [`PatchLifeCycleError::PatchIsNotOpen`]
+    pub fn dollar_zero(&self) -> Result<i32, Box<dyn LibpdError>> {
+        if let Some(ref patch) = self.running_patch {
+            let dollar_zero = crate::get_dollar_zero(patch)?;
+            return Ok(dollar_zero);
+        }
+        Err(Box::new(PatchLifeCycleError::PatchIsNotOpen))
+    }
+
     /// Checks if the audio is active.
     ///
     /// The state is tracked by [`PdGlobal`].
@@ -154,17 +204,15 @@ impl PdGlobal {
         self.audio_active
     }
 
-    /// Activates audio in pd.
-    pub fn dsp_on(&mut self) -> Result<(), Box<dyn LibpdError>> {
-        dsp_on()?;
-        self.audio_active = true;
-        Ok(())
-    }
-
-    /// De-activates audio in pd.
-    pub fn dsp_off(&mut self) -> Result<(), Box<dyn LibpdError>> {
-        dsp_off()?;
-        self.audio_active = false;
+    /// Activates or deactivates audio in pd.
+    pub fn activate_audio(&mut self, on: bool) -> Result<(), Box<dyn LibpdError>> {
+        if on {
+            dsp_on()?;
+            self.audio_active = true;
+        } else {
+            dsp_off()?;
+            self.audio_active = false;
+        }
         Ok(())
     }
 }
