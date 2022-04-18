@@ -62,8 +62,7 @@ fn open_close_patch() {
             // Collect samples to check if the patch runs later.
             sum_clone.store(
                 output_buffer.iter().fold(0_f32, |sum, sample| sum + sample) as i32,
-                // Here we don't look for precise ordering, something bigger than 0 is fine to understand if the patch is working.
-                std::sync::atomic::Ordering::Relaxed,
+                std::sync::atomic::Ordering::SeqCst,
             );
 
             match rx.try_recv() {
@@ -79,6 +78,6 @@ fn open_close_patch() {
     tx.send(()).unwrap();
     handle.join().unwrap();
 
-    assert!(sum.load(std::sync::atomic::Ordering::Relaxed) > 0);
+    assert!(sum.load(std::sync::atomic::Ordering::SeqCst) > 0);
     assert!(pd.close_patch().is_ok());
 }
