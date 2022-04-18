@@ -3,8 +3,10 @@
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
-use crate::error::{InitializationError, LibpdError, PatchLifeCycleError};
-use crate::types::{PatchFileHandle, ReceiverHandle};
+use crate::{
+    error::{InitializationError, LibpdError, PatchLifeCycleError},
+    types::{PatchFileHandle, ReceiverHandle},
+};
 
 /// Activates audio in pd.
 pub fn dsp_on() -> Result<(), Box<dyn LibpdError>> {
@@ -30,14 +32,23 @@ pub fn calculate_ticks(channels: i32, buffer_size: i32) -> i32 {
     buffer_size / (block_size * channels)
 }
 
+// TODO:
+/// Explain the role of this struct.
 pub struct PdGlobal {
+    /// Explain
     audio_active: bool,
+    /// Explain
     input_channels: i32,
+    /// Explain
     output_channels: i32,
+    /// Explain
     sample_rate: i32,
+    /// Explain
     running_patch: Option<PatchFileHandle>,
-    subscriptions: HashMap<String, ReceiverHandle>,
-    search_paths: Vec<PathBuf>,
+    /// Explain
+    pub subscriptions: HashMap<String, ReceiverHandle>,
+    /// Explain
+    pub search_paths: Vec<PathBuf>,
 }
 
 impl PdGlobal {
@@ -66,6 +77,10 @@ impl PdGlobal {
         })
     }
 
+    /// Adds a path to the list of paths where libpd searches in.
+    ///
+    /// Relative paths are relative to the current working directory.
+    /// Unlike the desktop pd application, **no** search paths are set by default.
     pub fn add_path_to_search_paths<T: AsRef<Path>>(
         &mut self,
         path: T,
@@ -77,6 +92,11 @@ impl PdGlobal {
         }
         Ok(())
     }
+
+    /// Adds many paths to the list of paths where libpd searches in.
+    ///
+    /// Relative paths are relative to the current working directory.
+    /// Unlike the desktop pd application, **no** search paths are set by default.
     pub fn add_paths_to_search_paths<T: AsRef<Path>>(
         &mut self,
         paths: &[T],
@@ -90,7 +110,8 @@ impl PdGlobal {
         Ok(())
     }
 
-    pub fn clear_all_search_paths<T: AsRef<Path>>(&mut self) {
+    /// Clears all the paths where libpd searches for patches and assets.
+    pub fn clear_all_search_paths(&mut self) {
         crate::clear_search_paths();
         self.search_paths.clear();
     }
@@ -179,6 +200,16 @@ impl PdGlobal {
         }
     }
 
+    /// Stops listening from all sources.
+    pub fn unsubscribe_from_all(&mut self) {
+        let sources: Vec<String> = self.subscriptions.keys().cloned().collect();
+        for source in &sources {
+            if let Some(handle) = self.subscriptions.remove(source) {
+                crate::receive::stop_listening_from(handle);
+            }
+        }
+    }
+
     /// Gets the `$0` of the running patch.
     ///
     /// `$0` id in pd could be thought as a auto generated unique identifier for the patch.
@@ -214,5 +245,23 @@ impl PdGlobal {
             self.audio_active = false;
         }
         Ok(())
+    }
+
+    /// Explain
+    #[must_use]
+    pub const fn sample_rate(&self) -> i32 {
+        self.sample_rate
+    }
+
+    /// Explain
+    #[must_use]
+    pub const fn input_channels(&self) -> i32 {
+        self.input_channels
+    }
+
+    /// Explain
+    #[must_use]
+    pub const fn output_channels(&self) -> i32 {
+        self.output_channels
     }
 }
