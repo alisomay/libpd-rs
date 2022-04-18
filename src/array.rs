@@ -14,7 +14,7 @@ use std::ffi::CString;
 /// let size = array_size("my_array").unwrap();
 /// ```
 ///
-///  # Errors
+/// # Errors
 ///
 /// A list of errors that can occur:
 /// - [`CouldNotDetermine`](crate::error::SizeError::CouldNotDetermine)

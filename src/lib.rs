@@ -156,6 +156,13 @@ pub(crate) const C_STR_FAILURE: &str = "Converting a CStr to an &str is failed."
 /// assert_eq!(init().is_ok(), true);
 /// assert_eq!(init().is_err(), true);
 /// ```
+///
+/// # Errors
+///
+/// A list of errors that can occur:
+/// - [`AlreadyInitialized`](crate::error::InitializationError::AlreadyInitialized)
+/// - [`RingBufferInitializationError`](crate::error::InitializationError::RingBufferInitializationError)
+/// - [`InitializationFailed`](crate::error::InitializationError::InitializationFailed)
 pub fn init() -> Result<(), InitializationError> {
     unsafe {
         match libpd_sys::libpd_queued_init() {
@@ -190,6 +197,11 @@ pub fn clear_search_paths() {
 ///
 /// Relative paths are relative to the current working directory.
 /// Unlike the desktop pd application, **no** search paths are set by default.
+///
+/// # Errors
+///
+/// A list of errors that can occur:
+/// - [`PathDoesNotExist`](crate::error::IoError::PathDoesNotExist)
 pub fn add_to_search_paths<T: AsRef<Path>>(path: T) -> Result<(), IoError> {
     if !path.as_ref().exists() {
         return Err(IoError::PathDoesNotExist(
@@ -213,7 +225,7 @@ pub fn add_to_search_paths<T: AsRef<Path>>(path: T) -> Result<(), IoError> {
 ///
 /// Tha function **first** checks the executable directory and **then** the manifest directory.
 ///
-/// # Example
+/// # Examples
 /// ```no_run
 /// use libpd_rs::open_patch;
 /// use std::path::PathBuf;
@@ -225,6 +237,12 @@ pub fn add_to_search_paths<T: AsRef<Path>>(path: T) -> Result<(), IoError> {
 /// let patch_handle = open_patch(&patch_name).unwrap();
 /// // or others..
 /// ```
+///
+/// # Errors
+///
+/// A list of errors that can occur:
+/// - [`FailedToOpenPatch`](crate::error::PatchLifeCycleError::FailedToOpenPatch)
+/// - [`PathDoesNotExist`](crate::error::PatchLifeCycleError::PathDoesNotExist)
 pub fn open_patch<T: AsRef<Path>>(
     path_to_patch: T,
 ) -> Result<PatchFileHandle, PatchLifeCycleError> {
@@ -300,7 +318,7 @@ pub fn open_patch<T: AsRef<Path>>(
 ///
 /// Handle needs to point to a valid opened patch file.
 ///
-/// # Example
+/// # Examples
 /// ```no_run
 /// use std::path::PathBuf;
 /// use libpd_rs::{open_patch, close_patch};
@@ -310,6 +328,10 @@ pub fn open_patch<T: AsRef<Path>>(
 ///
 /// assert!(close_patch(patch_handle).is_ok());
 /// ```
+/// # Errors
+///
+/// A list of errors that can occur:
+/// - [`FailedToClosePatch`](crate::error::PatchLifeCycleError::FailedToClosePatch)
 pub fn close_patch(handle: PatchFileHandle) -> Result<(), PatchLifeCycleError> {
     unsafe {
         let ptr: *mut std::ffi::c_void = handle.into();
@@ -325,6 +347,11 @@ pub fn close_patch(handle: PatchFileHandle) -> Result<(), PatchLifeCycleError> {
 /// Gets the `$0` of the running patch.
 ///
 /// `$0` id in pd could be thought as a auto generated unique identifier for the patch.
+///
+/// # Errors
+///
+/// A list of errors that can occur:
+/// - [`PatchIsNotOpen`](crate::error::PatchLifeCycleError::PatchIsNotOpen)
 pub fn get_dollar_zero(handle: &PatchFileHandle) -> Result<i32, PatchLifeCycleError> {
     unsafe {
         match libpd_sys::libpd_getdollarzero(handle.as_mut_ptr()) {
@@ -365,6 +392,11 @@ pub fn block_size() -> i32 {
 }
 
 /// Initializes audio rendering
+///
+/// # Errors
+///
+/// A list of errors that can occur:
+/// - [`InitializationFailed`](crate::error::AudioInitializationError::InitializationFailed)
 pub fn initialize_audio(
     input_channels: i32,
     output_channels: i32,
