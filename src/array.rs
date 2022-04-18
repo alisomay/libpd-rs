@@ -5,7 +5,7 @@ use crate::{
 
 use std::ffi::CString;
 
-/// Gets the size of an array by name in the pd patch which is running.
+/// Gets the size of an array by its name from the pd patch which is loaded.
 ///
 /// # Example
 /// ```no_run
@@ -30,9 +30,9 @@ pub fn array_size<T: AsRef<str>>(name: T) -> Result<i32, SizeError> {
     }
 }
 
-/// Resizes an array found by name in the pd patch which is running.
+/// Resizes an array found by its name from the pd patch which is loaded.
 ///
-/// Sizes <= 0 or > size limit are clipped to 1
+/// Sizes `<= 0` or `> size limit` are clipped to `1`
 ///
 /// # Example
 /// ```no_run
