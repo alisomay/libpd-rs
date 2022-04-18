@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use tempfile::{tempdir, tempfile, NamedTempFile};
+use tempfile::NamedTempFile;
 
 use crate::{
     error::{InitializationError, LibpdError, PatchLifeCycleError},
