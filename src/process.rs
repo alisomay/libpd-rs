@@ -40,8 +40,8 @@ pub fn process_float(ticks: i32, input_buffer: &[f32], output_buffer: &mut [f32]
 ///
 /// The processing order is like the following, `input_buffer -> libpd -> output_buffer`.
 ///
-/// Float samples are converted to short by multiplying by 32767 and casting,
-/// so any values received from pd patches beyond -1 to 1 will result in garbage.
+/// Float samples are converted to short by multiplying by `32767` and casting,
+/// so any values received from pd patches beyond `-1` to `1` will result in garbage.
 ///
 /// Note: for efficiency, does *not* clip input
 ///
@@ -84,8 +84,6 @@ pub fn process_short(ticks: i32, input_buffer: &[i16], output_buffer: &mut [i16]
 ///
 /// The processing order is like the following, `input_buffer -> libpd -> output_buffer`.
 ///
-/// The processing order is like the following, `input_buffer -> libpd -> output_buffer`.
-///
 /// Call this in your **audio callback**.
 ///
 /// # Examples
@@ -123,6 +121,7 @@ pub fn process_double(ticks: i32, input_buffer: &[f64], output_buffer: &mut [f64
 /// Processes the **non-interleaved** `f32` audio buffer in place through the loaded pd patch.
 ///
 /// The processing order is like the following, `input_buffer -> libpd -> output_buffer`.
+///
 /// Copies buffer contents to/from libpd without striping.
 ///
 /// Call this in your **audio callback**.
@@ -156,10 +155,11 @@ pub fn process_raw(input_buffer: &[f32], output_buffer: &mut [f32]) {
 /// Processes the **non-interleaved** `i16` audio buffer in place through the loaded pd patch.
 ///
 /// The processing order is like the following, `input_buffer -> libpd -> output_buffer`.
+///
 /// Copies buffer contents to/from libpd without striping.
 ///
-/// Float samples are converted to short by multiplying by 32767 and casting,
-/// so any values received from pd patches beyond -1 to 1 will result in garbage.
+/// Float samples are converted to short by multiplying by `32767` and casting,
+/// so any values received from pd patches beyond `-1` to `1` will result in garbage.
 ///
 /// Note: for efficiency, does *not* clip input
 ///
@@ -195,6 +195,7 @@ pub fn process_raw_short(input_buffer: &[i16], output_buffer: &mut [i16]) {
 /// Processes the **non-interleaved** `f64` audio buffer in place through the loaded pd patch.
 ///
 /// The processing order is like the following, `input_buffer -> libpd -> output_buffer`.
+///
 /// Copies buffer contents to/from libpd without striping.
 ///
 /// Call this in your **audio callback**.
