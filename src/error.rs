@@ -1,3 +1,4 @@
+use downcast_rs::{impl_downcast, Downcast};
 use thiserror::Error;
 
 /// Errors related to initialization.
@@ -105,7 +106,8 @@ pub enum ArrayError {
     OutOfBounds,
 }
 
-pub trait LibpdError: std::error::Error + Send + Sync + 'static {}
+pub trait LibpdError: std::error::Error + Send + Sync + 'static + Downcast {}
+impl_downcast!(LibpdError);
 
 macro_rules! impl_from_error {
     ($from:ty) => {
