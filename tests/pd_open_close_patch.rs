@@ -79,7 +79,7 @@ fn open_close_patch() {
     // Stop pd.
     tx.send(()).unwrap();
     handle.join().unwrap();
-    dbg!(sum.load(std::sync::atomic::Ordering::SeqCst));
-    assert!(sum.load(std::sync::atomic::Ordering::SeqCst) > 0);
+
+    assert!(sum.load(std::sync::atomic::Ordering::SeqCst) != 0);
     assert!(pd.close_patch().is_ok());
 }
