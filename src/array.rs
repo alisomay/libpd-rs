@@ -13,6 +13,11 @@ use std::ffi::CString;
 ///
 /// let size = array_size("my_array").unwrap();
 /// ```
+///
+///  # Errors
+///
+/// A list of errors that can occur:
+/// - [`CouldNotDetermine`](crate::error::SizeError::CouldNotDetermine)
 pub fn array_size<T: AsRef<str>>(name: T) -> Result<i32, SizeError> {
     unsafe {
         let name = CString::new(name.as_ref()).expect(C_STRING_FAILURE);
@@ -41,6 +46,11 @@ pub fn array_size<T: AsRef<str>>(name: T) -> Result<i32, SizeError> {
 /// let size = array_size("my_array").unwrap();
 /// assert_eq!(size, 1);
 /// ```
+///
+/// # Errors
+///
+/// A list of errors that can occur:
+/// - [`CouldNotDetermine`](crate::error::SizeError::CouldNotDetermine)
 pub fn resize_array<T: AsRef<str>>(name: T, size: i32) -> Result<(), SizeError> {
     // The size argument is a `long` but bindgen interprets it as i64
     // Also libpd has this,
@@ -98,6 +108,10 @@ pub fn resize_array<T: AsRef<str>>(name: T, size: i32) -> Result<(), SizeError> 
 ///
 /// If `destination_offset` + `read_amount` is greater than the size of the `destination` or
 /// the array which we're trying to read from is not existent it will return an error.
+///
+/// A list of errors that can occur:
+/// - [`OutOfBounds`](crate::error::ArrayError::OutOfBounds)
+/// - [`FailedToFindArray`](crate::error::ArrayError::FailedToFindArray)
 pub fn read_float_array_from<T: AsRef<str>>(
     source_name: T,
     read_amount: i32,
@@ -145,6 +159,10 @@ pub fn read_float_array_from<T: AsRef<str>>(
 ///
 /// If `destination_offset` + `read_amount` is greater than the size of the `destination` or
 /// the array which we're trying to read from is not existent it will return an error.
+///
+/// A list of errors that can occur:
+/// - [`OutOfBounds`](crate::error::ArrayError::OutOfBounds)
+/// - [`FailedToFindArray`](crate::error::ArrayError::FailedToFindArray)
 pub fn write_float_array_to<T: AsRef<str>>(
     destination_name: T,
     destination_offset: i32,
@@ -196,6 +214,10 @@ pub fn write_float_array_to<T: AsRef<str>>(
 ///
 /// If `destination_offset` + `read_amount` is greater than the size of the `destination` or
 /// the array which we're trying to read from is not existent it will return an error.
+///
+/// A list of errors that can occur:
+/// - [`OutOfBounds`](crate::error::ArrayError::OutOfBounds)
+/// - [`FailedToFindArray`](crate::error::ArrayError::FailedToFindArray)
 pub fn read_double_array_from<T: AsRef<str>>(
     source_name: T,
     read_amount: i32,
@@ -243,6 +265,10 @@ pub fn read_double_array_from<T: AsRef<str>>(
 ///
 /// If `destination_offset` + `read_amount` is greater than the size of the `destination` or
 /// the array which we're trying to read from is not existent it will return an error.
+///
+/// A list of errors that can occur:
+/// - [`OutOfBounds`](crate::error::ArrayError::OutOfBounds)
+/// - [`FailedToFindArray`](crate::error::ArrayError::FailedToFindArray)
 pub fn write_double_array_to<T: AsRef<str>>(
     destination_name: T,
     destination_offset: i32,
