@@ -61,7 +61,9 @@ fn open_close_patch() {
             process_float(ticks, &input_buffer, &mut output_buffer);
             // Collect samples to check if the patch runs later.
             sum_clone.store(
-                output_buffer.iter().fold(0_f32, |sum, sample| sum + sample) as i32,
+                output_buffer
+                    .iter()
+                    .fold(0_f32, |sum, sample| sum + (sample * 100.0)) as i32,
                 std::sync::atomic::Ordering::SeqCst,
             );
 
@@ -77,7 +79,7 @@ fn open_close_patch() {
     // Stop pd.
     tx.send(()).unwrap();
     handle.join().unwrap();
-
+    dbg!(sum.load(std::sync::atomic::Ordering::SeqCst));
     assert!(sum.load(std::sync::atomic::Ordering::SeqCst) > 0);
     assert!(pd.close_patch().is_ok());
 }
