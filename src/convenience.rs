@@ -60,8 +60,8 @@ pub fn calculate_ticks(channels: i32, buffer_size: i32) -> i32 {
 /// Pd initializes globally.
 ///
 /// This is one of the reasons that there are more bare functions in this crate than data structures and abstractions.
-/// This has some advantages and dis-advantages. In the case of [`PdGlobal`] we can not fully trust the state we track here.
-/// To trust it we need to not mix some bare functions and [`PdGlobal`] together.
+/// This has some advantages and disadvantages. In the case of [`PdGlobal`] we can not fully trust the state we track here.
+/// To trust it we need to not mix the bare functions which [`PdGlobal`] wraps and member functions of [`PdGlobal`] together.
 ///
 /// # Example of an unwanted mix
 ///
@@ -71,17 +71,21 @@ pub fn calculate_ticks(channels: i32, buffer_size: i32) -> i32 {
 ///
 /// let pd = PdGlobal::init_and_configure(1, 2, 44100).unwrap();
 ///
-/// // We call the member function of [`PdGlobal`] to activate audio which calls [`dsp_on`] internally which sends a message to globally initialized pd.
+/// // We call the member function of [`PdGlobal`] to activate audio
+/// // which calls [`dsp_on`] internally which then sends a message
+/// // to globally initialized pd to activate dsp.
 /// pd.activate_audio(true).unwrap();
 ///
 /// // So far so good.
 /// assert_eq!(pd.audio_active(), true);
 ///
-/// // But we can send messages to globally initialized pd many ways and this is one of the ways we can do it.
+/// // But we can send messages to globally initialized pd many ways
+/// // and here is one of the ways we can do it.
 /// dsp_off().unwrap();
 ///
-/// // But now [`PdGlobal`] is not aware of the state of the globally initialized pd in the background.
-/// // The information it holds is outdated ad not true.
+/// // But now [`PdGlobal`] is not aware of the state
+/// // of the globally initialized pd in the background.
+/// // The information it holds is outdated and not true anymore.
 /// assert_eq!(pd.audio_active(), true);
 /// ```
 ///
@@ -104,7 +108,7 @@ pub struct PdGlobal {
 impl PdGlobal {
     /// Initializes pd globally.
     ///
-    /// It calls [`init`] and [`initialize_audio`] with the provided arguments and returns an instance of [`PdGlobal`] where a user can keep simple state and call some convenience methods.
+    /// It calls [`init`](crate::init) and [`initialize_audio`](crate::initialize_audio) with the provided arguments and returns an instance of [`PdGlobal`] where a user can keep simple state and call some convenience methods.
     /// It would be wise to call this function before anything pd related.
     ///
     /// Please use only one instance of this struct, because of how [`libpd`](https://github.com/libpd/libpd) is designed the underlying initialization is scoped globally.
