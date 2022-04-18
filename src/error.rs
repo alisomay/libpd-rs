@@ -35,6 +35,9 @@ pub enum PatchLifeCycleError {
     /// Failed to close patch, because the handle which was provided is null.
     #[error("Failed to close patch, because the handle which was provided is null.")]
     FailedToClosePatch,
+    /// The string which is passed could not be evaluated as a patch.
+    #[error("The string which is passed could not be evaluated as a patch.")]
+    FailedToEvaluateAsPatch { content: String, msg: String },
     /// The patch which is trying to be communicated with is not open.
     #[error("The patch which is trying to be communicated with is not open.")]
     PatchIsNotOpen,

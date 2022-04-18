@@ -31,13 +31,13 @@ fn send_and_receive_double() {
     });
     let receiver_handle = start_listening_from("float_from_pd").unwrap();
 
-    // Mimic audio callback buffers.
-    let input_buffer = [0.0f32; 512];
-    let mut output_buffer = [0.0f32; 1024];
-
     let (tx, rx) = mpsc::channel::<()>();
 
     let handle = std::thread::spawn(move || {
+        // Mimic audio callback buffers.
+        let input_buffer = [0.0f32; 512];
+        let mut output_buffer = [0.0f32; 1024];
+
         // Run pd
         loop {
             // Mimic an audio callback.
