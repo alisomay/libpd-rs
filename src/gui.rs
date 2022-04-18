@@ -7,6 +7,8 @@ use std::path::Path;
 ///
 /// This function requires that there is a valid pd installation in your computer and a path to pd's main folder which contains bin/, tcl/, etc.
 ///
+/// Note: Currently fails on windows. See the [issue](https://github.com/libpd/libpd/issues/352).
+///
 /// # Example
 /// ```no_run
 /// use libpd_rs::gui::start_gui;

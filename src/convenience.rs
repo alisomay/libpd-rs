@@ -2,6 +2,7 @@
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use tempfile::NamedTempFile;
 
 use crate::{
     error::{InitializationError, LibpdError, PatchLifeCycleError},
@@ -46,6 +47,8 @@ pub struct PdGlobal {
     /// Explain
     running_patch: Option<PatchFileHandle>,
     /// Explain
+    temporary_evaluated_patch: Option<NamedTempFile>,
+    /// Explain
     pub subscriptions: HashMap<String, ReceiverHandle>,
     /// Explain
     pub search_paths: Vec<PathBuf>,
@@ -72,6 +75,7 @@ impl PdGlobal {
             output_channels,
             sample_rate,
             running_patch: None,
+            temporary_evaluated_patch: None,
             subscriptions: HashMap::default(),
             search_paths: vec![],
         })
@@ -121,6 +125,7 @@ impl PdGlobal {
         if let Some(handle) = self.running_patch.take() {
             crate::close_patch(handle)?;
         }
+        self.temporary_evaluated_patch.take();
         Ok(())
     }
 
@@ -136,6 +141,32 @@ impl PdGlobal {
             self.close_patch()?;
         }
         self.running_patch = Some(crate::open_patch(path)?);
+        Ok(())
+    }
+
+    /// Evaluate a string as a pd patch.
+    ///
+    /// This function creates a temporary file with the contents passed behind the scenes.
+    /// and saves it into the [`PdGlobal`] struct holding onto it until the patch is closed or the instantiated [`PdGlobal`] is dropped.
+    ///
+    /// Note: The patch opened after this evaluation could be closed safely with [`close_patch`].
+    pub fn eval_patch<T: AsRef<str>>(&mut self, contents: T) -> Result<(), Box<dyn LibpdError>> {
+        if self.running_patch.is_some() {
+            self.close_patch()?;
+        }
+        let temp_file =
+            NamedTempFile::new().map_err(|err| PatchLifeCycleError::FailedToEvaluateAsPatch {
+                content: contents.as_ref().to_owned(),
+                msg: err.to_string(),
+            })?;
+        std::fs::write(temp_file.path(), contents.as_ref()).map_err(|err| {
+            PatchLifeCycleError::FailedToEvaluateAsPatch {
+                content: contents.as_ref().to_owned(),
+                msg: err.to_string(),
+            }
+        })?;
+        self.running_patch = Some(crate::open_patch(temp_file.path())?);
+        self.temporary_evaluated_patch = Some(temp_file);
         Ok(())
     }
 
@@ -237,12 +268,14 @@ impl PdGlobal {
 
     /// Activates or deactivates audio in pd.
     pub fn activate_audio(&mut self, on: bool) -> Result<(), Box<dyn LibpdError>> {
-        if on {
+        if on && !self.audio_active {
             dsp_on()?;
             self.audio_active = true;
-        } else {
+        } else if !on && self.audio_active {
             dsp_off()?;
             self.audio_active = false;
+        } else {
+            return Ok(());
         }
         Ok(())
     }
