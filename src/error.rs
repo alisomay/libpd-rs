@@ -109,6 +109,11 @@ pub enum ArrayError {
     OutOfBounds,
 }
 
+/// All errors in `libpd-rs` implement this trait.
+///
+/// It is heavily used in the module [`convenience`](crate::convenience) to unify return types of functions and methods of [`PdGlobal`](crate::convenience::PdGlobal).
+///
+/// Allows for down casting to specific error types.
 pub trait LibpdError: std::error::Error + Send + Sync + 'static + Downcast {}
 impl_downcast!(LibpdError);
 
