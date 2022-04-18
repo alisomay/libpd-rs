@@ -10,6 +10,16 @@ use crate::{
 };
 
 /// Activates audio in pd.
+///
+/// # Errors
+///
+/// A list of errors that can occur:
+/// - [`SendError`](crate::error::SendError)
+///   - [`MissingDestination`](crate::error::SendError::MissingDestination)
+/// - [`SizeError`](crate::error::SizeError)
+///   - [`TooLarge`](crate::error::SizeError::TooLarge)
+///
+/// To match over these errors, you would need to downcast the returned error.
 pub fn dsp_on() -> Result<(), Box<dyn LibpdError>> {
     crate::send::start_message(1)?;
     crate::send::add_float_to_started_message(1.0);
@@ -18,6 +28,16 @@ pub fn dsp_on() -> Result<(), Box<dyn LibpdError>> {
 }
 
 /// De-activates audio in pd.
+///
+/// # Errors
+///
+/// A list of errors that can occur:
+/// - [`SendError`](crate::error::SendError)
+///   - [`MissingDestination`](crate::error::SendError::MissingDestination)
+/// - [`SizeError`](crate::error::SizeError)
+///   - [`TooLarge`](crate::error::SizeError::TooLarge)
+///
+/// To match over these errors, you would need to downcast the returned error.
 pub fn dsp_off() -> Result<(), Box<dyn LibpdError>> {
     crate::send::start_message(1)?;
     crate::send::add_float_to_started_message(0.0);
@@ -55,6 +75,23 @@ pub struct PdGlobal {
 }
 
 impl PdGlobal {
+    /// Initializes pd globally.
+    ///
+    /// It calls [`init`] and [`initialize_audio`] with the provided arguments and returns an instance of [`PdGlobal`] where a user can keep simple state and call some convenience methods.
+    /// It would be wise to call this function before anything pd related.
+    ///
+    /// Please use only one instance of this struct, because of how [`libpd`](https://github.com/libpd/libpd) is designed the underlying initialization is scoped globally.
+    ///
+    /// # Errors
+    ///
+    /// A list of errors that can occur:
+    /// - [`InitializationError`](crate::error::InitializationError)
+    ///   - [`RingBufferInitializationError`](crate::error::InitializationError::RingBufferInitializationError)
+    ///   - [`InitializationFailed`](crate::error::InitializationError::InitializationFailed)
+    /// - [`AudioInitializationError`](crate::error::AudioInitializationError)
+    ///   - [`AudioInitializationFailed`](crate::error::AudioInitializationError::AudioInitializationFailed)
+    ///
+    /// To match over these errors, you would need to downcast the returned error.
     pub fn init_and_configure(
         input_channels: i32,
         output_channels: i32,
@@ -121,6 +158,14 @@ impl PdGlobal {
     }
 
     /// Closes a pd patch.
+    ///
+    /// # Errors
+    ///
+    /// A list of errors that can occur:
+    /// - [`PatchLifeCycleError`](crate::error::PatchLifeCycleError)
+    ///   - [`FailedToClosePatch`](crate::error::PatchLifeCycleError::FailedToClosePatch)
+    ///
+    /// To match over these errors, you would need to downcast the returned error.
     pub fn close_patch(&mut self) -> Result<(), Box<dyn LibpdError>> {
         if let Some(handle) = self.running_patch.take() {
             crate::close_patch(handle)?;
@@ -136,6 +181,16 @@ impl PdGlobal {
     /// Relative paths and single file names are tried in executable directory and manifest directory.
     ///
     /// Tha function **first** checks the executable directory and **then** the manifest directory.
+    ///
+    /// # Errors
+    ///
+    /// A list of errors that can occur:
+    /// - [`PatchLifeCycleError`](crate::error::PatchLifeCycleError)
+    ///   - [`FailedToClosePatch`](crate::error::PatchLifeCycleError::FailedToClosePatch)
+    ///   - [`FailedToOpenPatch`](crate::error::PatchLifeCycleError::FailedToOpenPatch)
+    ///   - [`PathDoesNotExist`](crate::error::PatchLifeCycleError::PathDoesNotExist)
+    ///
+    /// To match over these errors, you would need to downcast the returned error.
     pub fn open_patch<T: AsRef<Path>>(&mut self, path: T) -> Result<(), Box<dyn LibpdError>> {
         if self.running_patch.is_some() {
             self.close_patch()?;
@@ -149,7 +204,18 @@ impl PdGlobal {
     /// This function creates a temporary file with the contents passed behind the scenes.
     /// and saves it into the [`PdGlobal`] struct holding onto it until the patch is closed or the instantiated [`PdGlobal`] is dropped.
     ///
-    /// Note: The patch opened after this evaluation could be closed safely with [`close_patch`].
+    /// Note: The patch opened after this evaluation could be closed safely with [`close_patch`](PdGlobal::close_patch).
+    ///
+    /// # Errors
+    ///
+    /// A list of errors that can occur:
+    /// - [`PatchLifeCycleError`](crate::error::PatchLifeCycleError)
+    ///   - [`FailedToEvaluateAsPatch`](crate::error::PatchLifeCycleError::FailedToEvaluateAsPatch)
+    ///   - [`FailedToClosePatch`](crate::error::PatchLifeCycleError::FailedToClosePatch)
+    ///   - [`FailedToOpenPatch`](crate::error::PatchLifeCycleError::FailedToOpenPatch)
+    ///   - [`PathDoesNotExist`](crate::error::PatchLifeCycleError::PathDoesNotExist)
+    ///
+    /// To match over these errors, you would need to downcast the returned error.
     pub fn eval_patch<T: AsRef<str>>(&mut self, contents: T) -> Result<(), Box<dyn LibpdError>> {
         if self.running_patch.is_some() {
             self.close_patch()?;
@@ -172,13 +238,15 @@ impl PdGlobal {
 
     /// Starts listening messages from a source.
     ///
-    /// If the source is already being listened to, this function will early return but not error.
+    /// If the source is already being listened to, this function will early return not doing anything without an error.
     ///
     /// # Errors
     ///
-    /// Errors if the subscription fails.
+    /// A list of errors that can occur:
+    /// - [`SubscriptionError`](crate::error::SubscriptionError)
+    ///   - [`FailedToSubscribeToSender`](crate::error::SubscriptionError::FailedToSubscribeToSender)
     ///
-    /// Which may be down casted to [`SubscriptionError::FailedToSubscribeToSender`]
+    /// To match over these errors, you would need to downcast the returned error.
     pub fn subscribe_to<T: AsRef<str>>(&mut self, source: T) -> Result<(), Box<dyn LibpdError>> {
         if self.subscriptions.contains_key(source.as_ref()) {
             return Ok(());
@@ -196,9 +264,11 @@ impl PdGlobal {
     ///
     /// # Errors
     ///
-    /// Errors if any of the subscriptions fail.
+    /// A list of errors that can occur:
+    /// - [`SubscriptionError`](crate::error::SubscriptionError)
+    ///   - [`FailedToSubscribeToSender`](crate::error::SubscriptionError::FailedToSubscribeToSender)
     ///
-    /// Which may be down casted to [`SubscriptionError::FailedToSubscribeToSender`]
+    /// To match over these errors, you would need to downcast the returned error.
     pub fn subscribe_to_many<T: AsRef<str>>(
         &mut self,
         sources: &[T],
@@ -246,7 +316,12 @@ impl PdGlobal {
     /// `$0` id in pd could be thought as a auto generated unique identifier for the patch.
     ///
     /// # Errors
-    /// The returned error could be down casted to [`PatchLifeCycleError::PatchIsNotOpen`]
+    ///
+    /// A list of errors that can occur:
+    /// - [`PatchLifeCycleError`](crate::error::PatchLifeCycleError)
+    ///   - [`PatchIsNotOpen`](crate::error::PatchLifeCycleError::PatchIsNotOpen)
+    ///
+    /// To match over these errors, you would need to downcast the returned error.
     pub fn dollar_zero(&self) -> Result<i32, Box<dyn LibpdError>> {
         if let Some(ref patch) = self.running_patch {
             let dollar_zero = crate::get_dollar_zero(patch)?;
@@ -267,6 +342,16 @@ impl PdGlobal {
     }
 
     /// Activates or deactivates audio in pd.
+    ///
+    /// # Errors
+    ///
+    /// A list of errors that can occur:
+    /// - [`SendError`](crate::error::SendError)
+    ///   - [`MissingDestination`](crate::error::SendError::MissingDestination)
+    /// - [`SizeError`](crate::error::SizeError)
+    ///   - [`TooLarge`](crate::error::SizeError::TooLarge)
+    ///
+    /// To match over these errors, you would need to downcast the returned error.
     pub fn activate_audio(&mut self, on: bool) -> Result<(), Box<dyn LibpdError>> {
         if on && !self.audio_active {
             dsp_on()?;
