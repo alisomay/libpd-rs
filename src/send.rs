@@ -185,7 +185,7 @@ pub fn start_message(length: i32) -> Result<(), SizeError> {
 /// # Panics
 /// To be honest I'd expect this to panic if you overflow a message buffer.
 ///
-/// Although I didn't check that, please let me know if this is the case.
+/// Although I didn't check that, please create an issue(https://github.com/alisomay/libpd-rs/issues).
 pub fn add_float_to_started_message(value: f32) {
     unsafe {
         libpd_sys::libpd_add_float(value);
@@ -210,7 +210,7 @@ pub fn add_float_to_started_message(value: f32) {
 /// # Panics
 /// To be honest I'd expect this to panic if you overflow a message buffer.
 ///
-/// Although I didn't check that, please let me know if this is the case.
+/// Although I didn't check that, please create an issue(https://github.com/alisomay/libpd-rs/issues).
 pub fn add_double_to_started_message(value: f64) {
     unsafe {
         libpd_sys::libpd_add_double(value);
@@ -235,7 +235,7 @@ pub fn add_double_to_started_message(value: f64) {
 /// # Panics
 /// To be honest I'd expect this to panic if you overflow a message buffer.
 ///
-/// Although I didn't check that, please let me know if this is the case.
+/// Although I didn't check that, please create an issue(https://github.com/alisomay/libpd-rs/issues).
 pub fn add_symbol_to_started_message<T: AsRef<str>>(value: T) {
     let sym = CString::new(value.as_ref()).expect(C_STRING_FAILURE);
     unsafe {
@@ -281,7 +281,7 @@ pub fn finish_message_as_list_and_send_to<T: AsRef<str>>(receiver: T) -> Result<
 
 /// Finishes the current message and send as a typed message to a receiver in the loaded pd patch
 ///
-/// Typed message handling currently only supports up to 4 elements
+/// Typed message handling currently only supports up to `4` elements
 /// internally in pd, **additional elements may be ignored.**
 ///
 /// The following example will send a message `; pd dsp 1` on the next tick.
@@ -419,7 +419,7 @@ pub fn send_message_to<T: AsRef<str>>(
 
 /// Sends a MIDI note on message to `|notein|` objects in pd.
 ///
-/// Channel is 0-indexed, pitch is 0-127 and velocity is 0-127.
+/// Channel is zero-indexed, pitch is `0-127` and velocity is `0-127`.
 ///
 /// Channels encode MIDI ports via: `libpd_channel = pd_channel + 16 * pd_port`
 ///
@@ -455,7 +455,7 @@ pub fn send_note_on(channel: i32, pitch: i32, velocity: i32) -> Result<(), SendE
 
 /// Sends a MIDI control change message to `ctlin` objects in pd.
 ///
-/// Channel is 0-indexed, controller is 0-127 and value is 0-127.
+/// Channel is zero-indexed, controller is `0-127` and value is `0-127`.
 ///
 /// Channels encode MIDI ports via: `libpd_channel = pd_channel + 16 * pd_port`
 ///
@@ -489,7 +489,7 @@ pub fn send_control_change(channel: i32, controller: i32, value: i32) -> Result<
 
 /// Sends a MIDI program change message to `pgmin` objects in pd.
 ///
-/// Channel is 0-indexed, value is 0-127.
+/// Channel is zero-indexed, value is `0-127`.
 ///
 /// Channels encode MIDI ports via: `libpd_channel = pd_channel + 16 * pd_port`
 ///
@@ -523,11 +523,11 @@ pub fn send_program_change(channel: i32, value: i32) -> Result<(), SendError> {
 
 /// Sends a MIDI pitch bend message to `|bendin|` objects in pd.
 ///
-/// Channel is 0-indexed, value is -8192 to 8192.
+/// Channel is zero-indexed, value is `-8192 to 8192`.
 ///
 /// Channels encode MIDI ports via: `libpd_channel = pd_channel + 16 * pd_port`
 ///
-/// Note: `|bendin|` outputs 0-16383 while `|bendout|` accepts -8192-8192
+/// Note: `|bendin|` outputs 0-16383 while `|bendout|` accepts `-8192 to 8192`
 ///
 /// # Example
 /// ```rust
@@ -559,7 +559,7 @@ pub fn send_pitch_bend(channel: i32, value: i32) -> Result<(), SendError> {
 
 /// Sends a MIDI after touch message to `|touchin|` objects in pd.
 ///
-/// Channel is 0-indexed, value is 0-127.
+/// Channel is zero-indexed, value is `0-127`.
 ///
 /// Channels encode MIDI ports via: `libpd_channel = pd_channel + 16 * pd_port`
 ///
@@ -593,7 +593,7 @@ pub fn send_after_touch(channel: i32, value: i32) -> Result<(), SendError> {
 
 /// Sends a MIDI poly after touch message to `|polytouchin|` objects in pd.
 ///
-/// Channel is 0-indexed, pitch is 0-127 and value is 0-127.
+/// Channel is zero-indexed, pitch is `0-127` and value is `0-127`.
 ///
 /// Channels encode MIDI ports via: `libpd_channel = pd_channel + 16 * pd_port`
 ///
@@ -627,7 +627,7 @@ pub fn send_poly_after_touch(channel: i32, pitch: i32, value: i32) -> Result<(),
 
 /// Sends a raw MIDI byte to `|midiin|` objects in pd.
 ///
-/// Port is 0-indexed and byte is 0-255
+/// Port is zero-indexed and byte is `0-255`
 ///
 /// # Example
 /// ```rust
@@ -659,7 +659,7 @@ pub fn send_midi_byte(port: i32, byte: i32) -> Result<(), SendError> {
 
 /// Sends a raw MIDI byte to `|sysexin|` objects in pd.
 ///
-/// Port is 0-indexed and byte is 0-255
+/// Port is zero-indexed and byte is `0-255`
 ///
 /// # Example
 /// ```rust
@@ -691,7 +691,7 @@ pub fn send_sysex(port: i32, byte: i32) -> Result<(), SendError> {
 
 /// Sends a raw MIDI byte to `|midirealtimein|` objects in pd.
 ///
-/// Port is 0-indexed and byte is 0-255
+/// Port is zero-indexed and byte is `0-255`
 ///
 /// # Example
 /// ```rust

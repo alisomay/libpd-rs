@@ -438,7 +438,7 @@ pub fn on_message<F: FnMut(&str, &str, &[Atom]) + Send + Sync + 'static>(
 
 /// Receives messages from pd message queue.
 ///
-/// This should be called repeatedly in the **application's main loop** to fetch messages from pd.
+/// This should be called repeatedly in the **application's main loop** or the **audio callback** to fetch messages from pd.
 ///
 /// # Example
 /// ```no_run
@@ -730,7 +730,7 @@ pub fn on_midi_byte<F: FnMut(i32, i32) + Send + Sync + 'static>(mut user_provide
 
 /// Receives messages from pd midi message queue.
 ///
-/// This should be called repeatedly in the **application's main loop** to fetch midi messages from pd.
+/// This should be called repeatedly in the **application's main loop** or the **audio callback** to fetch MIDI messages from pd.
 ///
 /// # Example
 /// ```no_run
