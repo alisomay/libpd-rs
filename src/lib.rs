@@ -121,12 +121,9 @@ use std::ffi::CString;
 use std::path::{Path, PathBuf};
 
 // TODO: Currently panicing is enough since this is a rare case, but may be improved later with a dedicated error.
-// Proper errors?
 pub(crate) const C_STRING_FAILURE: &str =
     "Provided an invalid CString, check if your string contains null bytes in the middle.";
 pub(crate) const C_STR_FAILURE: &str = "Converting a CStr to an &str is failed.";
-
-// TODO: Add errors fields to documentation.
 
 /// Initializes libpd.
 ///

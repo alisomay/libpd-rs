@@ -9,6 +9,8 @@ use crate::{
     types::{PatchFileHandle, ReceiverHandle},
 };
 
+// TODO: Add examples to docs.
+
 /// Activates audio in pd.
 ///
 /// # Errors
