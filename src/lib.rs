@@ -137,15 +137,6 @@ pub(crate) const C_STR_FAILURE: &str = "Converting a CStr to an &str is failed."
 ///
 /// **Note**: *Support for multi instances of pd is not implemented yet.*
 ///
-/// # Errors
-/// A second call to this function will return the error, [`InitializationError::AlreadyInitialized`] wrapped in a [`LibpdError::InitializationError`].
-///
-/// Other errors  could be returned from this function are,
-///
-/// - [`InitializationError::RingBufferInitializationError`]
-///
-/// - [`InitializationError::InitializationFailed`]
-///
 /// # Example
 /// ```rust
 /// use libpd_rs::init;
@@ -155,6 +146,8 @@ pub(crate) const C_STR_FAILURE: &str = "Converting a CStr to an &str is failed."
 /// ```
 ///
 /// # Errors
+///
+/// A second call to this function will return an error.
 ///
 /// A list of errors that can occur:
 /// - [`AlreadyInitialized`](crate::error::InitializationError::AlreadyInitialized)
@@ -171,10 +164,10 @@ pub fn init() -> Result<(), InitializationError> {
     }
 }
 
-/// Frees the queued ring buffers.
+/// Frees the internal queued ring buffers.
 ///
 /// Currently I don't see a necessity to call this function in any case.
-/// Maybe there is a reason.
+/// If you find a valid use case, please open an [issue](https://github.com/alisomay/libpd-rs/issues).
 pub fn release_internal_queues() {
     unsafe {
         libpd_sys::libpd_queued_release();
@@ -190,9 +183,10 @@ pub fn clear_search_paths() {
     }
 }
 
-/// Adds a path to the list of paths where libpd searches in.
+/// Adds a path to the list of paths where pd searches in.
 ///
 /// Relative paths are relative to the current working directory.
+///
 /// Unlike the desktop pd application, **no** search paths are set by default.
 ///
 /// # Errors
@@ -343,7 +337,7 @@ pub fn close_patch(handle: PatchFileHandle) -> Result<(), PatchLifeCycleError> {
 
 /// Gets the `$0` of the running patch.
 ///
-/// `$0` id in pd could be thought as a auto generated unique identifier for the patch.
+/// `$0` id in pd could be thought as a auto generated unique identifier number for the patch.
 ///
 /// # Errors
 ///
@@ -366,7 +360,7 @@ pub fn get_dollar_zero(handle: &PatchFileHandle) -> Result<i32, PatchLifeCycleEr
 /// e.g. this would make 128 samples if we have a stereo output and the default block size.
 ///
 /// It will first process the input buffers and then will continue with the output buffers.
-/// Check the `PROCESS` macro in `libpd.c` for more information.
+/// Check the [`PROCESS`](https://github.com/libpd/libpd/blob/master/libpd_wrapper/z_libpd.c#L177) macro in `libpd` [source](https://github.com/libpd/libpd/blob/master/libpd_wrapper) for more information.
 ///
 /// # Examples
 ///
@@ -389,6 +383,9 @@ pub fn block_size() -> i32 {
 }
 
 /// Initializes audio rendering
+///
+/// This doesn't mean that the audio is actually playing.
+/// To start audio processing please call [`dsp_on`](crate::convenience::dsp_on) function after the initialization.
 ///
 /// # Errors
 ///
