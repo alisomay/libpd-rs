@@ -68,7 +68,7 @@
 ///
 /// fn main() -> Result<(), Box<dyn LibpdError>> {
 ///     init()?;
-///     initialize_audio(0, 2, 44100)?;
+///     initialize_audio(1, 2, 44100)?;
 ///     
 ///     // Place your own patch here.
 ///     let handle = open_patch("tests/patches/array_sketch_pad.pd")?;
@@ -124,9 +124,10 @@ pub mod array;
 /// User needs to be careful to design the application in a way that the state on the Rust side **always** reflects the state on the C side.
 /// Check the struct [`PdGlobal`](crate::convenience::PdGlobal) for more details on this matter.
 ///
-/// # Example
+/// # Examples
 /// ```rust
 /// use libpd_rs::convenience::PdGlobal;
+/// use libpd_rs::error::LibpdError;
 ///
 /// fn main() -> Result<(), Box<dyn LibpdError>> {
 ///     let mut pd = PdGlobal::init_and_configure(1, 2, 44100)?;
@@ -143,7 +144,7 @@ pub mod array;
 ///     pd.subscribe_to_many(&["some_sender", "some_other_sender"])?;
 ///
 ///     // Unsubscribe from one or many
-///     pd.unsubscribe_from("some_sender")?;
+///     pd.unsubscribe_from("some_sender");
 ///
 ///     // Or all
 ///     pd.unsubscribe_from_all();
@@ -157,16 +158,23 @@ pub mod array;
 ///     // And more..
 ///     // Check `PdGlobal` type for all the things you may do with it,
 ///     // which includes examples and documentation.
+///
+///     Ok(())
 /// }
 /// ```
 pub mod convenience;
 /// All errors
 ///
-/// Maybe down casting examples??
+/// This module contains all the errors which can be returned by the library.
+///
+/// All errors implement [`LibpdError`](crate::error::LibpdError) which could be used as a generic error type where needed.
 pub mod error;
 /// Start, stop, poll pd gui
 ///
-/// Some more explanation..
+/// This module provides functions to start, stop and poll pd gui.
+///
+/// If the pd desktop application is installed in your computer.
+/// You may use these functions to launch or quit it.
 pub mod gui;
 
 /// Audio processing
@@ -176,8 +184,84 @@ pub mod gui;
 /// These functions also run the scheduler of pd. The chosen function needs to be called in a loop to keep pd "running".
 ///
 /// # Examples
+///
 /// ```rust
-/// // Example
+/// use libpd_rs::{
+///     close_patch,
+///     error::LibpdError,
+///     init, initialize_audio, open_patch,
+///     process::process_float,
+///     convenience::{dsp_on, calculate_ticks},
+///     receive::receive_messages_from_pd
+/// };
+///
+/// fn main() -> Result<(), Box<dyn LibpdError>> {
+///     init()?;
+///     initialize_audio(1, 2, 44100)?;
+///     
+///     // Place your own patch here.
+///     let patch_handle = open_patch("tests/patches/sine.pd")?;
+///
+///     // Turn the dsp on
+///     dsp_on()?;
+///
+///     // Process the audio (imagine that this is your audio callback)
+///     // We're going to treat this separate thread as the
+///     // high priority audio callback from the OS for this example.
+///
+///     // Open some channels to communicate with it.
+///     let (tx, rx) = std::sync::mpsc::channel::<()>();
+///
+///     let handle = std::thread::spawn(move || {
+///         // Mimic audio callback buffers.
+///         let input_buffer = [0.0f32; 512];
+///         let mut output_buffer = [0.0f32; 1024];
+///         
+///         let output_channels = 2;
+///         let sample_rate = 44100;
+///         
+///         // Run pd
+///         loop {
+///             // Mimic the call frequency of the audio callback.
+///             let approximate_buffer_duration =
+///                 (output_buffer.len() as f32 / sample_rate as f32) * 1000.0;
+///             std::thread::sleep(std::time::Duration::from_millis(
+///                 approximate_buffer_duration as u64,
+///             ));
+///             
+///             // We may call this to also receive from internal ring buffers in this loop.
+///             // So our registered listeners receive messages.
+///             receive_messages_from_pd();
+///             
+///             // Calculate ticks for the internal scheduler
+///             let ticks = calculate_ticks(output_buffer.len() as i32, output_channels);
+///             
+///             // Process the audio and advance the internal scheduler by the number of ticks.
+///             process_float(ticks, &input_buffer, &mut output_buffer);
+///             
+///             // This is just meaningful for this example,
+///             // so we can break from this loop.
+///             match rx.try_recv() {
+///                 Ok(_) => break,
+///                 _ => continue,
+///             }
+///         }
+///      });
+///
+///     // When processing starts pd becomes alive because the scheduler is running.
+///     
+///     // After some time
+///     std::thread::sleep(std::time::Duration::from_millis(1000));
+///     
+///     // We may join the thread.
+///     tx.send(()).unwrap();
+///     handle.join().unwrap();
+///
+///     // And close the patch
+///     close_patch(patch_handle)?;
+///
+///     Ok(())
+/// }
 /// ```
 pub mod process;
 /// Receive messages from pd
