@@ -1,5 +1,3 @@
-// TODO: Revisit Atoms and floating point numbers.
-
 /// A type to represent a pd Atom type in Rust side.
 ///
 /// Pd has floating point numbers and symbols as primitive types.
@@ -134,7 +132,8 @@ impl Into<*mut std::ffi::c_void> for ReceiverHandle {
     }
 }
 
-// TODO: Is really implementing all of these needed?
+// Appendix, types related to atoms.
+//
 // pub type t_word = word;
 // pub const t_atomtype_A_NULL: t_atomtype = 0;
 // pub const t_atomtype_A_FLOAT: t_atomtype = 1;

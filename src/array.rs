@@ -53,6 +53,7 @@ pub fn array_size<T: AsRef<str>>(name: T) -> Result<i32, SizeError> {
 /// - [`CouldNotDetermine`](crate::error::SizeError::CouldNotDetermine)
 pub fn resize_array<T: AsRef<str>>(name: T, size: i32) -> Result<(), SizeError> {
     // The size argument is a `long` but bindgen interprets it as i64
+    //
     // Also libpd has this,
     // if (MSVC)
     // set(CMAKE_C_FLAGS  "${CMAKE_C_FLAGS} -DHAVE_STRUCT_TIMESPEC")
@@ -69,7 +70,8 @@ pub fn resize_array<T: AsRef<str>>(name: T, size: i32) -> Result<(), SizeError> 
     //     set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-Bsymbolic")
     // endif()
     // endif()
-    // TODO: Find the right approach in this mess. Low-priority
+    //
+    // TODO: Find the right approach here. Low-priority
     unsafe {
         let name = CString::new(name.as_ref()).expect(C_STRING_FAILURE);
         // returns 0 on success or negative error code if non-existent
