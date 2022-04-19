@@ -107,18 +107,57 @@
 /// }
 /// ```
 pub mod array;
-/// Convenience functions which encapsulate common actions when communicating with pd
+/// Convenience functions and types which encapsulate common actions when communicating with pd
 ///
-/// This crate is a thing wrapper around [libpd](https://github.com/libpd/libpd).
-/// This module aims to provide functions or structs to add a layer which is easier and quick to use.
-/// Now small but might grow in the future.
+/// `libpd-rs` is a safe wrapper around [`libpd`](https://github.com/libpd/libpd) which provides a convenient interface to pd for Rust ecosystem.
 ///
-/// TODO: Note about the trustability of state.
+/// [`libpd`](https://github.com/libpd/libpd) internally initializes pd and provides a way to communicate with it but it does it in global scope.
+/// On the Rust side we do not have access to that piece of memory and we need to use what we have from exposed APIs.
 ///
-/// # Examples
+/// [`libpd`](https://github.com/libpd/libpd) does not provide a very detailed way to track the state of pd yet. We need our own state tracking to track which
+/// senders we have subscribed, which paths we have registered to the list of pd search paths or if the dsp is running or not.
+///
+/// This module provides some types for this and some wrapper functions for easier communication with pd.
+///
+/// There is one thing to note though. The state tracked in the Rust side is **decoupled** from libpd's internal state.
+///
+/// User needs to be careful to design the application in a way that the state on the Rust side **always** reflects the state on the C side.
+/// Check the struct [`PdGlobal`](crate::convenience::PdGlobal) for more details on this matter.
+///
+/// # Example
 /// ```rust
-/// // Example
-/// // Some use of PdGlobal
+/// use libpd_rs::convenience::PdGlobal;
+///
+/// fn main() -> Result<(), Box<dyn LibpdError>> {
+///     let mut pd = PdGlobal::init_and_configure(1, 2, 44100)?;
+///      
+///     // pd will keep track of the open patch.
+///     pd.open_patch("tests/patches/sine.pd")?;
+///      
+///     // We may close the open patch safely any time.
+///     pd.close_patch()?;
+///
+///     pd.open_patch("tests/patches/sine.pd")?;
+///
+///     // We may subscribe to senders
+///     pd.subscribe_to_many(&["some_sender", "some_other_sender"])?;
+///
+///     // Unsubscribe from one or many
+///     pd.unsubscribe_from("some_sender")?;
+///
+///     // Or all
+///     pd.unsubscribe_from_all();
+///
+///     // Activate or deactivate audio
+///     pd.activate_audio(true)?;
+///
+///     // Check if it is active
+///     assert!(pd.audio_active());
+///
+///     // And more..
+///     // Check `PdGlobal` type for all the things you may do with it,
+///     // which includes examples and documentation.
+/// }
 /// ```
 pub mod convenience;
 /// All errors
