@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/alisomay/libpd-rs/main/assets/logo_transparent.png"/>
+</p>
+
 # libpd-rs
 
 [![Build and Test Status](https://github.com/alisomay/libpd-rs/workflows/CI/badge.svg)](https://github.com/alisomay/libpd-rs/actions?query=workflow%3ACI)
