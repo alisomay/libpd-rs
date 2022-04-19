@@ -66,11 +66,10 @@
 /// use libpd_rs::{
 ///     array::{array_size, read_float_array_from, resize_array, write_float_array_to},
 ///     close_patch,
-///     error::LibpdError,
 ///     init, initialize_audio, open_patch,
 /// };
 ///
-/// fn main() -> Result<(), Box<dyn LibpdError>> {
+/// fn main() -> Result<(), Box<dyn std::error::Error>> {
 ///     init()?;
 ///     initialize_audio(1, 2, 44100)?;
 ///     
@@ -131,9 +130,8 @@ pub mod array;
 /// # Examples
 /// ```rust
 /// use libpd_rs::convenience::PdGlobal;
-/// use libpd_rs::error::LibpdError;
 ///
-/// fn main() -> Result<(), Box<dyn LibpdError>> {
+/// fn main() -> Result<(), Box<dyn std::error::Error>> {
 ///     let mut pd = PdGlobal::init_and_configure(1, 2, 44100)?;
 ///      
 ///     // pd will keep track of the open patch.
@@ -190,14 +188,13 @@ pub mod gui;
 /// ```rust
 /// use libpd_rs::{
 ///     close_patch,
-///     error::LibpdError,
 ///     init, initialize_audio, open_patch,
 ///     process::process_float,
 ///     convenience::{dsp_on, calculate_ticks},
 ///     receive::receive_messages_from_pd
 /// };
 ///
-/// fn main() -> Result<(), Box<dyn LibpdError>> {
+/// fn main() -> Result<(), Box<dyn std::error::Error>> {
 ///     init()?;
 ///     initialize_audio(1, 2, 44100)?;
 ///     
@@ -274,14 +271,13 @@ pub mod process;
 /// ```rust
 /// use libpd_rs::{
 ///     close_patch,
-///     error::LibpdError,
 ///     init, initialize_audio, open_patch,
 ///     process::process_float,
 ///     convenience::{dsp_on, calculate_ticks},
 ///     receive::{receive_messages_from_pd, on_print, on_float, start_listening_from}
 /// };
 ///
-/// fn main() -> Result<(), Box<dyn LibpdError>> {
+/// fn main() -> Result<(), Box<dyn std::error::Error>> {
 ///     init()?;
 ///     initialize_audio(1, 2, 44100)?;
 ///     
@@ -369,7 +365,6 @@ pub mod receive;
 /// ```rust
 /// use libpd_rs::{
 ///     close_patch,
-///     error::LibpdError,
 ///     init, initialize_audio, open_patch,
 ///     process::process_float,
 ///     convenience::{dsp_on, calculate_ticks},
@@ -377,7 +372,7 @@ pub mod receive;
 ///     send::{send_float_to}
 /// };
 ///
-/// fn main() -> Result<(), Box<dyn LibpdError>> {
+/// fn main() -> Result<(), Box<dyn std::error::Error>> {
 ///     init()?;
 ///     initialize_audio(1, 2, 44100)?;
 ///     
