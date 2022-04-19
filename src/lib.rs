@@ -1,6 +1,3 @@
-// @attention Multi instance features implementation is scheduled for later.
-// @attention If there is a necessity emerges, I'll give time to implement them.
-
 #![warn(
     clippy::all,
     clippy::pedantic,
@@ -28,8 +25,7 @@
     clippy::default_numeric_fallback,
     clippy::map_err_ignore,
 
-
-    // We decided that we're ok with expect
+    // Expect is fine in relevant cases
     clippy::expect_used,
 
     // Too restrictive for the current style
@@ -38,42 +34,78 @@
     clippy::exhaustive_enums,
     clippy::module_name_repetitions,
     clippy::unseparated_literal_suffix,
-    // clippy::self_named_module_files,
 
-    // Allowed lints related to cargo
-    // (comment these out if you'd like to improve Cargo.toml)
-    // clippy::wildcard_dependencies,
-    // clippy::redundant_feature_names,
-    // clippy::cargo_common_metadata,
-
-    // Comment these out when writing docs
+    // Docs
     clippy::missing_docs_in_private_items,
-    clippy::missing_errors_doc,
 
     // Comment these out before submitting a PR
-    clippy::todo,
-    clippy::panic_in_result_fn,
-    clippy::panic,
-    clippy::unimplemented,
-    clippy::unreachable,
+    // clippy::todo,
+    // clippy::panic_in_result_fn,
+    // clippy::panic,
+    // clippy::unimplemented,
+    // clippy::unreachable,
 )]
 
-//! This is the crate level doc.
+//! Write documentation in a tutorial style here.
 //!
-//! Provides an abstraction over a queue.  When the abstraction is used
-//! there are these advantages:
-//! - Fast
-//! - [`Easy`]
 //!
-//! [`Easy`]: http://thatwaseasy.example.com
-
-// TODO: Provide examples in module docs.
 
 /// Work with pd arrays
 ///
 /// This module provides all tools to work with pd named arrays which are exposed by libpd with some extra safety such as bounds checking.
 ///
 /// Corresponding libpd functions in [libpd repository](https://github.com/libpd/libpd) could be explored [here](https://github.com/libpd/libpd/blob/master/libpd_wrapper/z_libpd.h#L115).
+///
+/// # Examples
+///
+/// ```rust
+/// use libpd_rs::{
+///     array::{array_size, read_float_array_from, resize_array, write_float_array_to},
+///     close_patch,
+///     error::LibpdError,
+///     init, initialize_audio, open_patch,
+/// };
+///
+/// fn main() -> Result<(), Box<dyn LibpdError>> {
+///     init()?;
+///     initialize_audio(0, 2, 44100)?;
+///     
+///     // Place your own patch here.
+///     let handle = open_patch("tests/patches/array_sketch_pad.pd")?;
+///
+///     let size = array_size("sketch_pad")?;
+///     
+///     // Arrays are sized to 100 by default.
+///     assert_eq!(size, 100);
+///
+///     // We can resize this array to 8.
+///     resize_array("sketch_pad", 8)?;
+///
+///     let size = array_size("sketch_pad")?;
+///     assert_eq!(size, 8);
+///
+///     // Let's write some stuff to our array.
+///     write_float_array_to("sketch_pad", 0, &[1.0, 2.0, 3.0, 4.0], 4)?;
+///
+///     // Let's overwrite the seconf part of the array with the first part of our slice.
+///     write_float_array_to("sketch_pad", 2, &[500.0, 600.0, 3.0, 4.0], 2)?;
+///
+///     // Now we can read the array to the second half of our slice.
+///     let mut read_to: Vec<f32> = vec![0.0; 4];
+///
+///     // Read it all back.
+///     read_float_array_from("sketch_pad", 0, 4, &mut read_to)?;
+///     assert_eq!(read_to, [1.0, 2.0, 500.0, 600.0]);
+///
+///     // Now we can read the second half of our array to our first half of our slice.
+///     read_float_array_from("sketch_pad", 2, 2, &mut read_to)?;
+///     assert_eq!(read_to, [500.0, 600.0, 500.0, 600.0]);
+///
+///     close_patch(handle)?;
+///
+///     Ok(())
+/// }
+/// ```
 pub mod array;
 /// Convenience functions which encapsulate common actions when communicating with pd
 ///

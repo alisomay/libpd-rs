@@ -93,15 +93,15 @@ pub fn resize_array<T: AsRef<str>>(name: T, size: i32) -> Result<(), SizeError> 
 
 /// Reads a named array from pd to a mutable slice of `f32`.
 ///
-/// Reads values as much as `read_amount` from the array which is specified with the `source_name` argument
-/// and writes them to `destination` starting at `destination_offset`.
+/// Reads values as much as `source_read_amount` from the array which is specified with the `source_name` argument
+/// starting from `source_read_offset` and writes them to `destination`.
 ///
 /// # Example
 /// ```no_run
 /// use libpd_rs::array::read_float_array_from;
 ///
 /// let mut destination = [0.0_f32; 64];
-/// read_float_array_from("my_array", 32, &mut destination, 32).unwrap();
+/// read_float_array_from("my_array", 32, 32, &mut destination).unwrap();
 /// ```
 /// # Errors
 /// This function performs no bounds checking on the destination.
@@ -114,18 +114,18 @@ pub fn resize_array<T: AsRef<str>>(name: T, size: i32) -> Result<(), SizeError> 
 /// - [`FailedToFindArray`](crate::error::ArrayError::FailedToFindArray)
 pub fn read_float_array_from<T: AsRef<str>>(
     source_name: T,
-    read_amount: i32,
+    source_read_offset: i32,
+    source_read_amount: i32,
     destination: &mut [f32],
-    destination_offset: i32,
 ) -> Result<(), ArrayError> {
     unsafe {
         let name = CString::new(source_name.as_ref()).expect(C_STRING_FAILURE);
         // Returns 0 on success or a negative error code if the array is non-existent
         // or offset + n exceeds range of array
 
-        if destination_offset + read_amount
+        if source_read_offset + source_read_amount
             > array_size(source_name.as_ref()).map_err(|_| ArrayError::FailedToFindArray)? as i32
-            || read_amount < 0
+            || source_read_amount < 0
         {
             return Err(ArrayError::OutOfBounds);
         }
@@ -133,8 +133,8 @@ pub fn read_float_array_from<T: AsRef<str>>(
         match libpd_sys::libpd_read_array(
             destination.as_mut_ptr(),
             name.as_ptr(),
-            destination_offset,
-            read_amount,
+            source_read_offset,
+            source_read_amount,
         ) {
             0 => Ok(()),
             _ => Err(ArrayError::FailedToFindArray),
@@ -145,7 +145,7 @@ pub fn read_float_array_from<T: AsRef<str>>(
 /// Writes a slice of `f32` to a pd named array.
 ///
 /// Reads values as much as `read_amount` from the array which is given as the `source` argument
-/// and writes them to a named array in pd which is specified with `destination_name` argument starting at `destination_offset`.
+/// and writes them to a named array in pd which is specified with `destination_name` argument starting at `destination_write_offset`.
 ///
 /// # Example
 /// ```no_run
@@ -165,9 +165,9 @@ pub fn read_float_array_from<T: AsRef<str>>(
 /// - [`FailedToFindArray`](crate::error::ArrayError::FailedToFindArray)
 pub fn write_float_array_to<T: AsRef<str>>(
     destination_name: T,
-    destination_offset: i32,
+    destination_write_offset: i32,
     source: &[f32],
-    read_amount: i32,
+    source_read_amount: i32,
 ) -> Result<(), ArrayError> {
     unsafe {
         let name = CString::new(destination_name.as_ref()).expect(C_STRING_FAILURE);
@@ -176,20 +176,20 @@ pub fn write_float_array_to<T: AsRef<str>>(
 
         // We check this manually in the predicate.
         #[allow(clippy::cast_sign_loss)]
-        if destination_offset + read_amount
+        if destination_write_offset + source_read_amount
             > array_size(destination_name.as_ref()).map_err(|_| ArrayError::FailedToFindArray)?
                 as i32
-            || read_amount < 0
-            || read_amount as usize > source.len()
+            || source_read_amount < 0
+            || source_read_amount as usize > source.len()
         {
             return Err(ArrayError::OutOfBounds);
         }
 
         match libpd_sys::libpd_write_array(
             name.as_ptr(),
-            destination_offset,
+            destination_write_offset,
             source.as_ptr(),
-            read_amount,
+            source_read_amount,
         ) {
             0 => Ok(()),
             _ => Err(ArrayError::FailedToFindArray),
@@ -199,15 +199,15 @@ pub fn write_float_array_to<T: AsRef<str>>(
 
 /// Reads a named array from pd to a mutable slice of `f64`.
 ///
-/// Reads values as much as `read_amount` from the array which is specified with the `source_name` argument
-/// and writes them to `destination` starting at `destination_offset`.
+/// Reads values as much as `source_read_amount` from the array which is specified with the `source_name` argument
+/// starting from `source_read_offset` and writes them to `destination`.
 ///
 /// # Example
 /// ```no_run
 /// use libpd_rs::array::read_double_array_from;
 ///
 /// let mut destination = [0.0_f64; 64];
-/// read_double_array_from("my_array", 32, &mut destination, 32).unwrap();
+/// read_double_array_from("my_array", 32, 32, &mut destination).unwrap();
 /// ```
 /// # Errors
 /// This function performs no bounds checking on the destination.
@@ -220,18 +220,18 @@ pub fn write_float_array_to<T: AsRef<str>>(
 /// - [`FailedToFindArray`](crate::error::ArrayError::FailedToFindArray)
 pub fn read_double_array_from<T: AsRef<str>>(
     source_name: T,
-    read_amount: i32,
+    source_read_offset: i32,
+    source_read_amount: i32,
     destination: &mut [f64],
-    destination_offset: i32,
 ) -> Result<(), ArrayError> {
     unsafe {
         let name = CString::new(source_name.as_ref()).expect(C_STRING_FAILURE);
         // Returns 0 on success or a negative error code if the array is non-existent
         // or offset + n exceeds range of array
 
-        if destination_offset + read_amount
+        if source_read_offset + source_read_amount
             > array_size(source_name.as_ref()).map_err(|_| ArrayError::FailedToFindArray)? as i32
-            || read_amount < 0
+            || source_read_amount < 0
         {
             return Err(ArrayError::OutOfBounds);
         }
@@ -239,8 +239,8 @@ pub fn read_double_array_from<T: AsRef<str>>(
         match libpd_sys::libpd_read_array_double(
             destination.as_mut_ptr(),
             name.as_ptr(),
-            destination_offset,
-            read_amount,
+            source_read_offset,
+            source_read_amount,
         ) {
             0 => Ok(()),
             _ => Err(ArrayError::FailedToFindArray),
@@ -251,7 +251,7 @@ pub fn read_double_array_from<T: AsRef<str>>(
 /// Writes a slice of `f64` to a pd named array.
 ///
 /// Reads values as much as `read_amount` from the array which is given as the `source` argument
-/// and writes them to a named array in pd which is specified with `destination_name` argument starting at `destination_offset`.
+/// and writes them to a named array in pd which is specified with `destination_name` argument starting at `destination_write_offset`.
 ///
 /// # Example
 /// ```no_run
@@ -271,9 +271,9 @@ pub fn read_double_array_from<T: AsRef<str>>(
 /// - [`FailedToFindArray`](crate::error::ArrayError::FailedToFindArray)
 pub fn write_double_array_to<T: AsRef<str>>(
     destination_name: T,
-    destination_offset: i32,
+    destination_write_offset: i32,
     source: &[f64],
-    read_amount: i32,
+    source_read_amount: i32,
 ) -> Result<(), ArrayError> {
     unsafe {
         let name = CString::new(destination_name.as_ref()).expect(C_STRING_FAILURE);
@@ -282,20 +282,20 @@ pub fn write_double_array_to<T: AsRef<str>>(
 
         // We check this manually in the predicate.
         #[allow(clippy::cast_sign_loss)]
-        if destination_offset + read_amount
+        if destination_write_offset + source_read_amount
             > array_size(destination_name.as_ref()).map_err(|_| ArrayError::FailedToFindArray)?
                 as i32
-            || read_amount < 0
-            || read_amount as usize > source.len()
+            || source_read_amount < 0
+            || source_read_amount as usize > source.len()
         {
             return Err(ArrayError::OutOfBounds);
         }
 
         match libpd_sys::libpd_write_array_double(
             name.as_ptr(),
-            destination_offset,
+            destination_write_offset,
             source.as_ptr(),
-            read_amount,
+            source_read_amount,
         ) {
             0 => Ok(()),
             _ => Err(ArrayError::FailedToFindArray),

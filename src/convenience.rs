@@ -69,7 +69,7 @@ pub fn calculate_ticks(channels: i32, buffer_size: i32) -> i32 {
 /// use libpd_rs::convenience::PdGlobal;
 /// use libpd_rs::convenience::dsp_off;
 ///
-/// let pd = PdGlobal::init_and_configure(1, 2, 44100).unwrap();
+/// let mut pd = PdGlobal::init_and_configure(1, 2, 44100).unwrap();
 ///
 /// // We call the member function of [`PdGlobal`] to activate audio
 /// // which calls [`dsp_on`] internally which then sends a message
@@ -117,7 +117,7 @@ impl PdGlobal {
     /// ```rust
     /// use libpd_rs::convenience::PdGlobal;
     ///
-    /// let pd = PdGlobal::init_and_configure(1, 2, 44100).unwrap();
+    /// let mut pd = PdGlobal::init_and_configure(1, 2, 44100).unwrap();
     /// ```
     ///
     /// # Errors
@@ -160,6 +160,14 @@ impl PdGlobal {
     ///
     /// Relative paths are relative to the current working directory.
     /// Unlike the desktop pd application, **no** search paths are set by default.
+    ///
+    /// # Errors
+    ///
+    /// A list of errors that can occur:
+    /// - [`IoError`](crate::error::IoError)
+    ///   - [`PathDoesNotExist`](crate::error::IoError::PathDoesNotExist)
+    ///
+    /// To match over these errors, you would need to downcast the returned error.
     pub fn add_path_to_search_paths<T: AsRef<Path>>(
         &mut self,
         path: T,
@@ -176,6 +184,14 @@ impl PdGlobal {
     ///
     /// Relative paths are relative to the current working directory.
     /// Unlike the desktop pd application, **no** search paths are set by default.
+    ///
+    /// # Errors
+    ///
+    /// A list of errors that can occur:
+    /// - [`IoError`](crate::error::IoError)
+    ///   - [`PathDoesNotExist`](crate::error::IoError::PathDoesNotExist)
+    ///
+    /// To match over these errors, you would need to downcast the returned error.
     pub fn add_paths_to_search_paths<T: AsRef<Path>>(
         &mut self,
         paths: &[T],
@@ -224,7 +240,7 @@ impl PdGlobal {
     /// ```no_run
     /// use libpd_rs::convenience::PdGlobal;
     ///
-    /// let pd = PdGlobal::init_and_configure(1, 2, 44100).unwrap();
+    /// let mut pd = PdGlobal::init_and_configure(1, 2, 44100).unwrap();
     /// assert!(pd.open_patch("tests/patches/sine.pd").is_ok());
     /// ```
     ///
@@ -256,7 +272,7 @@ impl PdGlobal {
     /// ```rust
     /// use libpd_rs::convenience::PdGlobal;
     ///
-    /// let pd = PdGlobal::init_and_configure(1, 2, 44100).unwrap();
+    /// let mut pd = PdGlobal::init_and_configure(1, 2, 44100).unwrap();
     ///     
     /// assert!(pd.eval_patch(
     /// r#"
@@ -311,7 +327,7 @@ impl PdGlobal {
     /// ```no_run
     /// use libpd_rs::convenience::PdGlobal;
     ///
-    /// let pd = PdGlobal::init_and_configure(1, 2, 44100).unwrap();
+    /// let mut pd = PdGlobal::init_and_configure(1, 2, 44100).unwrap();
     /// pd.open_patch("tests/patches/sine.pd").unwrap();
     /// pd.subscribe_to("sender").unwrap();
     /// ```
@@ -342,7 +358,7 @@ impl PdGlobal {
     /// ```no_run
     /// use libpd_rs::convenience::PdGlobal;
     ///
-    /// let pd = PdGlobal::init_and_configure(1, 2, 44100).unwrap();
+    /// let mut pd = PdGlobal::init_and_configure(1, 2, 44100).unwrap();
     /// pd.open_patch("tests/patches/sine.pd").unwrap();
     /// pd.subscribe_to_many(&["sender", "other_sender"]).unwrap();
     /// ```
@@ -376,7 +392,7 @@ impl PdGlobal {
     /// ```no_run
     /// use libpd_rs::convenience::PdGlobal;
     ///
-    /// let pd = PdGlobal::init_and_configure(1, 2, 44100).unwrap();
+    /// let mut pd = PdGlobal::init_and_configure(1, 2, 44100).unwrap();
     /// pd.open_patch("tests/patches/sine.pd").unwrap();
     /// pd.subscribe_to("sender").unwrap();
     /// pd.unsubscribe_from("sender");
@@ -393,7 +409,7 @@ impl PdGlobal {
     /// ```no_run
     /// use libpd_rs::convenience::PdGlobal;
     ///
-    /// let pd = PdGlobal::init_and_configure(1, 2, 44100).unwrap();
+    /// let mut pd = PdGlobal::init_and_configure(1, 2, 44100).unwrap();
     /// pd.open_patch("tests/patches/sine.pd").unwrap();
     /// pd.subscribe_to_many(&["sender", "other_sender"]).unwrap();
     ///
@@ -413,7 +429,7 @@ impl PdGlobal {
     /// ```no_run
     /// use libpd_rs::convenience::PdGlobal;
     ///
-    /// let pd = PdGlobal::init_and_configure(1, 2, 44100).unwrap();
+    /// let mut pd = PdGlobal::init_and_configure(1, 2, 44100).unwrap();
     /// pd.open_patch("tests/patches/sine.pd").unwrap();
     /// pd.subscribe_to_many(&["sender", "other_sender"]).unwrap();
     ///

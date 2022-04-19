@@ -48,14 +48,14 @@ fn apply_array_operations_in_a_row() {
     let mut read_to: Vec<f32> = vec![0.0; 4];
 
     write_float_array_to(sketch_pad, 0, &will_write_f, 4).unwrap();
-    read_float_array_from(sketch_pad, 4, &mut read_to, 0).unwrap();
+    read_float_array_from(sketch_pad, 0, 4, &mut read_to).unwrap();
     assert_eq!(read_to, will_write_f);
 
     let will_write_d: Vec<f64> = vec![0.0, 0.0, 1.0, 1.0];
     let mut read_to: Vec<f64> = vec![0.0; 4];
 
     write_double_array_to(sketch_pad, 0, &will_write_d, 4).unwrap();
-    read_double_array_from(sketch_pad, 4, &mut read_to, 0).unwrap();
+    read_double_array_from(sketch_pad, 0, 4, &mut read_to).unwrap();
     assert_eq!(read_to, will_write_d);
     //
 
@@ -65,7 +65,7 @@ fn apply_array_operations_in_a_row() {
 
     // Offsets
     write_float_array_to(sketch_pad, 2, &[1.0, 1.0, 0.0, 0.0], 4).unwrap();
-    read_float_array_from(sketch_pad, 6, &mut read_to, 0).unwrap();
+    read_float_array_from(sketch_pad, 0, 6, &mut read_to).unwrap();
 
     assert_eq!(read_to, vec![0.0, 0.0, 1.0, 1.0, 0.0, 0.0]);
 
@@ -75,7 +75,7 @@ fn apply_array_operations_in_a_row() {
 
     // Offsets
     write_double_array_to(sketch_pad, 2, &[1.0, 1.0, 0.0, 0.0], 4).unwrap();
-    read_double_array_from(sketch_pad, 6, &mut read_to, 0).unwrap();
+    read_double_array_from(sketch_pad, 0, 6, &mut read_to).unwrap();
 
     assert_eq!(read_to, vec![0.0, 0.0, 1.0, 1.0, 0.0, 0.0]);
 
@@ -87,15 +87,15 @@ fn apply_array_operations_in_a_row() {
     assert!(result.is_err());
 
     let mut read_to: Vec<f64> = vec![0.0; 4];
-    let result = read_double_array_from(sketch_pad, 50, &mut read_to, 0);
+    let result = read_double_array_from(sketch_pad, 0, 50, &mut read_to);
     assert!(result.is_err());
 
     let mut read_to: Vec<f64> = vec![0.0; 1024];
-    let result = read_double_array_from(sketch_pad, 1024, &mut read_to, 0);
+    let result = read_double_array_from(sketch_pad, 0, 1024, &mut read_to);
     assert!(result.is_err());
 
     let mut read_to: Vec<f64> = vec![0.0; 1024];
-    let result = read_double_array_from(sketch_pad, -1, &mut read_to, 0);
+    let result = read_double_array_from(sketch_pad, 0, -1, &mut read_to);
     assert!(result.is_err());
 
     // Float
@@ -104,15 +104,15 @@ fn apply_array_operations_in_a_row() {
     assert!(result.is_err());
 
     let mut read_to: Vec<f32> = vec![0.0; 4];
-    let result = read_float_array_from(sketch_pad, 50, &mut read_to, 0);
+    let result = read_float_array_from(sketch_pad, 0, 50, &mut read_to);
     assert!(result.is_err());
 
     let mut read_to: Vec<f32> = vec![0.0; 1024];
-    let result = read_float_array_from(sketch_pad, 1024, &mut read_to, 0);
+    let result = read_float_array_from(sketch_pad, 0, 1024, &mut read_to);
     assert!(result.is_err());
 
     let mut read_to: Vec<f32> = vec![0.0; 1024];
-    let result = read_float_array_from(sketch_pad, -1, &mut read_to, 0);
+    let result = read_float_array_from(sketch_pad, 0, -1, &mut read_to);
     assert!(result.is_err());
 
     close_patch(handle).unwrap();
