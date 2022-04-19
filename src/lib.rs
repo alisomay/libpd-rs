@@ -45,6 +45,10 @@
     // clippy::unimplemented,
     // clippy::unreachable,
 )]
+#![doc(
+    html_logo_url = "https://github.com/alisomay/libpd-rs/assets/logo_transparent.png",
+    html_favicon_url = "https://github.com/alisomay/libpd-rs/assets/favicon/favicon.ico"
+)]
 
 //! Write documentation in a tutorial style here.
 //!

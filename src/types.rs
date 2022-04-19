@@ -85,7 +85,7 @@ impl std::fmt::Display for Atom {
 
 /// The handle which is returned from opening a patch.
 ///
-/// This is a `std::ffi::c_void` in the underlying sys crate but for convenience it is converted to `usize` and held here.
+/// This is a [`c_void`](std::ffi::c_void) in the underlying sys crate but for convenience it is converted to `usize` and held here.
 ///
 /// This handle should be kept alive for the lifetime of the patch.
 #[derive(Debug)]
@@ -112,7 +112,7 @@ impl Into<*mut std::ffi::c_void> for PatchFileHandle {
 
 /// The handle which is returned from subscribing to a sender.
 ///
-/// This is a `std::ffi::c_void` in the underlying sys crate but for convenience it is converted to `usize` and held here.
+/// This is a [`c_void`](std::ffi::c_void) in the underlying sys crate but for convenience it is converted to `usize` and held here.
 ///
 /// This handle could be used later to unsubscribe from the sender.
 #[derive(Debug)]
