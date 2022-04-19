@@ -75,8 +75,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let output_stream = device.build_output_stream(
         &config.into(),
         move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
+            // Provide the ticks to advance per iteration for the internal scheduler.
             let ticks = libpd_rs::convenience::calculate_ticks(output_channels, data.len() as i32);
+
+            // Here if we had an input buffer we could have modified it to do pre-processing.
+
+            // Process audio, advance internal scheduler.
             libpd_rs::process::process_float(ticks, &[], data);
+
+            // Here we could have done post processing after pd processed our output buffer in place.
         },
         |err| eprintln!("an error occurred on stream: {}", err),
     )?;
