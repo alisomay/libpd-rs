@@ -189,7 +189,7 @@ pub fn start_message(length: i32) -> Result<(), SizeError> {
 /// # Panics
 /// To be honest I'd expect this to panic if you overflow a message buffer.
 ///
-/// Although I didn't check that, please create an issue(https://github.com/alisomay/libpd-rs/issues).
+/// Although I didn't check that, please create an [issue](https://github.com/alisomay/libpd-rs/issues).
 pub fn add_float_to_started_message(value: f32) {
     unsafe {
         libpd_sys::libpd_add_float(value);
@@ -214,7 +214,7 @@ pub fn add_float_to_started_message(value: f32) {
 /// # Panics
 /// To be honest I'd expect this to panic if you overflow a message buffer.
 ///
-/// Although I didn't check that, please create an issue(https://github.com/alisomay/libpd-rs/issues).
+/// Although I didn't check that, please create an [issue](https://github.com/alisomay/libpd-rs/issues).
 pub fn add_double_to_started_message(value: f64) {
     unsafe {
         libpd_sys::libpd_add_double(value);
@@ -239,7 +239,7 @@ pub fn add_double_to_started_message(value: f64) {
 /// # Panics
 /// To be honest I'd expect this to panic if you overflow a message buffer.
 ///
-/// Although I didn't check that, please create an issue(https://github.com/alisomay/libpd-rs/issues).
+/// Although I didn't check that, please create an [issue](https://github.com/alisomay/libpd-rs/issues).
 pub fn add_symbol_to_started_message<T: AsRef<str>>(value: T) {
     let sym = CString::new(value.as_ref()).expect(C_STRING_FAILURE);
     unsafe {

@@ -87,7 +87,7 @@
 ///     // Let's write some stuff to our array.
 ///     write_float_array_to("sketch_pad", 0, &[1.0, 2.0, 3.0, 4.0], 4)?;
 ///
-///     // Let's overwrite the seconf part of the array with the first part of our slice.
+///     // Let's overwrite the second part of the array with the first part of our slice.
 ///     write_float_array_to("sketch_pad", 2, &[500.0, 600.0, 3.0, 4.0], 2)?;
 ///
 ///     // Now we can read the array to the second half of our slice.
@@ -112,33 +112,61 @@ pub mod array;
 /// This crate is a thing wrapper around [libpd](https://github.com/libpd/libpd).
 /// This module aims to provide functions or structs to add a layer which is easier and quick to use.
 /// Now small but might grow in the future.
+///
+/// TODO: Note about the trustability of state.
+///
+/// # Examples
+/// ```rust
+/// // Example
+/// // Some use of PdGlobal
+/// ```
 pub mod convenience;
 /// All errors
 ///
-/// [`LibpdError`] is the umbrella error type for all errors related to libpd.
-/// All functions which might fail would return a`Result<T, Box<dyn LibpdError>>`.
-/// From there on one may use pattern matching to get more detailed.
+/// Maybe down casting examples??
 pub mod error;
 /// Start, stop, poll pd gui
+///
+/// Some more explanation..
 pub mod gui;
 
 /// Audio processing
 ///
-/// Process functions which you call in the audio callback are collected here.
+/// Process functions which you call in your audio callback are collected here.
 ///
 /// These functions also run the scheduler of pd. The chosen function needs to be called in a loop to keep pd "running".
+///
+/// # Examples
+/// ```rust
+/// // Example
+/// ```
 pub mod process;
 /// Receive messages from pd
 ///
 /// Collection of endpoints where listeners (hooks) may be registered to receive messages from pd.
+///
+/// # Examples
+/// ```rust
+/// // Example
+/// ```
 pub mod receive;
 /// Send messages to pd
 ///
 /// Collection of functions where messages may be sent to pd
+///
+/// # Examples
+/// ```rust
+/// // Example
+/// ```
 pub mod send;
 /// Types for working with pd
 ///
-/// TODO: Explain Atom type or provide examples.
+/// # Examples
+/// ```rust
+/// // Example
+/// // Sending lists of atoms etc.
+/// // Or matching
+/// ```
 pub mod types;
 
 pub(crate) mod helpers;
