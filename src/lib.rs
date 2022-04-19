@@ -270,7 +270,93 @@ pub mod process;
 ///
 /// # Examples
 /// ```rust
-/// // Example
+/// use libpd_rs::{
+///     close_patch,
+///     error::LibpdError,
+///     init, initialize_audio, open_patch,
+///     process::process_float,
+///     convenience::{dsp_on, calculate_ticks},
+///     receive::{receive_messages_from_pd, on_print, on_float, start_listening_from}
+/// };
+///
+/// fn main() -> Result<(), Box<dyn LibpdError>> {
+///     init()?;
+///     initialize_audio(1, 2, 44100)?;
+///     
+///     // Place your own patch here.
+///     let patch_handle = open_patch("tests/patches/echo.pd")?;
+///
+///     // Turn the dsp on
+///     dsp_on()?;
+///
+///     // Register some listeners
+///     // Print is a special one which is always listened from.
+///     on_print(|value| {
+///       println!("{value}");
+///     });
+///     
+///     on_float(|source, value| {
+///       println!("{value} received from {source}");
+///     });
+///
+///     // For others we need to register them.
+///     start_listening_from("float_from_pd")?;
+///     
+///     // We're going to treat this separate thread as the
+///     // high priority audio callback from the OS for this example.
+///
+///     // Open some channels to communicate with it.
+///     let (tx, rx) = std::sync::mpsc::channel::<()>();
+///
+///     let handle = std::thread::spawn(move || {
+///         // Mimic audio callback buffers.
+///         let input_buffer = [0.0f32; 512];
+///         let mut output_buffer = [0.0f32; 1024];
+///         
+///         let output_channels = 2;
+///         let sample_rate = 44100;
+///         
+///         // Run pd
+///         loop {
+///             // Mimic the call frequency of the audio callback.
+///             let approximate_buffer_duration =
+///                 (output_buffer.len() as f32 / sample_rate as f32) * 1000.0;
+///             std::thread::sleep(std::time::Duration::from_millis(
+///                 approximate_buffer_duration as u64,
+///             ));
+///             
+///             // Receive messages from pd.
+///             receive_messages_from_pd();
+///             
+///             // Calculate ticks for the internal scheduler
+///             let ticks = calculate_ticks(output_buffer.len() as i32, output_channels);
+///             
+///             // Process the audio and advance the internal scheduler by the number of ticks.
+///             process_float(ticks, &input_buffer, &mut output_buffer);
+///             
+///             // This is just meaningful for this example,
+///             // so we can break from this loop.
+///             match rx.try_recv() {
+///                 Ok(_) => break,
+///                 _ => continue,
+///             }
+///         }
+///      });
+///
+///     // When processing starts pd becomes alive because the scheduler is running.
+///     
+///     // After some time
+///     std::thread::sleep(std::time::Duration::from_millis(1000));
+///     
+///     // We may join the thread.
+///     tx.send(()).unwrap();
+///     handle.join().unwrap();
+///
+///     // And close the patch
+///     close_patch(patch_handle)?;
+///
+///     Ok(())
+/// }
 /// ```
 pub mod receive;
 /// Send messages to pd
@@ -279,17 +365,110 @@ pub mod receive;
 ///
 /// # Examples
 /// ```rust
-/// // Example
+/// use libpd_rs::{
+///     close_patch,
+///     error::LibpdError,
+///     init, initialize_audio, open_patch,
+///     process::process_float,
+///     convenience::{dsp_on, calculate_ticks},
+///     receive::{receive_messages_from_pd, on_print, on_float, start_listening_from},
+///     send::{send_float_to}
+/// };
+///
+/// fn main() -> Result<(), Box<dyn LibpdError>> {
+///     init()?;
+///     initialize_audio(1, 2, 44100)?;
+///     
+///     // Place your own patch here.
+///     let patch_handle = open_patch("tests/patches/echo.pd")?;
+///
+///     // Turn the dsp on
+///     dsp_on()?;
+///
+///     // Register some listeners
+///     // Print is a special one which is always listened from.
+///     on_print(|value| {
+///       println!("{value}");
+///     });
+///     
+///     on_float(|source, value| {
+///       assert_eq!(source, "float_from_pd");
+///       assert_eq!(value, 42.0);
+///       println!("{value} received from {source}");
+///     });
+///
+///     // For others we need to register them.
+///     start_listening_from("float_from_pd")?;
+///     
+///     // We're going to treat this separate thread as the
+///     // high priority audio callback from the OS for this example.
+///
+///     // Open some channels to communicate with it.
+///     let (tx, rx) = std::sync::mpsc::channel::<()>();
+///
+///     let handle = std::thread::spawn(move || {
+///         // Mimic audio callback buffers.
+///         let input_buffer = [0.0f32; 512];
+///         let mut output_buffer = [0.0f32; 1024];
+///         
+///         let output_channels = 2;
+///         let sample_rate = 44100;
+///         
+///         // Run pd
+///         loop {
+///             // Mimic the call frequency of the audio callback.
+///             let approximate_buffer_duration =
+///                 (output_buffer.len() as f32 / sample_rate as f32) * 1000.0;
+///             std::thread::sleep(std::time::Duration::from_millis(
+///                 approximate_buffer_duration as u64,
+///             ));
+///             
+///             // Receive messages from pd.
+///             receive_messages_from_pd();
+///             
+///             // Calculate ticks for the internal scheduler
+///             let ticks = calculate_ticks(output_buffer.len() as i32, output_channels);
+///             
+///             // Process the audio and advance the internal scheduler by the number of ticks.
+///             process_float(ticks, &input_buffer, &mut output_buffer);
+///             
+///             // This is just meaningful for this example,
+///             // so we can break from this loop.
+///             match rx.try_recv() {
+///                 Ok(_) => break,
+///                 _ => continue,
+///             }
+///         }
+///      });
+///
+///     // When processing starts pd becomes alive because the scheduler is running.
+///
+///     // Let's send a float to pd, it will be caught by the float listener,
+///     // because our patch which we've loaded, echoes it back.
+///     send_float_to("float_from_rust", 42.0)?;
+///     
+///     // After some time
+///     std::thread::sleep(std::time::Duration::from_millis(1000));
+///     
+///     // We may join the thread.
+///     tx.send(()).unwrap();
+///     handle.join().unwrap();
+///
+///     // And close the patch
+///     close_patch(patch_handle)?;
+///
+///     Ok(())
+/// }
 /// ```
 pub mod send;
 /// Types for working with pd
 ///
-/// # Examples
-/// ```rust
-/// // Example
-/// // Sending lists of atoms etc.
-/// // Or matching
-/// ```
+/// Pd wraps primitive types such as a float or a string in a type called atom.
+/// This enables pd to have heterogenous lists.
+///
+/// This module exposes the representation of that type as a Rust enum, [`Atom`](crate::types::Atom).
+///
+/// It also exposes some others to hold file or receiver handles returned from libpd functions.
 pub mod types;
 
 pub(crate) mod helpers;
