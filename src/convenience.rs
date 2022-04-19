@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use tempfile::NamedTempFile;
 
 use crate::{
-    error::{InitializationError, LibpdError, PatchLifeCycleError},
+    error::{InitializationError, PatchLifeCycleError},
     types::{PatchFileHandle, ReceiverHandle},
 };
 
@@ -20,7 +20,7 @@ use crate::{
 ///   - [`TooLarge`](crate::error::SizeError::TooLarge)
 ///
 /// To match over these errors, you would need to downcast the returned error.
-pub fn dsp_on() -> Result<(), Box<dyn LibpdError>> {
+pub fn dsp_on() -> Result<(), Box<dyn std::error::Error>> {
     crate::send::start_message(1)?;
     crate::send::add_float_to_started_message(1.0);
     crate::send::finish_message_as_typed_message_and_send_to("pd", "dsp")?;
@@ -38,7 +38,7 @@ pub fn dsp_on() -> Result<(), Box<dyn LibpdError>> {
 ///   - [`TooLarge`](crate::error::SizeError::TooLarge)
 ///
 /// To match over these errors, you would need to downcast the returned error.
-pub fn dsp_off() -> Result<(), Box<dyn LibpdError>> {
+pub fn dsp_off() -> Result<(), Box<dyn std::error::Error>> {
     crate::send::start_message(1)?;
     crate::send::add_float_to_started_message(0.0);
     crate::send::finish_message_as_typed_message_and_send_to("pd", "dsp")?;
@@ -134,7 +134,7 @@ impl PdGlobal {
         input_channels: i32,
         output_channels: i32,
         sample_rate: i32,
-    ) -> Result<Self, Box<dyn LibpdError>> {
+    ) -> Result<Self, Box<dyn std::error::Error>> {
         match crate::init() {
             Ok(_) => (),
             Err(err) => match err {
@@ -171,7 +171,7 @@ impl PdGlobal {
     pub fn add_path_to_search_paths<T: AsRef<Path>>(
         &mut self,
         path: T,
-    ) -> Result<(), Box<dyn LibpdError>> {
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let path = path.as_ref().to_path_buf();
         if !self.search_paths.contains(&path) {
             crate::add_to_search_paths(path.clone())?;
@@ -195,7 +195,7 @@ impl PdGlobal {
     pub fn add_paths_to_search_paths<T: AsRef<Path>>(
         &mut self,
         paths: &[T],
-    ) -> Result<(), Box<dyn LibpdError>> {
+    ) -> Result<(), Box<dyn std::error::Error>> {
         for path in paths {
             if !self.search_paths.contains(&path.as_ref().to_path_buf()) {
                 crate::add_to_search_paths(path)?;
@@ -220,7 +220,7 @@ impl PdGlobal {
     ///   - [`FailedToClosePatch`](crate::error::PatchLifeCycleError::FailedToClosePatch)
     ///
     /// To match over these errors, you would need to downcast the returned error.
-    pub fn close_patch(&mut self) -> Result<(), Box<dyn LibpdError>> {
+    pub fn close_patch(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         if let Some(handle) = self.running_patch.take() {
             crate::close_patch(handle)?;
         }
@@ -253,7 +253,10 @@ impl PdGlobal {
     ///   - [`PathDoesNotExist`](crate::error::PatchLifeCycleError::PathDoesNotExist)
     ///
     /// To match over these errors, you would need to downcast the returned error.
-    pub fn open_patch<T: AsRef<Path>>(&mut self, path: T) -> Result<(), Box<dyn LibpdError>> {
+    pub fn open_patch<T: AsRef<Path>>(
+        &mut self,
+        path: T,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         if self.running_patch.is_some() {
             self.close_patch()?;
         }
@@ -299,7 +302,10 @@ impl PdGlobal {
     ///   - [`PathDoesNotExist`](crate::error::PatchLifeCycleError::PathDoesNotExist)
     ///
     /// To match over these errors, you would need to downcast the returned error.
-    pub fn eval_patch<T: AsRef<str>>(&mut self, contents: T) -> Result<(), Box<dyn LibpdError>> {
+    pub fn eval_patch<T: AsRef<str>>(
+        &mut self,
+        contents: T,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         if self.running_patch.is_some() {
             self.close_patch()?;
         }
@@ -339,7 +345,10 @@ impl PdGlobal {
     ///   - [`FailedToSubscribeToSender`](crate::error::SubscriptionError::FailedToSubscribeToSender)
     ///
     /// To match over these errors, you would need to downcast the returned error.
-    pub fn subscribe_to<T: AsRef<str>>(&mut self, source: T) -> Result<(), Box<dyn LibpdError>> {
+    pub fn subscribe_to<T: AsRef<str>>(
+        &mut self,
+        source: T,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         if self.subscriptions.contains_key(source.as_ref()) {
             return Ok(());
         }
@@ -373,7 +382,7 @@ impl PdGlobal {
     pub fn subscribe_to_many<T: AsRef<str>>(
         &mut self,
         sources: &[T],
-    ) -> Result<(), Box<dyn LibpdError>> {
+    ) -> Result<(), Box<dyn std::error::Error>> {
         for source in sources {
             if self.subscriptions.contains_key(source.as_ref()) {
                 continue;
@@ -455,7 +464,7 @@ impl PdGlobal {
     ///   - [`PatchIsNotOpen`](crate::error::PatchLifeCycleError::PatchIsNotOpen)
     ///
     /// To match over these errors, you would need to downcast the returned error.
-    pub fn dollar_zero(&self) -> Result<i32, Box<dyn LibpdError>> {
+    pub fn dollar_zero(&self) -> Result<i32, Box<dyn std::error::Error>> {
         if let Some(ref patch) = self.running_patch {
             let dollar_zero = crate::get_dollar_zero(patch)?;
             return Ok(dollar_zero);
@@ -485,7 +494,7 @@ impl PdGlobal {
     ///   - [`TooLarge`](crate::error::SizeError::TooLarge)
     ///
     /// To match over these errors, you would need to downcast the returned error.
-    pub fn activate_audio(&mut self, on: bool) -> Result<(), Box<dyn LibpdError>> {
+    pub fn activate_audio(&mut self, on: bool) -> Result<(), Box<dyn std::error::Error>> {
         if on && !self.audio_active {
             dsp_on()?;
             self.audio_active = true;
