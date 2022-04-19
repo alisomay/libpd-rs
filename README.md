@@ -114,3 +114,21 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 This is just the tip of the iceberg about what you can do with [libpd](https://github.com/libpd).
 
 ## Next steps
+
+Please check the [examples](https://github.com/alisomay/libpd-rs/examples) and [tests](https://github.com/alisomay/libpd-rs/tests) directory if you're learning better when reading code.
+
+Or if you would like to dive in to [documentation]() please go ahead.
+
+## Resources
+
+- Pure Data
+- libpd
+- Audio in Rust
+
+...
+
+## Road map
+
+## Contributing
+
+## Last words

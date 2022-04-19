@@ -170,8 +170,6 @@ pub mod convenience;
 /// All errors
 ///
 /// This module contains all the errors which can be returned by the library.
-///
-/// All errors implement [`LibpdError`](crate::error::LibpdError) which could be used as a generic error type where needed.
 pub mod error;
 /// Start, stop, poll pd gui
 ///
