@@ -18,7 +18,7 @@ exclude = [
 ]
 
 [dependencies]
-libpd-sys = { git = "https://github.com/alisomay/libpd-sys" }
+libpd-sys = "0.1"
 thiserror = "1.0.30"
 libffi = "3.0.0"
 tempfile = "3.3.0"
