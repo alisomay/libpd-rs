@@ -13,9 +13,9 @@ Safe rust abstractions over [libpd-sys](https://github.com/alisomay/libpd-sys).
 
 Though pd is designed as a desktop application, [libpd](https://github.com/libpd) is an open source project which exposes it as a C library opening the possibility to embed the functionality of pd to any platform which C can compile to.
 
-[libpd-rs](https://github.com/alisomay/libpd-rs) aims to bring [libpd](https://github.com/libpd) to Rust [ecosystem](https://crates.io/). It aims to expose the full functionality of [libpd](https://github.com/libpd) even with some extra additions such as bundling commonly used externals and functionality to increase ease of use.
+[libpd-rs](https://github.com/alisomay/libpd-rs) aims to bring [libpd](https://github.com/libpd) to the Rust [ecosystem](https://crates.io/). It aims to expose the full functionality of [libpd](https://github.com/libpd) even with some extra additions such as bundling commonly used externals and extra functionality to increase ease of use.
 
-It is thoroughly documented, well [tested](https://github.com/alisomay/libpd-rs/tests) and enriched with different [examples](https://github.com/alisomay/libpd-rs/examples) to get you started right away.
+It is thoroughly [documented](https://docs.rs/libpd-rs/latest/libpd-rs/), well [tested](https://github.com/alisomay/libpd-rs/tests) and enriched with different [examples](https://github.com/alisomay/libpd-rs/examples) to get you started right away.
 
 Now let's make some sound! 🔔
 
@@ -121,18 +121,48 @@ This is just the tip of the iceberg about what you can do with [libpd](https://g
 
 Please check the [examples](https://github.com/alisomay/libpd-rs/examples) and [tests](https://github.com/alisomay/libpd-rs/tests) directory if you're learning better when reading code.
 
-Or if you would like to dive in to [documentation]() please go ahead.
+Or if you would like to dive in to [documentation](https://docs.rs/libpd-rs/latest/libpd-rs/) please go ahead.
 
 ## Resources
 
 - Pure Data
-- libpd
+  - <https://puredata.info/>
+  - <https://forum.pdpatchrepo.info/>
+  - <http://www.pd-tutorial.com/>
+  - <https://www.worldscientific.com/worldscibooks/10.1142/6277>
+  - <https://mitpress.mit.edu/books/designing-sound>
+  - <https://www.soundonsound.com/techniques/pure-data-introduction>
+  - [more](https://modwiggler.com/forum/viewtopic.php?t=236092)
+  - [and more](https://www.reddit.com/r/puredata/comments/cpb4um/resources_for_learning_pd/)
+  - [writing externals in C](https://github.com/pure-data/externals-howto)
+- [libpd](https://github.com/libpd)
 - Audio in Rust
-
-...
+  - <https://github.com/kfrncs/awesome-rust-audio>
+  - <https://github.com/RustAudio>
+  - <https://www.theaudioprogrammer.com/discord>
 
 ## Road map
 
+- [Multi hooks support](https://github.com/libpd/libpd/pull/2820)
+- [Multi instance support](https://github.com/libpd/libpd/blob/master/libpd_wrapper/z_libpd.h#L529)
+- Support for Android and IOS
+- Enrich [examples](https://github.com/alisomay/libpd-rs/examples) with nice patches and add also examples with [bevy](https://bevyengine.org/) and [nannou](https://github.com/nannou-org/nannou).
+
 ## Contributing
 
+- Be friendly and productive
+- Follow common practice open source contribution culture
+
+Thank you 🙏
+
+## Similar projects
+
+- <https://github.com/x37v/puredata-rust>
+- <https://github.com/wavejumper/pd-external-rs>
+- <https://github.com/x37v/puredata-rust/tree/HEAD/pd-sys>
+
 ## Last words
+
+Generative or algorithmic music is a powerful tool for exploration, pumps up creativity and goes very well together with traditional music making approaches also.
+
+Making apps which produce meaningful sound is difficult, I wish that this crate would ease your way on doing that and make complicated audio ideas in apps accessible to more people.
