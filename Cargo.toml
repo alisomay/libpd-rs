@@ -27,6 +27,10 @@ tempfile = "3.3.0"
 cpal = "0.13"
 
 # For local development currently,
+[patch.crates-io]
+libpd-sys = { git = "https://github.com/alisomay/libpd-sys" }
+
+# For local development currently,
 # [patch."https://github.com/alisomay/libpd-sys"]
 # libpd-sys = { path = "../libpd-sys" }
 
