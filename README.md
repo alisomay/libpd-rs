@@ -38,12 +38,16 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use libpd_rs::convenience::PdGlobal;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+
     // Initialize cpal
     // This could have been another cross platform audio library
     // basically anything which gets you the audio callback of the os.
     let host = cpal::default_host();
+
     // Currently we're only going to output to the default device
     let device = host.default_output_device().unwrap();
+
+    // Using the default config
     let config = device.default_output_config()?;
 
     // Let's get the default configuration from the audio driver.
