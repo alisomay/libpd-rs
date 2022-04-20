@@ -117,6 +117,22 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 This is just the tip of the iceberg about what you can do with [libpd](https://github.com/libpd).
 
+## Running the examples and tests
+
+After cloning the repository, in the repository root run:
+
+```sh
+cargo run --example <name of the example>
+```
+
+e.g.
+
+```sh
+cargo run --example sine
+```
+
+For the tests, you may run `cargo test` directly.
+
 ## Next steps
 
 Please check the [examples](https://github.com/alisomay/libpd-rs/examples) and [tests](https://github.com/alisomay/libpd-rs/tests) directory if you're learning better when reading code.
