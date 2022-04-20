@@ -170,6 +170,29 @@ Or if you would like to dive in to [documentation](https://docs.rs/libpd-rs/late
 - Support for Android and IOS
 - Enrich [examples](https://github.com/alisomay/libpd-rs/examples) with nice patches and add also examples with [bevy](https://bevyengine.org/) and [nannou](https://github.com/nannou-org/nannou).
 
+## Support
+
+- Desktop
+  - macOS:
+    - `x86_64` ✅
+    - `aarch64` ✅
+  - linux:
+    - `x86_64` ✅
+    - `aarch64` ✅
+  - windows:
+    - msvc
+      - `x86_64` ✅
+      - `aarch64` (not tested but should work)
+    - gnu
+      - `x86_64` (not tested but should work)
+      - `aarch64` (not tested but should work)
+- Mobile
+
+  - iOS (not yet but will be addressed)
+  - Android (not yet but will be addressed)
+
+- Web (not yet but will be addressed)
+
 ## Contributing
 
 - Be friendly and productive
