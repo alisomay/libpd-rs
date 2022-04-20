@@ -1,6 +1,6 @@
 [package]
 name = "libpd-rs"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["alisomay <alisomay@runbox.com>"]
 edition = "2021"
 license = "BSD-3-Clause"
