@@ -132,9 +132,9 @@ Or if you would like to dive in to [documentation](https://docs.rs/libpd-rs/late
   - <https://www.worldscientific.com/worldscibooks/10.1142/6277>
   - <https://mitpress.mit.edu/books/designing-sound>
   - <https://www.soundonsound.com/techniques/pure-data-introduction>
-  - [more](https://modwiggler.com/forum/viewtopic.php?t=236092)
-  - [and more](https://www.reddit.com/r/puredata/comments/cpb4um/resources_for_learning_pd/)
-  - [writing externals in C](https://github.com/pure-data/externals-howto)
+  - [collection of resources in modwiggler](https://modwiggler.com/forum/viewtopic.php?t=236092)
+  - [collection of resources in reddit](https://www.reddit.com/r/puredata/comments/cpb4um/resources_for_learning_pd/)
+  - [a guide to writing pd externals in C](https://github.com/pure-data/externals-howto)
 - [libpd](https://github.com/libpd)
 - Audio in Rust
   - <https://github.com/kfrncs/awesome-rust-audio>
@@ -152,6 +152,7 @@ Or if you would like to dive in to [documentation](https://docs.rs/libpd-rs/late
 
 - Be friendly and productive
 - Follow common practice open source contribution culture
+- Rust [code of conduct](https://www.rust-lang.org/policies/code-of-conduct) applies
 
 Thank you 🙏
 

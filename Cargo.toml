@@ -3,7 +3,7 @@ name = "libpd-rs"
 version = "0.1.0"
 authors = ["alisomay <alisomay@runbox.com>"]
 edition = "2021"
-license = "MIT"
+license = "BSD-3-Clause"
 description = "Safe rust abstractions over libpd"
 readme = "README.md"
 homepage = "https://github.com/alisomay/libpd-rs"
@@ -13,6 +13,8 @@ keywords = ["puredata", "libpd", "audio", "midi", "bindings"]
 categories = ["multimedia"]
 exclude = [
     "tests/*",
+    "assets/*",
+    "src/main.rs"
 ]
 
 [dependencies]
@@ -21,22 +23,22 @@ thiserror = "1.0.30"
 libffi = "3.0.0"
 tempfile = "3.3.0"
 
-#For local development currently.
+[dev-dependencies]
+cpal = "0.13"
+
+# For local development currently,
 # [patch."https://github.com/alisomay/libpd-sys"]
 # libpd-sys = { path = "../libpd-sys" }
 
 [lib]
-# name = "foo"           # The name of the target.
-# path = "src/lib.rs"    # The source file of the target.
-# test = true            # Is tested by default.
+name = "libpd_rs"           # The name of the target.
+path = "src/lib.rs"    # The source file of the target.
+test = true            # Is tested by default.
 doctest = true         # Documentation examples are tested by default.
-# bench = true           # Is benchmarked by default.
-# doc = true             # Is documented by default.
-# plugin = false         # Used as a compiler plugin (deprecated).
-# proc-macro = false     # Set to `true` for a proc-macro library.
-# harness = true         # Use libtest harness.
-# edition = "2021"       # The edition of the target.
-# crate-type = ["lib"]   # The crate types to generate.
-# required-features = [] # Features required to build this target (N/A for lib).
+bench = false           # Is benchmarked by default.
+doc = true             # Is documented by default.
+proc-macro = false     # Set to `true` for a proc-macro library.
+edition = "2021"       # The edition of the target.
+crate-type = ["lib"]   # The crate types to generate.
 
 
