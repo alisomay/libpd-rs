@@ -73,16 +73,17 @@ fn send_and_receive_double() {
 
     assert_eq!(floats.lock().unwrap().len(), 7);
 
-    let floats_to_compare: Vec<f64> = vec![1.0, 2.0, 3.0, 4.0, 5.0, f64::MAX, f64::MIN];
+    let floats_to_compare: Vec<f64> = vec![1.0, 2.0, 3.0, 4.0, 5.0];
     floats
         .lock()
         .unwrap()
         .iter()
-        .zip(floats_to_compare.iter())
+        .zip(floats_to_compare[..5].iter())
         .for_each(|(a, b)| {
-            assert_eq!(a - b, 0.0);
+            assert_eq!((a - b) as i64, 0);
         });
-
+    assert_eq!(f64::MAX, floats.lock().unwrap()[5]);
+    assert_eq!(f64::MIN, floats.lock().unwrap()[6]);
     // Stop listening and close handle.
     stop_listening_from(receiver_handle);
     close_patch(patch_handle).unwrap();
