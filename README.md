@@ -25,7 +25,7 @@ Add the following dependencies to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-libpd-rs = "0.1.0"
+libpd-rs = "0.1"
 cpal = "0.13"
 ```
 
