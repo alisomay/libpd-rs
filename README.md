@@ -117,6 +117,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 This is just the tip of the iceberg about what you can do with [libpd](https://github.com/libpd).
 
+The patch we had just evaluated would look like this in pd desktop application:
+
+<p align="left">
+  <img src="https://raw.githubusercontent.com/alisomay/libpd-rs/main/assets/sine_patch.png"/>
+</p>
+
 ## Running the examples and tests
 
 After cloning the repository, in the repository root run:
