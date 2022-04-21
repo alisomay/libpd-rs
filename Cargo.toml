@@ -23,8 +23,6 @@ thiserror = "1.0.30"
 libffi = "3.0.0"
 tempfile = "3.3.0"
 embed-doc-image = "0.1.4"
-cpal = "0.13"
-sys-info = "0.9.1"
 
 [dev-dependencies]
 cpal = "0.13"
