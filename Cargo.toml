@@ -13,8 +13,8 @@ keywords = ["puredata", "libpd", "audio", "midi", "bindings"]
 categories = ["multimedia"]
 exclude = [
     "tests/*",
-    "assets/*",
-    "src/main.rs"
+    "assets/favicon/*",
+    "assets/logo_*"
 ]
 
 [dependencies]
