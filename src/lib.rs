@@ -108,6 +108,10 @@ doc = ::embed_doc_image::embed_image!("phasor_patch", "assets/phasor_patch.png")
 //!
 //! ### Initialize, open patch, run
 //!
+//! Paste the code into your `main.rs`:
+//!
+//! ⚠️ **Warning** ⚠️: This example will produce audio, so please keep your volume at a reasonable level for safety.
+//!
 //! ```no_run
 //! use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 //! use libpd_rs::convenience::{PdGlobal, calculate_ticks};
@@ -199,11 +203,23 @@ doc = ::embed_doc_image::embed_image!("phasor_patch", "assets/phasor_patch.png")
 //! ### Communicate with the patch
 //!
 //! Again with a simplistic patch, this time we'll send and receive messages from pd.
-//! We'll be monitoring our cpu load in average over a minute and 5 minutes, send this data to pd
-//! as a list and let it change parameters in our simplistic patch.
+//! We'll be monitoring our cpu load average over a minute and 5 minutes, send this data to pd
+//! as a list and let it change some parameters in our simplistic patch.
 //!
-//! As a last thing we'll send the data we've applied to an object in the patch after the calculations
-//! we've applied back to Rust to read it. This is a very simple example of how to send and receive data.
+//! As a last thing we'll send the data we've applied to an object in the patch  back to Rust to read it.
+//! This is a very simple example of how to send and receive data.
+//!
+//! Add the following dependencies to your `Cargo.toml`:
+//!
+//! ```toml
+//! [dependencies]
+//! libpd-rs = "0.1.7"
+//! cpal = "0.13"
+//! sys-info = "0.9.1"
+//! ```
+//! Paste the code into your `main.rs`:
+//!
+//! ⚠️ **Warning** ⚠️: This example will produce audio, so please keep your volume at a reasonable level for safety.
 //!
 //! ```no_run
 //! use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
@@ -365,7 +381,7 @@ doc = ::embed_doc_image::embed_image!("phasor_patch", "assets/phasor_patch.png")
 //!
 //! The result is a pulse which goes higher in pitch and speed when the load is higher and vice versa.
 //!
-//! Give it a try! Though not very interesting, hope it triggers your curiosity and imagination.
+//! Though not very interesting musically, hope it triggers your curiosity and imagination.
 //!
 //! The patch you have just evaluated and listened looks like this in pd desktop [application](https://puredata.info/downloads).
 //!
@@ -373,44 +389,51 @@ doc = ::embed_doc_image::embed_image!("phasor_patch", "assets/phasor_patch.png")
 //!
 //! ### Note about examples
 //!
-//! After these basic initial examples which were aimed to get you started, you may dive in to the
-//! individual modules and items in the documentation. They all have their own examples.
+//! After these basic initial examples which were aimed to get you started, you may dive into the
+//! individual [modules](https://docs.rs/libpd-rs/0.1.7/libpd_rs/#modules)
+//! and [items](https://docs.rs/libpd-rs/0.1.7/libpd_rs/all.html) in the documentation.
+//! They all have their own examples.
 //!
 //! You may discover [integration tests](https://github.com/alisomay/libpd-rs/tests)
 //! and explore [examples](https://github.com/alisomay/libpd-rs/examples)
 //! in the [repository](https://github.com/alisomay/libpd-rs).
 //!
 //! The [examples](https://github.com/alisomay/libpd-rs/examples)
-//! directory in the [repository](https://github.com/alisomay/libpd-rs) is not filled with all the examples imagined yet.
+//! directory in the [repository](https://github.com/alisomay/libpd-rs) is not filled with
+//! all the examples imagined yet.
 //!
-//! On the other hand it'll be updated with variety of [new examples](https://github.com/alisomay/libpd-rs/issues/8) very soon.
+//! On the other hand it'll be updated with variety of
+//! [new examples](https://github.com/alisomay/libpd-rs/issues/8) very soon.
 //!
 //! Enjoy!
 //!
 //! ## Things to note
 //!
-//! [libpd](https://github.com/libpd/libpd) is a C library and the implementation allocates libpd globally.
+//! [libpd](https://github.com/libpd/libpd) is a C library and the implementation allocates libpd **globally**.
 //! This means that you can only have one instance of libpd running at a time.
-//! There is support for [multi instances] in [libpd](https://github.com/libpd/libpd) but those
+//! There is support for [multi instances](https://github.com/libpd/libpd/blob/master/libpd_wrapper/z_libpd.h#L529)
+//! in [libpd](https://github.com/libpd/libpd) but those
 //! will be implemented in [libpd-rs](https://github.com/alisomay/libpd-rs) in the future.
 //!
 //! This is not very Rust like and on top of that we do not manage the memory of that instantiation.
-//! Using it from different threads is fine because [libpd](https://github.com/libpd/libpd) has locking implemented inside it.
+//! Using it from different threads is fine because [libpd](https://github.com/libpd/libpd) has
+//! locking implemented inside it.
 //!
-//! On the other hand, the programming style and tracking the state might be a little different that how we do it in Rust.
+//! On the other hand, the programming style and state tracking might be a little different that how we do it in Rust.
 //!
-//! There are many functions and less data structures in this crate. Because all of those functions act as methods for a globally
+//! There are many functions and less data structures in this crate.
+//! Because all, of those functions act as methods for a globally
 //! initialized singleton libpd instance.
 //!
-//! There are limited ways of retrieving state from the running libpd instance and libpd-rs provides
+//! There are limited ways of retrieving state from the running libpd instance but libpd-rs provides
 //! [`PdGlobal`](crate::convenience::PdGlobal) to track some of the
-//! state manually but this operation needs to be handled with care.
+//! state manually on the other hand this operation needs to be handled with care.
 //! See [`PdGlobal`](crate::convenience::PdGlobal) for more details.
 //!
 //! ## Plans and Support
 //!
 //! Please see [libpd-rs](https://github.com/alisomay/libpd-rs) [support](https://github.com/alisomay/libpd-rs#support) and
-//! [road map](https://github.com/alisomay/libpd-rs#road-map) section for more details on these.
+//! [road map](https://github.com/alisomay/libpd-rs#road-map) section for more details on these topics.
 //!
 //! Also don't forget to check [issues](https://github.com/alisomay/libpd-rs/issues), to track the ideas and plans.
 //!
