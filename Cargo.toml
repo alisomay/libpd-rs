@@ -1,6 +1,6 @@
 [package]
 name = "libpd-rs"
-version = "0.1.7"
+version = "0.1.8"
 authors = ["alisomay <alisomay@runbox.com>"]
 edition = "2021"
 license = "BSD-3-Clause"
@@ -8,7 +8,7 @@ description = "Safe rust abstractions over libpd"
 readme = "README.md"
 homepage = "https://github.com/alisomay/libpd-rs"
 repository = "https://github.com/alisomay/libpd-rs"
-documentation = "https://docs.rs/libpd-rs/0.1.7/libpd_rs/#"
+documentation = "https://docs.rs/libpd-rs/0.1.8/libpd_rs/#"
 keywords = ["puredata", "libpd", "audio", "midi", "bindings"]
 categories = ["multimedia"]
 exclude = [

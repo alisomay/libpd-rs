@@ -75,7 +75,7 @@ doc = ::embed_doc_image::embed_image!("phasor_patch", "assets/phasor_patch.png")
 //! with some extra additions such as bundling commonly used externals
 //! and addition of extra functionality for increased ease of use.
 //!
-//! It is thoroughly [documented](https://docs.rs/libpd-rs/0.1.7/libpd_rs/#),
+//! It is thoroughly [documented](https://docs.rs/libpd-rs/0.1.8/libpd_rs/#),
 //! well [tested](https://github.com/alisomay/libpd-rs/tests) and enriched with
 //! various [examples](https://github.com/alisomay/libpd-rs/examples) to get you started right away.
 //!
@@ -86,7 +86,7 @@ doc = ::embed_doc_image::embed_image!("phasor_patch", "assets/phasor_patch.png")
 //! Add the latest version of [libpd-rs](https://github.com/alisomay/libpd-rs) to your `Cargo.toml`:
 //! ```toml
 //! [dependencies]
-//! libpd-rs = "0.1.7"
+//! libpd-rs = "0.1.8"
 //! cpal = "0.13"
 //! ```
 //! We also add [cpal](https://github.com/RustAudio/cpal) to our dependencies
@@ -213,7 +213,7 @@ doc = ::embed_doc_image::embed_image!("phasor_patch", "assets/phasor_patch.png")
 //!
 //! ```toml
 //! [dependencies]
-//! libpd-rs = "0.1.7"
+//! libpd-rs = "0.1.8"
 //! cpal = "0.13"
 //! sys-info = "0.9.1"
 //! ```
@@ -390,8 +390,8 @@ doc = ::embed_doc_image::embed_image!("phasor_patch", "assets/phasor_patch.png")
 //! ### Note about examples
 //!
 //! After these basic initial examples which were aimed to get you started, you may dive into the
-//! individual [modules](https://docs.rs/libpd-rs/0.1.7/libpd_rs/#modules)
-//! and [items](https://docs.rs/libpd-rs/0.1.7/libpd_rs/all.html) in the documentation.
+//! individual [modules](https://docs.rs/libpd-rs/0.1.8/libpd_rs/#modules)
+//! and [items](https://docs.rs/libpd-rs/0.1.8/libpd_rs/all.html) in the documentation.
 //! They all have their own examples.
 //!
 //! You may discover [integration tests](https://github.com/alisomay/libpd-rs/tests)

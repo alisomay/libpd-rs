@@ -15,7 +15,7 @@ Though pd is designed as a desktop application, [libpd](https://github.com/libpd
 
 [libpd-rs](https://github.com/alisomay/libpd-rs) aims to bring [libpd](https://github.com/libpd) to the Rust [ecosystem](https://crates.io/). It aims to expose the full functionality of [libpd](https://github.com/libpd) with some extra additions such as bundling commonly used externals and addition of extra functionality for increased ease of use.
 
-It is thoroughly [documented](https://docs.rs/libpd-rs/0.1.7/libpd_rs/#), well [tested](https://github.com/alisomay/libpd-rs/tests) and enriched with various [examples](https://github.com/alisomay/libpd-rs/examples) to get you started right away.
+It is thoroughly [documented](https://docs.rs/libpd-rs/0.1.8/libpd_rs/#), well [tested](https://github.com/alisomay/libpd-rs/tests) and enriched with various [examples](https://github.com/alisomay/libpd-rs/examples) to get you started right away.
 
 Now let's make some sound! 🔔
 
@@ -25,7 +25,7 @@ Add the following dependencies to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-libpd-rs = "0.1.7"
+libpd-rs = "0.1.8"
 cpal = "0.13"
 ```
 
@@ -143,7 +143,7 @@ For the tests, you may run `cargo test` directly.
 
 Please check the [examples](https://github.com/alisomay/libpd-rs/examples) and [tests](https://github.com/alisomay/libpd-rs/tests) directory if you're learning better when reading code.
 
-Or if you would like to dive in to [documentation](https://docs.rs/libpd-rs/0.1.7/libpd_rs/#) please go ahead.
+Or if you would like to dive in to [documentation](https://docs.rs/libpd-rs/0.1.8/libpd_rs/#) please go ahead.
 
 ## Resources
 
