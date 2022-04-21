@@ -45,14 +45,395 @@
     // clippy::unimplemented,
     // clippy::unreachable,
 )]
+#![cfg_attr(all(),
+doc = ::embed_doc_image::embed_image!("sine_patch", "assets/sine_patch.png"),
+doc = ::embed_doc_image::embed_image!("phasor_patch", "assets/phasor_patch.png"),
+)]
 #![doc(
     html_logo_url = "https://raw.githubusercontent.com/alisomay/libpd-rs/main/assets/logo_transparent.png",
     html_favicon_url = "https://raw.githubusercontent.com/alisomay/libpd-rs/main/assets/favicon/favicon.ico"
 )]
 
-//! Write documentation in a tutorial style here.
+//! # A safe wrapper around libpd
 //!
+//! [Pure Data](https://puredata.info/) (Pd) is a visual programming language developed by
+//! [Miller Puckette](https://en.wikipedia.org/wiki/Miller_Puckette) in the 1990s
+//! for creating interactive computer music and multimedia works.
+//! While Puckette is the main author of the program,
+//! Pd is an [open-source project](https://github.com/pure-data/pure-data) with a
+//! [large developer base](https://github.com/pure-data/pure-data/graphs/contributors) working on new extensions.
+//! It is released under [BSD-3-Clause](https://opensource.org/licenses/BSD-3-Clause).
 //!
+//! Though pd is designed as a desktop application,
+//! [libpd](https://github.com/libpd) is an open source project
+//! which exposes it as a C library opening the possibility to
+//! embed the functionality of pd to any platform which C can compile to.
+//!
+//! [libpd-rs](https://github.com/alisomay/libpd-rs) aims to bring [libpd](https://github.com/libpd)
+//! to the Rust [ecosystem](https://crates.io/).
+//! It aims to expose the full functionality of [libpd](https://github.com/libpd)
+//! with some extra additions such as bundling commonly used externals
+//! and addition of extra functionality for increased ease of use.
+//!
+//! It is thoroughly [documented](https://docs.rs/libpd-rs/0.1.7/libpd_rs/#),
+//! well [tested](https://github.com/alisomay/libpd-rs/tests) and enriched with
+//! various [examples](https://github.com/alisomay/libpd-rs/examples) to get you started right away.
+//!
+//! Now let's make some sound! 🔔
+//!
+//! ## Getting Started
+//!
+//! Add the latest version of [libpd-rs](https://github.com/alisomay/libpd-rs) to your `Cargo.toml`:
+//! ```toml
+//! [dependencies]
+//! libpd-rs = "0.1.7"
+//! cpal = "0.13"
+//! ```
+//! We also add [cpal](https://github.com/RustAudio/cpal) to our dependencies
+//! to get access to the high priority audio callback from the OS.
+//!
+//! [cpal](https://github.com/RustAudio/cpal) is not a must.
+//! You may have used any method to get audio callback from the OS.
+//!
+//! ## Examples and Usage
+//!
+//! To start making sound with [libpd-rs](https://github.com/alisomay/libpd-rs), we need to have a pd patch at hand.
+//! Pd patches are `.pd` files which could be read by pd desktop [application](https://puredata.info/downloads).
+//!
+//! Pd patches are not binary files, they are simple files full of pd commands as text.
+//! [libpd-rs](https://github.com/alisomay/libpd-rs) provides an additional way to
+//! [evaluate](crate::convenience::PdGlobal::eval_patch) strings as pd patches.
+//!
+//! This is the [method](crate::convenience::PdGlobal::eval_patch) we'll use in the following examples.
+//!
+//! ### Initialize, open patch, run
+//!
+//! ```no_run
+//! use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+//! use libpd_rs::convenience::{PdGlobal, calculate_ticks};
+//!
+//! fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!
+//!     // Initialize cpal
+//!     // This could have been another cross platform audio library
+//!     // basically anything which gets you the audio callback of the os.
+//!     let host = cpal::default_host();
+//!
+//!     // Currently we're only going to output to the default device
+//!     let device = host.default_output_device().unwrap();
+//!
+//!     // Using the default config
+//!     let config = device.default_output_config()?;
+//!
+//!     // Let's get the default configuration from the audio driver.
+//!     let sample_rate = config.sample_rate().0 as i32;
+//!     let output_channels = config.channels() as i32;
+//!
+//!     // Initialize libpd with that configuration,
+//!     // with no input channels since we're not going to use them.
+//!     let mut pd = PdGlobal::init_and_configure(0, output_channels, sample_rate)?;
+//!
+//!     // Let's evaluate a pd patch.
+//!     // We could have opened a `.pd` file also.
+//!     // This patch would play a sine wave at 440hz.
+//!     pd.eval_patch(
+//!         r#"
+//!     #N canvas 577 549 158 168 12;
+//!     #X obj 23 116 dac~;
+//!     #X obj 23 17 osc~ 440;
+//!     #X obj 23 66 *~ 0.1;
+//!     #X obj 81 67 *~ 0.1;
+//!     #X connect 1 0 2 0;
+//!     #X connect 1 0 3 0;
+//!     #X connect 2 0 0 0;
+//!     #X connect 3 0 0 1;
+//!         "#,
+//!     )?;
+//!
+//!     // Build the audio stream.
+//!     let output_stream = device.build_output_stream(
+//!         &config.into(),
+//!         move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
+//!             // Provide the ticks to advance per iteration for the internal scheduler.
+//!             let ticks = calculate_ticks(output_channels, data.len() as i32);
+//!
+//!             // Here if we had an input buffer
+//!             // we could have modified it to do pre-processing.
+//!
+//!             // Process audio, advance internal scheduler.
+//!             libpd_rs::process::process_float(ticks, &[], data);
+//!
+//!             // Here we could have done post processing
+//!             // after pd processed our output buffer in place.
+//!         },
+//!         |err| eprintln!("an error occurred on stream: {}", err),
+//!     )?;
+//!
+//!     // Turn audio processing on
+//!     pd.activate_audio(true)?;
+//!
+//!     // Run the stream
+//!     output_stream.play()?;
+//!
+//!     // Wait a bit for listening..
+//!     std::thread::sleep(std::time::Duration::from_secs(5));
+//!
+//!     // Turn audio processing off
+//!     pd.activate_audio(false)?;
+//!
+//!     // Pause the stream
+//!     output_stream.pause()?;
+//!
+//!     // Close the patch
+//!     pd.close_patch()?;
+//!
+//!     // Leave
+//!     Ok(())
+//! }
+//! ```
+//!
+//! The patch you have just evaluated and listened looks exactly like this in pd desktop [application](https://puredata.info/downloads).
+//!
+//! ![Sine wave generating pd patch][sine_patch]
+//!
+//! ### Communicate with the patch
+//!
+//! Again with a simplistic patch, this time we'll send and receive messages from pd.
+//! We'll be monitoring our cpu load in average over a minute and 5 minutes, send this data to pd
+//! as a list and let it change parameters in our simplistic patch.
+//!
+//! As a last thing we'll send the data we've applied to an object in the patch after the calculations
+//! we've applied back to Rust to read it. This is a very simple example of how to send and receive data.
+//!
+//! ```no_run
+//! use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+//! use libpd_rs::{
+//!     convenience::{PdGlobal, calculate_ticks}, receive::on_float, receive::receive_messages_from_pd, send::send_list_to,
+//! };
+//! use sys_info::loadavg;
+//!
+//! fn main() -> Result<(), Box<dyn std::error::Error>> {
+//!     // Initialize cpal
+//!     // This could have been another cross platform audio library
+//!     // basically anything which gets you the audio callback of the os.
+//!     let host = cpal::default_host();
+//!
+//!     // Currently we're only going to output to the default device
+//!     let device = host.default_output_device().unwrap();
+//!
+//!     // Using the default config
+//!     let config = device.default_output_config()?;
+//!
+//!     // Let's get the default configuration from the audio driver.
+//!     let sample_rate = config.sample_rate().0 as i32;
+//!     let output_channels = config.channels() as i32;
+//!
+//!     // Initialize libpd with that configuration,
+//!     // with no input channels since we're not going to use them.
+//!     let mut pd = PdGlobal::init_and_configure(0, output_channels, sample_rate)?;
+//!
+//!     // Let's evaluate another pd patch.
+//!     // We could have opened a `.pd` file also.
+//!     pd.eval_patch(
+//!         r#"
+//!     #N canvas 832 310 625 448 12;
+//!     #X obj 18 27 r cpu_load;
+//!     #X obj 55 394 s response;
+//!     #X obj 13 261 *~;
+//!     #X obj 112 240 vline~;
+//!     #X obj 118 62 bng 15 250 50 0 empty empty empty 17 7 0 10 -262144 -1
+//!     -1;
+//!     #X obj 14 395 dac~;
+//!     #X obj 50 299 sig~;
+//!     #X floatatom 50 268 5 0 0 0 - - -;
+//!     #X obj 13 228 phasor~ 120;
+//!     #X obj 139 61 metro 2000;
+//!     #X obj 139 38 tgl 15 0 empty empty empty 17 7 0 10 -262144 -1 -1 1
+//!     1;
+//!     #X obj 18 52 unpack f f;
+//!     #X obj 14 362 *~ 2;
+//!     #X obj 14 336 vcf~ 12;
+//!     #X obj 139 12 loadbang;
+//!     #X msg 118 86 1 8 \, 0 0 10;
+//!     #X obj 149 197 expr (480 + 80) * ($f1 - 8) / (4 - 16) + 480;
+//!     #X obj 29 128 * 20;
+//!     #X obj 167 273 expr (520 + 120) * ($f1 - 5) / (12 - 5) + 120;
+//!     #X connect 0 0 11 0;
+//!     #X connect 2 0 13 0;
+//!     #X connect 3 0 2 1;
+//!     #X connect 4 0 15 0;
+//!     #X connect 6 0 13 1;
+//!     #X connect 7 0 6 0;
+//!     #X connect 8 0 2 0;
+//!     #X connect 9 0 15 0;
+//!     #X connect 10 0 9 0;
+//!     #X connect 11 0 16 0;
+//!     #X connect 11 0 18 0;
+//!     #X connect 11 1 17 0;
+//!     #X connect 12 0 5 0;
+//!     #X connect 12 0 5 1;
+//!     #X connect 13 0 12 0;
+//!     #X connect 14 0 10 0;
+//!     #X connect 15 0 3 0;
+//!     #X connect 16 0 9 1;
+//!     #X connect 17 0 1 0;
+//!     #X connect 17 0 13 2;
+//!     #X connect 18 0 7 0;
+//!         "#,
+//!     )?;
+//!
+//!     // Here we are registering a listener (hook in libpd lingo) for
+//!     // float values which are received from the pd patch.
+//!     on_float(|source, value| {
+//!         if source == "response" {
+//!             print!("\r");
+//!             print!("Pd says that the q value of the vcf~ is: {value}");
+//!         }
+//!     });
+//!
+//!     // Pd can send data to many different endpoints at a time.
+//!     // This is why we need to declare our subscription to one or more first.
+//!     // In this case we're subscribing to one, but it could have been many,
+//!     pd.subscribe_to("response")?;
+//!
+//!     // Build the audio stream.
+//!     let output_stream = device.build_output_stream(
+//!         &config.into(),
+//!         move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
+//!             // Provide the ticks to advance per iteration for the internal scheduler.
+//!             let ticks = calculate_ticks(output_channels, data.len() as i32);
+//!
+//!             // Here if we had an input buffer
+//!             // we could have modified it to do pre-processing.
+//!
+//!             // To receive messages from the pd patch we need to read the ring buffers
+//!             // filled by the pd patch repeatedly to check if there are messages there.
+//!             // Audio callback is a nice place to do that.
+//!             receive_messages_from_pd();
+//!
+//!             // Process audio, advance internal scheduler.
+//!             libpd_rs::process::process_float(ticks, &[], data);
+//!
+//!             // Here we could have done post processing after
+//!             // pd processed our output buffer in place.
+//!         },
+//!         |err| eprintln!("an error occurred on stream: {}", err),
+//!     )?;
+//!
+//!     // Turn audio processing on
+//!     pd.activate_audio(true)?;
+//!
+//!     // Run the stream
+//!     output_stream.play()?;
+//!
+//!     // This program does not terminate.
+//!     // You would need to explicitly quit it.
+//!     loop {
+//!         // We sample in 2 hz.
+//!         std::thread::sleep(std::time::Duration::from_millis(500));
+//!
+//!         // Read the average load of the cpu.
+//!         let load = loadavg()?;
+//!
+//!         let one_minute_cpu_load_average = load.one;
+//!         let five_minutes_cpu_load_average = load.five;
+//!
+//!         // Lists are one of the types we can send to pd.
+//!         // Although pd allows for heterogeneous lists,
+//!         // even if we're not using them heterogeneously in this example,
+//!         // we still need to send it as a list of Atoms.
+//!
+//!         // Atom is an encapsulating type in pd to unify
+//!         // various types of data together under the same umbrella.
+//!         // Check out `libpd_rs::types` module for more details.
+//!
+//!         // Atoms have From trait implemented for them for
+//!         // floats and strings.
+//!         send_list_to(
+//!             "cpu_load",
+//!             &[
+//!                 one_minute_cpu_load_average.into(),
+//!                 five_minutes_cpu_load_average.into(),
+//!             ],
+//!         )?;
+//!     }
+//! }
+//!```
+//!
+//! The one minute average load is controlling the center frequency of the `vcf~` and the speed of the pulses.
+//! The five minute average load is controlling the q factor of the `vcf~`.
+//!
+//! The result is a pulse which goes higher in pitch and speed when the load is higher and vice versa.
+//!
+//! Give it a try! Though not very interesting, hope it triggers your curiosity and imagination.
+//!
+//! The patch you have just evaluated and listened looks like this in pd desktop [application](https://puredata.info/downloads).
+//!
+//! ![Pd patch with phasor a/d and vcf][phasor_patch]
+//!
+//! ### Note about examples
+//!
+//! After these basic initial examples which were aimed to get you started, you may dive in to the
+//! individual modules and items in the documentation. They all have their own examples.
+//!
+//! You may discover [integration tests](https://github.com/alisomay/libpd-rs/tests)
+//! and explore [examples](https://github.com/alisomay/libpd-rs/examples)
+//! in the [repository](https://github.com/alisomay/libpd-rs).
+//!
+//! The [examples](https://github.com/alisomay/libpd-rs/examples)
+//! directory in the [repository](https://github.com/alisomay/libpd-rs) is not filled with all the examples imagined yet.
+//!
+//! On the other hand it'll be updated with variety of [new examples](https://github.com/alisomay/libpd-rs/issues/8) very soon.
+//!
+//! Enjoy!
+//!
+//! ## Things to note
+//!
+//! [libpd](https://github.com/libpd/libpd) is a C library and the implementation allocates libpd globally.
+//! This means that you can only have one instance of libpd running at a time.
+//! There is support for [multi instances] in [libpd](https://github.com/libpd/libpd) but those
+//! will be implemented in [libpd-rs](https://github.com/alisomay/libpd-rs) in the future.
+//!
+//! This is not very Rust like and on top of that we do not manage the memory of that instantiation.
+//! Using it from different threads is fine because [libpd](https://github.com/libpd/libpd) has locking implemented inside it.
+//!
+//! On the other hand, the programming style and tracking the state might be a little different that how we do it in Rust.
+//!
+//! There are many functions and less data structures in this crate. Because all of those functions act as methods for a globally
+//! initialized singleton libpd instance.
+//!
+//! There are limited ways of retrieving state from the running libpd instance and libpd-rs provides
+//! [`PdGlobal`](crate::convenience::PdGlobal) to track some of the
+//! state manually but this operation needs to be handled with care.
+//! See [`PdGlobal`](crate::convenience::PdGlobal) for more details.
+//!
+//! ## Plans and Support
+//!
+//! Please see [libpd-rs](https://github.com/alisomay/libpd-rs) [support](https://github.com/alisomay/libpd-rs#support) and
+//! [road map](https://github.com/alisomay/libpd-rs#road-map) section for more details on these.
+//!
+//! Also don't forget to check [issues](https://github.com/alisomay/libpd-rs/issues), to track the ideas and plans.
+//!
+//! ## Last words
+//!
+//! Generative or algorithmic music is a powerful tool for exploration,
+//! pumps up creativity and goes very well together with traditional music making approaches also.
+//!
+//! Making apps which produce meaningful sound is difficult,
+//! I wish that this crate would ease your way on doing that and make complicated audio ideas
+//! in apps accessible to more people.
+//!
+//! Don't forget to check the [resources](https://github.com/alisomay/libpd-rs#resources)
+//! section to expand your knowledge about pure data.
+//!
+//! Many thanks to [Başak Ünal](https://basakunal.design) for the logo.
+//!
+//! Happy patching!
+//!
+//! ## License
+//!
+//! [BSD-3-Clause](https://opensource.org/licenses/BSD-3-Clause).
+//! See [LICENSE](https://raw.githubusercontent.com/alisomay/libpd-rs/main/LICENCE) file.
 
 /// Work with pd arrays
 ///

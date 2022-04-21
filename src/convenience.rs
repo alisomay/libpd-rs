@@ -127,7 +127,7 @@ impl PdGlobal {
     ///   - [`RingBufferInitializationError`](crate::error::InitializationError::RingBufferInitializationError)
     ///   - [`InitializationFailed`](crate::error::InitializationError::InitializationFailed)
     /// - [`AudioInitializationError`](crate::error::AudioInitializationError)
-    ///   - [`AudioInitializationFailed`](crate::error::AudioInitializationError::AudioInitializationFailed)
+    ///   - [`InitializationFailed`](crate::error::AudioInitializationError::InitializationFailed)
     ///
     /// To match over these errors, you would need to downcast the returned error.
     pub fn init_and_configure(

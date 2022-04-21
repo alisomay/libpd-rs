@@ -45,7 +45,7 @@ pub fn stop_gui() {
 
 /// Manually updates and handles any GUI messages
 ///
-/// This is called automatically when running any process function in the library. e.g. [`process_float`](crate::process:process_float).
+/// This is called automatically when running any process function in the library. e.g. [`process_float`](crate::process::process_float).
 ///
 /// Note:
 /// - This also facilitates network message processing, etc so it can be useful to call repeatedly when idle for more throughput.

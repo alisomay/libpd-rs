@@ -13,9 +13,9 @@ Safe rust abstractions over [libpd-sys](https://github.com/alisomay/libpd-sys).
 
 Though pd is designed as a desktop application, [libpd](https://github.com/libpd) is an open source project which exposes it as a C library opening the possibility to embed the functionality of pd to any platform which C can compile to.
 
-[libpd-rs](https://github.com/alisomay/libpd-rs) aims to bring [libpd](https://github.com/libpd) to the Rust [ecosystem](https://crates.io/). It aims to expose the full functionality of [libpd](https://github.com/libpd) even with some extra additions such as bundling commonly used externals and extra functionality to increase ease of use.
+[libpd-rs](https://github.com/alisomay/libpd-rs) aims to bring [libpd](https://github.com/libpd) to the Rust [ecosystem](https://crates.io/). It aims to expose the full functionality of [libpd](https://github.com/libpd) with some extra additions such as bundling commonly used externals and addition of extra functionality for increased ease of use.
 
-It is thoroughly [documented](https://docs.rs/libpd-rs/0.1.7/libpd_rs/#), well [tested](https://github.com/alisomay/libpd-rs/tests) and enriched with different [examples](https://github.com/alisomay/libpd-rs/examples) to get you started right away.
+It is thoroughly [documented](https://docs.rs/libpd-rs/0.1.7/libpd_rs/#), well [tested](https://github.com/alisomay/libpd-rs/tests) and enriched with various [examples](https://github.com/alisomay/libpd-rs/examples) to get you started right away.
 
 Now let's make some sound! 🔔
 
@@ -25,7 +25,7 @@ Add the following dependencies to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-libpd-rs = "0.1"
+libpd-rs = "0.1.7"
 cpal = "0.13"
 ```
 
