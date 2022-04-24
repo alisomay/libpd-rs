@@ -134,8 +134,10 @@ cargo run --example <name of the example>
 e.g.
 
 ```sh
-cargo run --example sine
+cargo run --example with_nannou
 ```
+
+Please check the [README](https://github.com/alisomay/libpd-rs/examples) on examples for more information.
 
 For the tests, you may run `cargo test` directly.
 
