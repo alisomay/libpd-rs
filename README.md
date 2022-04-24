@@ -15,7 +15,7 @@ Though pd is designed as a desktop application, [libpd](https://github.com/libpd
 
 [libpd-rs](https://github.com/alisomay/libpd-rs) aims to bring [libpd](https://github.com/libpd) to the Rust [ecosystem](https://crates.io/). It aims to expose the full functionality of [libpd](https://github.com/libpd) with some extra additions such as bundling commonly used externals and addition of extra functionality for increased ease of use.
 
-It is thoroughly [documented](https://docs.rs/libpd-rs/0.1.8/libpd_rs/#), well [tested](https://github.com/alisomay/libpd-rs/tests) and enriched with various [examples](https://github.com/alisomay/libpd-rs/examples) to get you started right away.
+It is thoroughly [documented](https://docs.rs/libpd-rs/0.1.9/libpd_rs/#), well [tested](https://github.com/alisomay/libpd-rs/tests) and enriched with various [examples](https://github.com/alisomay/libpd-rs/examples) to get you started right away.
 
 Now let's make some sound! 🔔
 
@@ -25,7 +25,7 @@ Add the following dependencies to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-libpd-rs = "0.1.8"
+libpd-rs = "0.1.9"
 cpal = "0.13"
 ```
 
@@ -145,7 +145,7 @@ For the tests, you may run `cargo test` directly.
 
 Please check the [examples](https://github.com/alisomay/libpd-rs/examples) and [tests](https://github.com/alisomay/libpd-rs/tests) directory if you're learning better when reading code.
 
-Or if you would like to dive in to [documentation](https://docs.rs/libpd-rs/0.1.8/libpd_rs/#) please go ahead.
+Or if you would like to dive in to [documentation](https://docs.rs/libpd-rs/0.1.9/libpd_rs/#) please go ahead.
 
 ## Resources
 
@@ -194,6 +194,18 @@ Or if you would like to dive in to [documentation](https://docs.rs/libpd-rs/0.1.
   - Android (not yet but will be addressed)
 
 - Web (not yet but will be addressed)
+
+## List of bundled externals
+
+The way to add externals to [libpd](https://github.com/libpd/libpd) is to compile and statically link them.
+
+[libpd-rs](https://github.com/alisomay/libpd-rs) will be bundling some of the essential and commonly used externals in pure data.
+This list will be growing as we add more externals.
+
+If you have ideas please consider writing an answer to this [post](https://www.reddit.com/r/puredata/comments/u9h1bk/a_list_of_essential_indispensable_and_commonly/).
+
+- `moog~`
+- `freeverb~`
 
 ## Contributing
 

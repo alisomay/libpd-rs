@@ -132,6 +132,18 @@ impl Into<*mut std::ffi::c_void> for ReceiverHandle {
     }
 }
 
+// pub const t_atomtype_A_SEMI: t_atomtype = 4;
+// pub const t_atomtype_A_COMMA: t_atomtype = 5;
+// pub const t_atomtype_A_DOLLAR: t_atomtype = 8;
+// pub const t_atomtype_A_DOLLSYM: t_atomtype = 9;
+
+// #define SETDOLLAR(atom, n) ((atom)->a_type = A_DOLLAR, \
+//     (atom)->a_w.w_index = (n))
+// #define SETDOLLSYM(atom, s) ((atom)->a_type = A_DOLLSYM, \
+//     (atom)->a_w.w_symbol= (s))
+// #define SETSEMI(atom) ((atom)->a_type = A_SEMI, (atom)->a_w.w_index = 0)
+// #define SETCOMMA(atom) ((atom)->a_type = A_COMMA, (atom)->a_w.w_index = 0)
+
 // Appendix, types related to atoms.
 //
 // pub type t_word = word;
