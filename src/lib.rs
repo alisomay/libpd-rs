@@ -1015,36 +1015,39 @@ pub fn open_patch<T: AsRef<Path>>(
     // Assume absolute path.
     let mut directory: String = parent_path_string.clone();
 
-    // "../some.pd" --> prepend working directory
-    if parent_path.is_relative() {
-        let mut app_dir = std::env::current_exe()
-            .map_err(|_| -> PatchLifeCycleError { PatchLifeCycleError::FailedToOpenPatch })?;
-        app_dir.pop();
-        app_dir.push(parent_path);
-        let parent_path_str = app_dir.to_string_lossy();
+    if !parent_path.is_absolute() {
+        // "../some.pd" --> prepend working directory
+        if parent_path.is_relative() {
+            let mut app_dir = std::env::current_exe()
+                .map_err(|_| -> PatchLifeCycleError { PatchLifeCycleError::FailedToOpenPatch })?;
+            app_dir.pop();
+            app_dir.push(parent_path);
+            let parent_path_str = app_dir.to_string_lossy();
 
-        if app_dir.exists() {
-            directory = parent_path_str.into();
-        } else {
-            let manifest_dir = PathBuf::from(&std::env!("CARGO_MANIFEST_DIR")).join(parent_path);
-            // Try manifest dir.
-            let manifest_dir_str = manifest_dir.to_string_lossy();
-            directory = manifest_dir_str.into();
+            if app_dir.exists() {
+                directory = parent_path_str.into();
+            } else {
+                let manifest_dir =
+                    PathBuf::from(&std::env!("CARGO_MANIFEST_DIR")).join(parent_path);
+                // Try manifest dir.
+                let manifest_dir_str = manifest_dir.to_string_lossy();
+                directory = manifest_dir_str.into();
+            }
         }
-    }
-    // "some.pd" --> prepend working directory
-    if parent_path_string.is_empty() {
-        let mut app_dir = std::env::current_exe()
-            .map_err(|_| -> PatchLifeCycleError { PatchLifeCycleError::FailedToOpenPatch })?;
-        app_dir.pop();
-        app_dir.push(file_name);
-        let parent_path_str = app_dir.to_string_lossy();
+        // "some.pd" --> prepend working directory
+        if parent_path_string.is_empty() {
+            let mut app_dir = std::env::current_exe()
+                .map_err(|_| -> PatchLifeCycleError { PatchLifeCycleError::FailedToOpenPatch })?;
+            app_dir.pop();
+            app_dir.push(file_name);
+            let parent_path_str = app_dir.to_string_lossy();
 
-        if app_dir.exists() {
-            directory = parent_path_str.into();
-        } else {
-            // Try manifest dir.
-            directory = std::env!("CARGO_MANIFEST_DIR").into();
+            if app_dir.exists() {
+                directory = parent_path_str.into();
+            } else {
+                // Try manifest dir.
+                directory = std::env!("CARGO_MANIFEST_DIR").into();
+            }
         }
     }
 

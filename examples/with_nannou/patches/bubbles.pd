@@ -1,0 +1,50 @@
+#N canvas 601 118 1154 825 12;
+#X obj 300 190 list split 1;
+#X obj 200 140 t b l l;
+#X text 70 80 instance_number \, gain \, osc_freq \, filter freq \,
+filter_q \, attack_dest \, attack_time \, release_dest \, release_time
+\, reverb_size \, reverb_wet \, reverb_freeze \, reverb_bypass, f
+17;
+#X msg 200 110 0 1 120 2500 2 1 1 0 10 0.1 0.1 0 0;
+#X msg 200 80 1 1 120 2500 2 1 1 0 10 1 0.1 0 0;
+#X obj 200 240 list prepend;
+#X obj 200 280 s voice_l;
+#X obj 280 280 s voice_r;
+#X obj 200 40 r bubble_collision;
+#X obj 600 80 r bubble_count;
+#X msg 600 190 obj 150 400 clone -x bubble_voice \$1;
+#X msg 710 80 22;
+#X obj 200 620 compressor~;
+#X obj 270 530 loadbang;
+#X msg 270 570 threshold -12 \, ratio 40 \, response 40 \, gain 0 \,
+rmspeak 0 \, lookahead 0;
+#X obj 200 340 r voice_l;
+#X obj 280 340 r voice_r;
+#X obj 600 120 t b b b f;
+#X obj 200 670 dac~;
+#X obj 600 390 s pd-bubbles.pd;
+#X msg 730 240 connect 15 0 23 0;
+#X msg 730 280 connect 16 0 23 1;
+#X msg 730 320 connect 23 0 12 0;
+#X connect 0 0 5 1;
+#X connect 1 0 5 0;
+#X connect 1 1 6 0;
+#X connect 1 2 0 0;
+#X connect 3 0 1 0;
+#X connect 4 0 1 0;
+#X connect 5 0 7 0;
+#X connect 8 0 1 0;
+#X connect 9 0 17 0;
+#X connect 10 0 19 0;
+#X connect 11 0 17 0;
+#X connect 12 0 18 0;
+#X connect 12 0 18 1;
+#X connect 13 0 14 0;
+#X connect 14 0 12 1;
+#X connect 17 0 22 0;
+#X connect 17 1 21 0;
+#X connect 17 2 20 0;
+#X connect 17 3 10 0;
+#X connect 20 0 19 0;
+#X connect 21 0 19 0;
+#X connect 22 0 19 0;

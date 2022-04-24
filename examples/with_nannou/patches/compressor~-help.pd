@@ -1,0 +1,11 @@
+#N canvas 902 42 450 300 10;
+#X obj 32 155 compressor~;
+#X obj 34 37 adc~;
+#X obj 214 47 loadbang;
+#X obj 32 214 dac~;
+#X msg 74 99 threshold -12 \, ratio 40 \, response 40 \, gain 0 \,
+rmspeak 0 \, lookahead 0;
+#X connect 0 0 3 0;
+#X connect 1 0 0 0;
+#X connect 2 0 4 0;
+#X connect 4 0 0 1;

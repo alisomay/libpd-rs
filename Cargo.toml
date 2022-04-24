@@ -18,7 +18,7 @@ exclude = [
 ]
 
 [dependencies]
-libpd-sys = "0.1"
+libpd-sys = "0.2"
 thiserror = "1.0.30"
 libffi = "3.0.0"
 tempfile = "3.3.0"
@@ -27,6 +27,10 @@ embed-doc-image = "0.1.4"
 [dev-dependencies]
 cpal = "0.13"
 sys-info = "0.9.1"
+nannou = "0.18"
+nannou_audio = "0.18"
+rand = "0.8.5"
+
 
 # For local development currently,
 # [patch.crates-io]

@@ -149,6 +149,18 @@ impl Into<*mut std::ffi::c_void> for ReceiverHandle {
 // pub const t_atomtype_A_CANT: t_atomtype = 11;
 // pub type t_atomtype = ::std::os::raw::c_uint;
 
+// #define SETSEMI(atom) ((atom)->a_type = A_SEMI, (atom)->a_w.w_index = 0)
+// #define SETCOMMA(atom) ((atom)->a_type = A_COMMA, (atom)->a_w.w_index = 0)
+// #define SETPOINTER(atom, gp) ((atom)->a_type = A_POINTER, \
+//     (atom)->a_w.w_gpointer = (gp))
+// #define SETFLOAT(atom, f) ((atom)->a_type = A_FLOAT, (atom)->a_w.w_float = (f))
+// #define SETSYMBOL(atom, s) ((atom)->a_type = A_SYMBOL, \
+//     (atom)->a_w.w_symbol = (s))
+// #define SETDOLLAR(atom, n) ((atom)->a_type = A_DOLLAR, \
+//     (atom)->a_w.w_index = (n))
+// #define SETDOLLSYM(atom, s) ((atom)->a_type = A_DOLLSYM, \
+//     (atom)->a_w.w_symbol= (s))
+
 // #[repr(C)]
 // #[derive(Copy, Clone)]
 // pub struct _atom {
