@@ -31,12 +31,11 @@ nannou = "0.18"
 nannou_audio = "0.18"
 rand = "0.8.5"
 
-
-# For local development currently,
+# For local development,
 # [patch.crates-io]
 # libpd-sys = { git = "https://github.com/alisomay/libpd-sys" }
 
-# For local development currently,
+# For local development,
 # [patch."https://github.com/alisomay/libpd-sys"]
 # libpd-sys = { path = "../libpd-sys" }
 
