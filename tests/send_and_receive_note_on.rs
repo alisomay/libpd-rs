@@ -18,8 +18,8 @@ fn send_and_receive_note_on() {
 
     let note_on_messages_received: Arc<Mutex<Vec<(i32, i32, i32)>>> = Arc::new(Mutex::new(vec![]));
 
-    let _ = init().unwrap();
-    let _ = initialize_audio(0, output_channels, sample_rate).unwrap();
+    init().unwrap();
+    initialize_audio(0, output_channels, sample_rate).unwrap();
     dsp_on().unwrap();
 
     let patch_handle = open_patch("tests/patches/echo.pd").unwrap();

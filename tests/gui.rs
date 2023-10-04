@@ -6,7 +6,7 @@ use std::{env, path::PathBuf};
 
 #[test]
 fn start_poll_stop_gui() {
-    let _ = libpd_rs::init().unwrap();
+    libpd_rs::init().unwrap();
 
     #[cfg(target_os = "macos")]
     {

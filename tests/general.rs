@@ -1,4 +1,5 @@
 #![allow(clippy::restriction)]
+#![allow(clippy::unnecessary_cast)]
 
 use libpd_rs::{
     add_to_search_paths, block_size, clear_search_paths, close_patch, get_dollar_zero, init,

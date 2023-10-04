@@ -21,8 +21,8 @@ fn all_process_functions() {
     let sample_rate = 44100;
     let output_channels = 2;
 
-    let _ = init().unwrap();
-    let _ = initialize_audio(0, output_channels, sample_rate).unwrap();
+    init().unwrap();
+    initialize_audio(0, output_channels, sample_rate).unwrap();
     dsp_on().unwrap();
 
     let patch_handle = open_patch("tests/patches/sine.pd").unwrap();

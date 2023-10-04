@@ -10,7 +10,7 @@ use libpd_rs::{
 
 #[test]
 fn apply_array_operations_in_a_row() {
-    let _ = libpd_rs::init().unwrap();
+    libpd_rs::init().unwrap();
     let handle = libpd_rs::open_patch("tests/patches/array_sketch_pad.pd").unwrap();
 
     let bad_name = "not_exists";

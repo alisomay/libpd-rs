@@ -18,8 +18,8 @@ fn send_and_receive_double() {
 
     let floats: Arc<Mutex<Vec<f64>>> = Arc::new(Mutex::new(vec![]));
 
-    let _ = init().unwrap();
-    let _ = initialize_audio(0, output_channels, sample_rate).unwrap();
+    init().unwrap();
+    initialize_audio(0, output_channels, sample_rate).unwrap();
     dsp_on().unwrap();
 
     let patch_handle = open_patch("tests/patches/echo.pd").unwrap();
