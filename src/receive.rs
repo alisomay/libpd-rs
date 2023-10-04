@@ -5,8 +5,33 @@ use crate::{
     C_STRING_FAILURE, C_STR_FAILURE,
 };
 
-use libffi::high::{ClosureMut1, ClosureMut2, ClosureMut3, ClosureMut4};
+use libffi::high::{
+    ClosureMut1, ClosureMut2, ClosureMut3, ClosureMut4, FnPtr1, FnPtr2, FnPtr3, FnPtr4,
+};
+use libpd_sys::{
+    t_libpd_aftertouchhook, t_libpd_banghook, t_libpd_controlchangehook, t_libpd_doublehook,
+    t_libpd_floathook, t_libpd_listhook, t_libpd_messagehook, t_libpd_midibytehook,
+    t_libpd_noteonhook, t_libpd_pitchbendhook, t_libpd_polyaftertouchhook, t_libpd_printhook,
+    t_libpd_programchangehook, t_libpd_symbolhook,
+};
 use std::ffi::{CStr, CString};
+
+type PrintHookCodePtr = *const FnPtr1<'static, *const i8, ()>;
+type BangHookCodePtr = *const FnPtr1<'static, *const i8, ()>;
+type FloatHookCodePtr = *const FnPtr2<'static, *const i8, f32, ()>;
+type DoubleHookCodePtr = *const FnPtr2<'static, *const i8, f64, ()>;
+type SymbolHookCodePtr = *const FnPtr2<'static, *const i8, *const i8, ()>;
+type ListHookCodePtr = *const FnPtr3<'static, *const i8, i32, *mut libpd_sys::_atom, ()>;
+type MessageHookCodePtr =
+    *const FnPtr4<'static, *const i8, *const i8, i32, *mut libpd_sys::_atom, ()>;
+
+type MidiNoteOnCodePtr = *const FnPtr3<'static, i32, i32, i32, ()>;
+type MidiControlChangeCodePtr = *const FnPtr3<'static, i32, i32, i32, ()>;
+type MidiProgramChangeCodePtr = *const FnPtr2<'static, i32, i32, ()>;
+type MidiPitchBendCodePtr = *const FnPtr2<'static, i32, i32, ()>;
+type MidiAfterTouchCodePtr = *const FnPtr2<'static, i32, i32, ()>;
+type MidiPolyAfterTouchCodePtr = *const FnPtr3<'static, i32, i32, i32, ()>;
+type MidiByteCodePtr = *const FnPtr2<'static, i32, i32, ()>;
 
 /// Subscribes to messages sent to a receiver in the loaded pd patch
 ///
@@ -120,11 +145,8 @@ pub fn on_print<F: FnMut(&str) + Send + Sync + 'static>(mut user_provided_closur
         user_provided_closure(out);
     }));
     let callback = ClosureMut1::new(closure);
-    let code = callback.code_ptr();
-    let ptr: &_ = unsafe {
-        &*(code as *const libffi::high::FnPtr1<*const i8, ()>)
-            .cast::<unsafe extern "C" fn(*const i8)>()
-    };
+    let code = callback.code_ptr() as PrintHookCodePtr;
+    let ptr = unsafe { *code.cast::<t_libpd_printhook>() };
     std::mem::forget(callback);
 
     unsafe {
@@ -133,7 +155,7 @@ pub fn on_print<F: FnMut(&str) + Send + Sync + 'static>(mut user_provided_closur
 
     // Always concatenate
     unsafe {
-        libpd_sys::libpd_set_concatenated_printhook(Some(*ptr));
+        libpd_sys::libpd_set_concatenated_printhook(ptr);
     };
 }
 
@@ -165,14 +187,12 @@ pub fn on_bang<F: FnMut(&str) + Send + Sync + 'static>(mut user_provided_closure
             user_provided_closure(source);
         }));
     let callback = ClosureMut1::new(closure);
-    let code = callback.code_ptr();
-    let ptr: &_ = unsafe {
-        &*(code as *const libffi::high::FnPtr1<*const i8, ()>)
-            .cast::<unsafe extern "C" fn(*const i8)>()
-    };
+    let code = callback.code_ptr() as BangHookCodePtr;
+    let ptr = unsafe { *code.cast::<t_libpd_banghook>() };
     std::mem::forget(callback);
+
     unsafe {
-        libpd_sys::libpd_set_queued_banghook(Some(*ptr));
+        libpd_sys::libpd_set_queued_banghook(ptr);
     };
 }
 
@@ -209,14 +229,12 @@ pub fn on_float<F: FnMut(&str, f32) + Send + Sync + 'static>(mut user_provided_c
         },
     ));
     let callback = ClosureMut2::new(closure);
-    let code = callback.code_ptr();
-    let ptr: &_ = unsafe {
-        &*(code as *const libffi::high::FnPtr2<*const i8, f32, ()>)
-            .cast::<unsafe extern "C" fn(*const i8, f32)>()
-    };
+    let code = callback.code_ptr() as FloatHookCodePtr;
+    let ptr = unsafe { *code.cast::<t_libpd_floathook>() };
     std::mem::forget(callback);
+
     unsafe {
-        libpd_sys::libpd_set_queued_floathook(Some(*ptr));
+        libpd_sys::libpd_set_queued_floathook(ptr);
     };
 }
 
@@ -253,14 +271,12 @@ pub fn on_double<F: FnMut(&str, f64) + Send + Sync + 'static>(mut user_provided_
         },
     ));
     let callback = ClosureMut2::new(closure);
-    let code = callback.code_ptr();
-    let ptr: &_ = unsafe {
-        &*(code as *const libffi::high::FnPtr2<*const i8, f64, ()>)
-            .cast::<unsafe extern "C" fn(*const i8, f64)>()
-    };
+    let code = callback.code_ptr() as DoubleHookCodePtr;
+    let ptr = unsafe { *code.cast::<t_libpd_doublehook>() };
     std::mem::forget(callback);
+
     unsafe {
-        libpd_sys::libpd_set_queued_doublehook(Some(*ptr));
+        libpd_sys::libpd_set_queued_doublehook(ptr);
     };
 }
 
@@ -294,14 +310,12 @@ pub fn on_symbol<F: FnMut(&str, &str) + Send + Sync + 'static>(mut user_provided
         },
     ));
     let callback = ClosureMut2::new(closure);
-    let code = callback.code_ptr();
-    let ptr: &_ = unsafe {
-        &*(code as *const libffi::high::FnPtr2<*const i8, *const i8, ()>)
-            .cast::<unsafe extern "C" fn(*const i8, *const i8)>()
-    };
+    let code = callback.code_ptr() as SymbolHookCodePtr;
+    let ptr = unsafe { *code.cast::<t_libpd_symbolhook>() };
+
     std::mem::forget(callback);
     unsafe {
-        libpd_sys::libpd_set_queued_symbolhook(Some(*ptr));
+        libpd_sys::libpd_set_queued_symbolhook(ptr);
     };
 }
 
@@ -363,14 +377,12 @@ pub fn on_list<F: FnMut(&str, &[Atom]) + Send + Sync + 'static>(mut user_provide
         },
     ));
     let callback = ClosureMut3::new(closure);
-    let code = callback.code_ptr();
-    let ptr: &_ = unsafe {
-        &*(code as *const libffi::high::FnPtr3<*const i8, i32, *mut libpd_sys::_atom, ()>)
-            .cast::<unsafe extern "C" fn(*const i8, i32, *mut libpd_sys::_atom)>()
-    };
+    let code = callback.code_ptr() as ListHookCodePtr;
+    let ptr = unsafe { *code.cast::<t_libpd_listhook>() };
     std::mem::forget(callback);
+
     unsafe {
-        libpd_sys::libpd_set_queued_listhook(Some(*ptr));
+        libpd_sys::libpd_set_queued_listhook(ptr);
     };
 }
 
@@ -435,20 +447,12 @@ pub fn on_message<F: FnMut(&str, &str, &[Atom]) + Send + Sync + 'static>(
         },
     ));
     let callback = ClosureMut4::new(closure);
-    let code = callback.code_ptr();
-    let ptr: &_ = unsafe {
-        &*(code as *const libffi::high::FnPtr4<
-            *const i8,
-            *const i8,
-            i32,
-            *mut libpd_sys::_atom,
-            (),
-        >)
-            .cast::<unsafe extern "C" fn(*const i8, *const i8, i32, *mut libpd_sys::_atom)>()
-    };
+    let code = callback.code_ptr() as MessageHookCodePtr;
+    let ptr = unsafe { *code.cast::<t_libpd_messagehook>() };
     std::mem::forget(callback);
+
     unsafe {
-        libpd_sys::libpd_set_queued_messagehook(Some(*ptr));
+        libpd_sys::libpd_set_queued_messagehook(ptr);
     };
 }
 
@@ -511,17 +515,12 @@ pub fn on_midi_note_on<F: FnMut(i32, i32, i32) + Send + Sync + 'static>(
             user_provided_closure(channel, pitch, velocity);
         }));
     let callback = ClosureMut3::new(closure);
-    let code = callback.code_ptr();
-    let ptr: &_ = unsafe {
-        &*(code as *const libffi::high::FnPtr3<i32, i32, i32, ()>).cast::<unsafe extern "C" fn(
-            i32,
-            i32,
-            i32,
-        )>()
-    };
+    let code = callback.code_ptr() as MidiNoteOnCodePtr;
+    let ptr = unsafe { *code.cast::<t_libpd_noteonhook>() };
     std::mem::forget(callback);
+
     unsafe {
-        libpd_sys::libpd_set_queued_noteonhook(Some(*ptr));
+        libpd_sys::libpd_set_queued_noteonhook(ptr);
     };
 }
 
@@ -554,17 +553,12 @@ pub fn on_midi_control_change<F: FnMut(i32, i32, i32) + Send + Sync + 'static>(
         },
     ));
     let callback = ClosureMut3::new(closure);
-    let code = callback.code_ptr();
-    let ptr: &_ = unsafe {
-        &*(code as *const libffi::high::FnPtr3<i32, i32, i32, ()>).cast::<unsafe extern "C" fn(
-            i32,
-            i32,
-            i32,
-        )>()
-    };
+    let code = callback.code_ptr() as MidiControlChangeCodePtr;
+    let ptr = unsafe { *code.cast::<t_libpd_controlchangehook>() };
     std::mem::forget(callback);
+
     unsafe {
-        libpd_sys::libpd_set_queued_controlchangehook(Some(*ptr));
+        libpd_sys::libpd_set_queued_controlchangehook(ptr);
     };
 }
 
@@ -595,14 +589,12 @@ pub fn on_midi_program_change<F: FnMut(i32, i32) + Send + Sync + 'static>(
         user_provided_closure(channel, value);
     }));
     let callback = ClosureMut2::new(closure);
-    let code = callback.code_ptr();
-    let ptr: &_ = unsafe {
-        &*(code as *const libffi::high::FnPtr2<i32, i32, ()>)
-            .cast::<unsafe extern "C" fn(i32, i32)>()
-    };
+    let code = callback.code_ptr() as MidiProgramChangeCodePtr;
+    let ptr = unsafe { *code.cast::<t_libpd_programchangehook>() };
     std::mem::forget(callback);
+
     unsafe {
-        libpd_sys::libpd_set_queued_programchangehook(Some(*ptr));
+        libpd_sys::libpd_set_queued_programchangehook(ptr);
     };
 }
 
@@ -635,14 +627,12 @@ pub fn on_midi_pitch_bend<F: FnMut(i32, i32) + Send + Sync + 'static>(
         user_provided_closure(channel, value);
     }));
     let callback = ClosureMut2::new(closure);
-    let code = callback.code_ptr();
-    let ptr: &_ = unsafe {
-        &*(code as *const libffi::high::FnPtr2<i32, i32, ()>)
-            .cast::<unsafe extern "C" fn(i32, i32)>()
-    };
+    let code = callback.code_ptr() as MidiPitchBendCodePtr;
+    let ptr = unsafe { *code.cast::<t_libpd_pitchbendhook>() };
     std::mem::forget(callback);
+
     unsafe {
-        libpd_sys::libpd_set_queued_pitchbendhook(Some(*ptr));
+        libpd_sys::libpd_set_queued_pitchbendhook(ptr);
     };
 }
 
@@ -673,14 +663,12 @@ pub fn on_midi_after_touch<F: FnMut(i32, i32) + Send + Sync + 'static>(
         user_provided_closure(channel, value);
     }));
     let callback = ClosureMut2::new(closure);
-    let code = callback.code_ptr();
-    let ptr: &_ = unsafe {
-        &*(code as *const libffi::high::FnPtr2<i32, i32, ()>)
-            .cast::<unsafe extern "C" fn(i32, i32)>()
-    };
+    let code = callback.code_ptr() as MidiAfterTouchCodePtr;
+    let ptr = unsafe { *code.cast::<t_libpd_aftertouchhook>() };
     std::mem::forget(callback);
+
     unsafe {
-        libpd_sys::libpd_set_queued_aftertouchhook(Some(*ptr));
+        libpd_sys::libpd_set_queued_aftertouchhook(ptr);
     };
 }
 
@@ -712,17 +700,12 @@ pub fn on_midi_poly_after_touch<F: FnMut(i32, i32, i32) + Send + Sync + 'static>
             user_provided_closure(channel, pitch, value);
         }));
     let callback = ClosureMut3::new(closure);
-    let code = callback.code_ptr();
-    let ptr: &_ = unsafe {
-        &*(code as *const libffi::high::FnPtr3<i32, i32, i32, ()>).cast::<unsafe extern "C" fn(
-            i32,
-            i32,
-            i32,
-        )>()
-    };
+    let code = callback.code_ptr() as MidiPolyAfterTouchCodePtr;
+    let ptr = unsafe { *code.cast::<t_libpd_polyaftertouchhook>() };
     std::mem::forget(callback);
+
     unsafe {
-        libpd_sys::libpd_set_queued_polyaftertouchhook(Some(*ptr));
+        libpd_sys::libpd_set_queued_polyaftertouchhook(ptr);
     };
 }
 
@@ -749,14 +732,12 @@ pub fn on_midi_byte<F: FnMut(i32, i32) + Send + Sync + 'static>(mut user_provide
         user_provided_closure(port, byte);
     }));
     let callback = ClosureMut2::new(closure);
-    let code = callback.code_ptr();
-    let ptr: &_ = unsafe {
-        &*(code as *const libffi::high::FnPtr2<i32, i32, ()>)
-            .cast::<unsafe extern "C" fn(i32, i32)>()
-    };
+    let code = callback.code_ptr() as MidiByteCodePtr;
+    let ptr = unsafe { *code.cast::<t_libpd_midibytehook>() };
     std::mem::forget(callback);
+
     unsafe {
-        libpd_sys::libpd_set_queued_midibytehook(Some(*ptr));
+        libpd_sys::libpd_set_queued_midibytehook(ptr);
     };
 }
 
