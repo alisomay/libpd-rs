@@ -126,9 +126,13 @@ pub fn on_print<F: FnMut(&str) + Send + Sync + 'static>(mut user_provided_closur
             .cast::<unsafe extern "C" fn(*const i8)>()
     };
     std::mem::forget(callback);
+
     unsafe {
-        // Always concatenate
         libpd_sys::libpd_set_queued_printhook(Some(libpd_sys::libpd_print_concatenator));
+    };
+
+    // Always concatenate
+    unsafe {
         libpd_sys::libpd_set_concatenated_printhook(Some(*ptr));
     };
 }
@@ -167,7 +171,9 @@ pub fn on_bang<F: FnMut(&str) + Send + Sync + 'static>(mut user_provided_closure
             .cast::<unsafe extern "C" fn(*const i8)>()
     };
     std::mem::forget(callback);
-    unsafe { libpd_sys::libpd_set_queued_banghook(Some(*ptr)) };
+    unsafe {
+        libpd_sys::libpd_set_queued_banghook(Some(*ptr));
+    };
 }
 
 /// Sets a closure to be called when an `f32` is received from a subscribed receiver
@@ -209,7 +215,9 @@ pub fn on_float<F: FnMut(&str, f32) + Send + Sync + 'static>(mut user_provided_c
             .cast::<unsafe extern "C" fn(*const i8, f32)>()
     };
     std::mem::forget(callback);
-    unsafe { libpd_sys::libpd_set_queued_floathook(Some(*ptr)) };
+    unsafe {
+        libpd_sys::libpd_set_queued_floathook(Some(*ptr));
+    };
 }
 
 /// Sets a closure to be called when an `f64` is received from a subscribed receiver
@@ -251,7 +259,9 @@ pub fn on_double<F: FnMut(&str, f64) + Send + Sync + 'static>(mut user_provided_
             .cast::<unsafe extern "C" fn(*const i8, f64)>()
     };
     std::mem::forget(callback);
-    unsafe { libpd_sys::libpd_set_queued_doublehook(Some(*ptr)) };
+    unsafe {
+        libpd_sys::libpd_set_queued_doublehook(Some(*ptr));
+    };
 }
 
 /// Sets a closure to be called when a symbol is received from a subscribed receiver
@@ -290,7 +300,9 @@ pub fn on_symbol<F: FnMut(&str, &str) + Send + Sync + 'static>(mut user_provided
             .cast::<unsafe extern "C" fn(*const i8, *const i8)>()
     };
     std::mem::forget(callback);
-    unsafe { libpd_sys::libpd_set_queued_symbolhook(Some(*ptr)) };
+    unsafe {
+        libpd_sys::libpd_set_queued_symbolhook(Some(*ptr));
+    };
 }
 
 /// Sets a closure to be called when a list is received from a subscribed receiver
@@ -357,7 +369,9 @@ pub fn on_list<F: FnMut(&str, &[Atom]) + Send + Sync + 'static>(mut user_provide
             .cast::<unsafe extern "C" fn(*const i8, i32, *mut libpd_sys::_atom)>()
     };
     std::mem::forget(callback);
-    unsafe { libpd_sys::libpd_set_queued_listhook(Some(*ptr)) };
+    unsafe {
+        libpd_sys::libpd_set_queued_listhook(Some(*ptr));
+    };
 }
 
 /// Sets a closure to be called when a typed message is received from a subscribed receiver
@@ -433,7 +447,9 @@ pub fn on_message<F: FnMut(&str, &str, &[Atom]) + Send + Sync + 'static>(
             .cast::<unsafe extern "C" fn(*const i8, *const i8, i32, *mut libpd_sys::_atom)>()
     };
     std::mem::forget(callback);
-    unsafe { libpd_sys::libpd_set_queued_messagehook(Some(*ptr)) };
+    unsafe {
+        libpd_sys::libpd_set_queued_messagehook(Some(*ptr));
+    };
 }
 
 /// Receives messages from pd message queue.
@@ -460,7 +476,9 @@ pub fn on_message<F: FnMut(&str, &str, &[Atom]) + Send + Sync + 'static>(
 /// }
 /// ```
 pub fn receive_messages_from_pd() {
-    unsafe { libpd_sys::libpd_queued_receive_pd_messages() };
+    unsafe {
+        libpd_sys::libpd_queued_receive_pd_messages();
+    };
 }
 
 /// Sets a closure to be called when a MIDI note on event is received.
@@ -502,7 +520,9 @@ pub fn on_midi_note_on<F: FnMut(i32, i32, i32) + Send + Sync + 'static>(
         )>()
     };
     std::mem::forget(callback);
-    unsafe { libpd_sys::libpd_set_queued_noteonhook(Some(*ptr)) };
+    unsafe {
+        libpd_sys::libpd_set_queued_noteonhook(Some(*ptr));
+    };
 }
 
 /// Sets a closure to be called when a MIDI control change event is received.
@@ -543,7 +563,9 @@ pub fn on_midi_control_change<F: FnMut(i32, i32, i32) + Send + Sync + 'static>(
         )>()
     };
     std::mem::forget(callback);
-    unsafe { libpd_sys::libpd_set_queued_controlchangehook(Some(*ptr)) };
+    unsafe {
+        libpd_sys::libpd_set_queued_controlchangehook(Some(*ptr));
+    };
 }
 
 /// Sets a closure to be called when a MIDI program change event is received.
@@ -579,7 +601,9 @@ pub fn on_midi_program_change<F: FnMut(i32, i32) + Send + Sync + 'static>(
             .cast::<unsafe extern "C" fn(i32, i32)>()
     };
     std::mem::forget(callback);
-    unsafe { libpd_sys::libpd_set_queued_programchangehook(Some(*ptr)) };
+    unsafe {
+        libpd_sys::libpd_set_queued_programchangehook(Some(*ptr));
+    };
 }
 
 /// Sets a closure to be called when a MIDI pitch bend event is received.
@@ -617,7 +641,9 @@ pub fn on_midi_pitch_bend<F: FnMut(i32, i32) + Send + Sync + 'static>(
             .cast::<unsafe extern "C" fn(i32, i32)>()
     };
     std::mem::forget(callback);
-    unsafe { libpd_sys::libpd_set_queued_pitchbendhook(Some(*ptr)) };
+    unsafe {
+        libpd_sys::libpd_set_queued_pitchbendhook(Some(*ptr));
+    };
 }
 
 /// Sets a closure to be called when a MIDI after touch event is received.
@@ -653,7 +679,9 @@ pub fn on_midi_after_touch<F: FnMut(i32, i32) + Send + Sync + 'static>(
             .cast::<unsafe extern "C" fn(i32, i32)>()
     };
     std::mem::forget(callback);
-    unsafe { libpd_sys::libpd_set_queued_aftertouchhook(Some(*ptr)) };
+    unsafe {
+        libpd_sys::libpd_set_queued_aftertouchhook(Some(*ptr));
+    };
 }
 
 /// Sets a closure to be called when a MIDI poly after touch event is received.
@@ -693,7 +721,9 @@ pub fn on_midi_poly_after_touch<F: FnMut(i32, i32, i32) + Send + Sync + 'static>
         )>()
     };
     std::mem::forget(callback);
-    unsafe { libpd_sys::libpd_set_queued_polyaftertouchhook(Some(*ptr)) };
+    unsafe {
+        libpd_sys::libpd_set_queued_polyaftertouchhook(Some(*ptr));
+    };
 }
 
 /// Sets a closure to be called when a single raw MIDI byte is received.
@@ -725,7 +755,9 @@ pub fn on_midi_byte<F: FnMut(i32, i32) + Send + Sync + 'static>(mut user_provide
             .cast::<unsafe extern "C" fn(i32, i32)>()
     };
     std::mem::forget(callback);
-    unsafe { libpd_sys::libpd_set_queued_midibytehook(Some(*ptr)) };
+    unsafe {
+        libpd_sys::libpd_set_queued_midibytehook(Some(*ptr));
+    };
 }
 
 /// Receives messages from pd midi message queue.
@@ -745,5 +777,7 @@ pub fn on_midi_byte<F: FnMut(i32, i32) + Send + Sync + 'static>(mut user_provide
 /// }
 /// ```
 pub fn receive_midi_messages_from_pd() {
-    unsafe { libpd_sys::libpd_queued_receive_midi_messages() };
+    unsafe {
+        libpd_sys::libpd_queued_receive_midi_messages();
+    };
 }

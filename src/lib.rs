@@ -9,7 +9,7 @@
     // Group of too restrictive lints
     clippy::undocumented_unsafe_blocks,
     clippy::as_conversions,
-    clippy::integer_arithmetic,
+    clippy::arithmetic_side_effects,
     clippy::float_arithmetic,
     clippy::blanket_clippy_restriction_lints,
     clippy::implicit_return,
@@ -24,6 +24,11 @@
     clippy::multiple_crate_versions,
     clippy::default_numeric_fallback,
     clippy::map_err_ignore,
+    clippy::std_instead_of_alloc,
+    clippy::question_mark_used,
+    clippy::std_instead_of_core,
+    clippy::partial_pub_fields,
+    clippy::ref_patterns,
 
     // Expect is fine in relevant cases
     clippy::expect_used,

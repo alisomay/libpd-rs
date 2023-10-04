@@ -40,7 +40,9 @@ pub fn start_gui<T: AsRef<Path>>(path_to_pd: T) -> Result<(), GuiLifeCycleError>
 
 /// Stops the current running pd vanilla GUI if it is running.
 pub fn stop_gui() {
-    unsafe { libpd_sys::libpd_stop_gui() };
+    unsafe {
+        libpd_sys::libpd_stop_gui();
+    };
 }
 
 /// Manually updates and handles any GUI messages

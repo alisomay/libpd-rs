@@ -74,11 +74,11 @@ impl From<&char> for Atom {
     }
 }
 
-impl std::fmt::Display for Atom {
+impl core::fmt::Display for Atom {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         match self {
-            Atom::Float(float) => write!(f, "{}", float),
-            Atom::Symbol(s) => write!(f, "{}", s),
+            Self::Float(float) => write!(f, "{float}"),
+            Self::Symbol(s) => write!(f, "{s}"),
         }
     }
 }

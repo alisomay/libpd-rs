@@ -355,10 +355,10 @@ pub fn finish_message_as_typed_message_and_send_to<T: AsRef<str>, S: AsRef<str>>
 pub fn send_list_to<T: AsRef<str>>(receiver: T, list: &[Atom]) -> Result<(), SendError> {
     let recv = CString::new(receiver.as_ref()).expect(C_STRING_FAILURE);
 
-    unsafe {
-        let mut atom_list: Vec<libpd_sys::t_atom> = make_t_atom_list_from_atom_list!(list);
-        let atom_list_slice = atom_list.as_mut_slice();
+    let mut atom_list: Vec<libpd_sys::t_atom> = make_t_atom_list_from_atom_list!(list);
+    let atom_list_slice = atom_list.as_mut_slice();
 
+    unsafe {
         #[allow(clippy::cast_possible_wrap)]
         #[allow(clippy::cast_possible_truncation)]
         match libpd_sys::libpd_list(
@@ -406,10 +406,11 @@ pub fn send_message_to<T: AsRef<str>>(
 ) -> Result<(), SendError> {
     let recv = CString::new(receiver.as_ref()).expect(C_STRING_FAILURE);
     let msg = CString::new(message.as_ref()).expect(C_STRING_FAILURE);
-    unsafe {
-        let mut atom_list: Vec<libpd_sys::t_atom> = make_t_atom_list_from_atom_list!(list);
-        let atom_list_slice = atom_list.as_mut_slice();
 
+    let mut atom_list: Vec<libpd_sys::t_atom> = make_t_atom_list_from_atom_list!(list);
+    let atom_list_slice = atom_list.as_mut_slice();
+
+    unsafe {
         #[allow(clippy::cast_possible_wrap)]
         #[allow(clippy::cast_possible_truncation)]
         match libpd_sys::libpd_message(

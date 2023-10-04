@@ -126,7 +126,7 @@ pub fn read_float_array_from<T: AsRef<str>>(
         // or offset + n exceeds range of array
 
         if source_read_offset + source_read_amount
-            > array_size(source_name.as_ref()).map_err(|_| ArrayError::FailedToFindArray)? as i32
+            > array_size(source_name.as_ref()).map_err(|_| ArrayError::FailedToFindArray)?
             || source_read_amount < 0
         {
             return Err(ArrayError::OutOfBounds);
@@ -180,7 +180,6 @@ pub fn write_float_array_to<T: AsRef<str>>(
         #[allow(clippy::cast_sign_loss)]
         if destination_write_offset + source_read_amount
             > array_size(destination_name.as_ref()).map_err(|_| ArrayError::FailedToFindArray)?
-                as i32
             || source_read_amount < 0
             || source_read_amount as usize > source.len()
         {
@@ -232,7 +231,7 @@ pub fn read_double_array_from<T: AsRef<str>>(
         // or offset + n exceeds range of array
 
         if source_read_offset + source_read_amount
-            > array_size(source_name.as_ref()).map_err(|_| ArrayError::FailedToFindArray)? as i32
+            > array_size(source_name.as_ref()).map_err(|_| ArrayError::FailedToFindArray)?
             || source_read_amount < 0
         {
             return Err(ArrayError::OutOfBounds);
@@ -286,7 +285,6 @@ pub fn write_double_array_to<T: AsRef<str>>(
         #[allow(clippy::cast_sign_loss)]
         if destination_write_offset + source_read_amount
             > array_size(destination_name.as_ref()).map_err(|_| ArrayError::FailedToFindArray)?
-                as i32
             || source_read_amount < 0
             || source_read_amount as usize > source.len()
         {
