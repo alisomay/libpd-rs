@@ -208,13 +208,7 @@ impl Bubble {
         let distance_to_floor = self.properties.y + self.properties.r + self.properties.dy;
 
         // We'd like less loud collisions when bubbles are closer to the floor.
-        self.gain(Self::scale(
-            distance_to_floor,
-            0.0,
-            win.h() as f32,
-            0.0,
-            1.0,
-        ));
+        self.gain(Self::scale(distance_to_floor, 0.0, win.h(), 0.0, 1.0));
 
         // Collision with the floor!
         if distance_to_floor < self.properties.r * 2.0 {
@@ -255,7 +249,7 @@ impl Bubble {
                 // Random size
                 self.properties.r = rng.gen::<f32>() * 150.0;
                 // Falls from the top
-                self.properties.y = win.h() as f32;
+                self.properties.y = win.h();
 
                 // Stays in the bounds of the screen
                 let candidate_x_pos = rng.gen::<f32>() * win.w() - self.properties.r * 2.0;
@@ -285,8 +279,8 @@ impl Bubble {
                             self.properties.alpha,
                             1.0,
                             0.0,
-                            *model.time.borrow() as f32 / 5. + 1.,
-                            *model.time.borrow() as f32 / 50. + 1.,
+                            *model.time.borrow() / 5. + 1.,
+                            *model.time.borrow() / 50. + 1.,
                         ) * model.time.borrow().sin())
                         .abs()
                             + 1.0,
