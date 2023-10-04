@@ -176,6 +176,7 @@ doc = ::embed_doc_image::embed_image!("phasor_patch", "assets/phasor_patch.png")
 //!             // after pd processed our output buffer in place.
 //!         },
 //!         |err| eprintln!("an error occurred on stream: {}", err),
+//!         None,
 //!     )?;
 //!
 //!     // Turn audio processing on
@@ -339,6 +340,7 @@ doc = ::embed_doc_image::embed_image!("phasor_patch", "assets/phasor_patch.png")
 //!             // pd processed our output buffer in place.
 //!         },
 //!         |err| eprintln!("an error occurred on stream: {}", err),
+//!         None,
 //!     )?;
 //!
 //!     // Turn audio processing on

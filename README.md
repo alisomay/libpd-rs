@@ -25,8 +25,8 @@ Add the following dependencies to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-libpd-rs = "0.1.9"
-cpal = "0.13"
+libpd-rs = "0.1"
+cpal = "0.15"
 ```
 
 Paste the code into your `main.rs`:
@@ -90,6 +90,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             // Here we could have done post processing after pd processed our output buffer in place.
         },
         |err| eprintln!("an error occurred on stream: {}", err),
+        None,
     )?;
 
     // Turn audio processing on

@@ -53,6 +53,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             // Here we could have done post processing after pd processed our output buffer in place.
         },
         |err| eprintln!("an error occurred on stream: {}", err),
+        None,
     )?;
 
     // Turn audio processing on
