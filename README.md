@@ -13,9 +13,9 @@ Safe rust abstractions over [libpd-sys](https://github.com/alisomay/libpd-sys).
 
 Though pd is designed as a desktop application, [libpd](https://github.com/libpd) is an open source project which exposes it as a C library opening the possibility to embed the functionality of pd to any platform which C can compile to.
 
-[libpd-rs](https://github.com/alisomay/libpd-rs) aims to bring [libpd](https://github.com/libpd) to the Rust [ecosystem](https://crates.io/). It aims to expose the full functionality of [libpd](https://github.com/libpd) with some extra additions such as bundling commonly used externals and addition of extra functionality for increased ease of use.
+[libpd-rs](/) aims to bring [libpd](https://github.com/libpd) to the Rust [ecosystem](https://crates.io/). It aims to expose the full functionality of [libpd](https://github.com/libpd) with some extra additions such as bundling commonly used externals and addition of extra functionality for increased ease of use.
 
-It is thoroughly [documented](https://docs.rs/libpd-rs/0.1.9/libpd_rs/#), well [tested](https://github.com/alisomay/libpd-rs/tree/main/tests) and enriched with various [examples](https://github.com/alisomay/libpd-rs/tree/main/examples) to get you started right away.
+It is thoroughly [documented](https://docs.rs/libpd-rs/latest/libpd_rs/#), well [tested](/tests/) and enriched with various [examples](/examples/) to get you started right away.
 
 Now let's make some sound! 🔔
 
@@ -138,15 +138,15 @@ e.g.
 cargo run --example with_nannou
 ```
 
-Please check the [README](https://github.com/alisomay/libpd-rs/examples) on examples for more information.
+Please check the [README](/examples/) on examples for more information.
 
 For the tests, you may run `cargo test` directly.
 
 ## Next steps
 
-Please check the [examples](https://github.com/alisomay/libpd-rs/examples) and [tests](https://github.com/alisomay/libpd-rs/tests) directory if you're learning better when reading code.
+Please check the [examples](/examples/) and [tests](/tests/) directories if you learn better when reading code.
 
-Or if you would like to dive in to [documentation](https://docs.rs/libpd-rs/0.1.9/libpd_rs/#) please go ahead.
+Or if you would like to dive in to [documentation](https://docs.rs/libpd-rs/latest/libpd_rs/#) please go ahead.
 
 ## Resources
 
@@ -171,7 +171,7 @@ Or if you would like to dive in to [documentation](https://docs.rs/libpd-rs/0.1.
 - [Multi hooks support](https://github.com/libpd/libpd/pull/282/files#diff-51ce01cd8a0f2a0249dc73e318ccfb430fbe0e341edfd69a8a83ccd81f58e29aR502)
 - [Multi instance support](https://github.com/libpd/libpd/blob/master/libpd_wrapper/z_libpd.h#L529)
 - Support for Android and IOS
-- Enrich [examples](https://github.com/alisomay/libpd-rs/examples) with nice patches and add also examples with [bevy](https://bevyengine.org/) and [nannou](https://github.com/nannou-org/nannou).
+- Enrich [examples](/examples/) with nice patches and add also examples with [bevy](https://bevyengine.org/) and [nannou](https://github.com/nannou-org/nannou).
 
 ## Support
 
