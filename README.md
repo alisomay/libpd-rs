@@ -15,7 +15,7 @@ Though pd is designed as a desktop application, [libpd](https://github.com/libpd
 
 [libpd-rs](/) aims to bring [libpd](https://github.com/libpd) to the Rust [ecosystem](https://crates.io/). It aims to expose the full functionality of [libpd](https://github.com/libpd) with some extra additions such as bundling commonly used externals and addition of extra functionality for increased ease of use.
 
-It is thoroughly [documented](https://docs.rs/libpd-rs/latest/libpd_rs/#), well [tested](/tree/main/tests/) and enriched with various [examples](/tree/main/examples/) to get you started right away.
+It is thoroughly [documented](https://docs.rs/libpd-rs/latest/libpd_rs/#), well [tested](/tests/) and enriched with various [examples](/examples/) to get you started right away.
 
 Now let's make some sound! 🔔
 
@@ -138,13 +138,13 @@ e.g.
 cargo run --example with_nannou
 ```
 
-Please check the [README](/tree/main/examples/) on examples for more information.
+Please check the [README](/examples/) on examples for more information.
 
 For the tests, you may run `cargo test` directly.
 
 ## Next steps
 
-Please check the [examples](/tree/main/examples/) and [tests](/tree/main/tests/) directories if you learn better when reading code.
+Please check the [examples](/examples/) and [tests](/tests/) directories if you learn better when reading code.
 
 Or if you would like to dive in to [documentation](https://docs.rs/libpd-rs/latest/libpd_rs/#) please go ahead.
 
@@ -171,7 +171,7 @@ Or if you would like to dive in to [documentation](https://docs.rs/libpd-rs/late
 - [Multi hooks support](https://github.com/libpd/libpd/pull/282/files#diff-51ce01cd8a0f2a0249dc73e318ccfb430fbe0e341edfd69a8a83ccd81f58e29aR502)
 - [Multi instance support](https://github.com/libpd/libpd/blob/master/libpd_wrapper/z_libpd.h#L529)
 - Support for Android and IOS
-- Enrich [examples](/tree/main/examples/) with nice patches and add also examples with [bevy](https://bevyengine.org/) and [nannou](https://github.com/nannou-org/nannou).
+- Enrich [examples](/examples/) with nice patches and add also examples with [bevy](https://bevyengine.org/) and [nannou](https://github.com/nannou-org/nannou).
 
 ## Support
 

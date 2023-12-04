@@ -26,4 +26,4 @@ Here is an example to mess around:
 cargo run --example with_nannou
 ```
 
-Please also check the [tests](/tree/main/tests/) folder if you'd like to explore example like code.
+Please also check the [tests](/tests/) folder if you'd like to explore example like code.
