@@ -53,12 +53,14 @@ fn open_close_patch() {
             // Mimic an audio callback.
             let approximate_buffer_duration =
                 (output_buffer.len() as f32 / sample_rate as f32) * 1000.0;
+
             std::thread::sleep(std::time::Duration::from_millis(
                 approximate_buffer_duration as u64,
             ));
 
             let ticks = output_buffer.len() as i32 / (block_size() * output_channels);
             process_float(ticks, &input_buffer, &mut output_buffer);
+
             // Collect samples to check if the patch runs later.
             sum_clone.store(
                 output_buffer

@@ -3,14 +3,15 @@
 
 use libpd_rs::{
     add_to_search_paths, block_size, clear_search_paths, close_patch, get_dollar_zero, init,
-    initialize_audio, open_patch, release_internal_queues, types::PatchFileHandle,
-    verbose_print_state, verbose_print_state_active,
+    initialize_audio, open_patch, types::PatchFileHandle, verbose_print_state,
+    verbose_print_state_active,
 };
 
 #[test]
 fn all_main_functionality() {
     let result = init();
     assert!(result.is_ok());
+
     let result = init();
     assert!(result.is_err());
 
@@ -39,7 +40,6 @@ fn all_main_functionality() {
     assert!(result.is_err());
 
     clear_search_paths();
-    release_internal_queues();
 
     let patch_handle = open_patch("tests/patches/simple.pd").unwrap();
 

@@ -133,11 +133,12 @@ pub fn source_to_listen_from_exists<T: AsRef<str>>(sender: T) -> bool {
 /// ```rust
 /// use libpd_rs::receive::{on_print};
 ///
+/// libpd_rs::init();
+///
 /// on_print(|msg: &str| {
 ///  println!("pd is printing: {msg}");
 /// });
 ///
-/// libpd_rs::init();
 /// ```
 pub fn on_print<F: FnMut(&str) + Send + Sync + 'static>(mut user_provided_closure: F) {
     let closure: &'static mut _ = Box::leak(Box::new(move |out: *const std::os::raw::c_char| {
@@ -167,6 +168,8 @@ pub fn on_print<F: FnMut(&str) + Send + Sync + 'static>(mut user_provided_closur
 /// ```rust
 /// use libpd_rs::receive::{on_bang, start_listening_from};
 ///
+/// libpd_rs::init();
+///
 /// on_bang(|source: &str| {
 ///   match source {
 ///     "foo" => println!("bang from foo"),   
@@ -175,7 +178,6 @@ pub fn on_print<F: FnMut(&str) + Send + Sync + 'static>(mut user_provided_closur
 ///   }
 /// });
 ///
-/// libpd_rs::init();
 ///
 /// let foo_receiver_handle = start_listening_from("foo").unwrap();
 /// let bar_receiver_handle = start_listening_from("bar").unwrap();
@@ -208,6 +210,8 @@ pub fn on_bang<F: FnMut(&str) + Send + Sync + 'static>(mut user_provided_closure
 /// ```rust
 /// use libpd_rs::receive::{on_float, start_listening_from};
 ///
+/// libpd_rs::init();
+///
 /// on_float(|source: &str, value: f32| {
 ///   match source {
 ///     "foo" =>  println!("Received a float from foo, value is: {value}"),  
@@ -216,7 +220,6 @@ pub fn on_bang<F: FnMut(&str) + Send + Sync + 'static>(mut user_provided_closure
 ///   }
 /// });
 ///
-/// libpd_rs::init();
 ///
 /// let foo_receiver_handle = start_listening_from("foo").unwrap();
 /// let bar_receiver_handle = start_listening_from("bar").unwrap();
@@ -250,6 +253,8 @@ pub fn on_float<F: FnMut(&str, f32) + Send + Sync + 'static>(mut user_provided_c
 /// ```rust
 /// use libpd_rs::receive::{on_double, start_listening_from};
 ///
+/// libpd_rs::init();
+///
 /// on_double(|source: &str, value: f64| {
 ///   match source {
 ///     "foo" =>  println!("Received a float from foo, value is: {value}"),  
@@ -258,7 +263,6 @@ pub fn on_float<F: FnMut(&str, f32) + Send + Sync + 'static>(mut user_provided_c
 ///   }
 /// });
 ///
-/// libpd_rs::init();
 ///
 /// let foo_receiver_handle = start_listening_from("foo").unwrap();
 /// let bar_receiver_handle = start_listening_from("bar").unwrap();
@@ -288,6 +292,8 @@ pub fn on_double<F: FnMut(&str, f64) + Send + Sync + 'static>(mut user_provided_
 /// ```rust
 /// use libpd_rs::receive::{on_symbol, start_listening_from};
 ///
+/// libpd_rs::init();
+///
 /// on_symbol(|source: &str, symbol: &str| {
 ///   match source {
 ///     "foo" =>  println!("Received a float from foo, value is: {symbol}"),  
@@ -296,7 +302,6 @@ pub fn on_double<F: FnMut(&str, f64) + Send + Sync + 'static>(mut user_provided_
 ///   }
 /// });
 ///
-/// libpd_rs::init();
 ///
 /// let foo_receiver_handle = start_listening_from("foo").unwrap();
 /// let bar_receiver_handle = start_listening_from("bar").unwrap();
@@ -328,6 +333,8 @@ pub fn on_symbol<F: FnMut(&str, &str) + Send + Sync + 'static>(mut user_provided
 /// use libpd_rs::receive::{on_list, start_listening_from};
 /// use libpd_rs::types::Atom;
 ///
+/// libpd_rs::init();
+///
 /// on_list(|source: &str, list: &[Atom]| match source {
 ///     "foo" => {
 ///         for atom in list {
@@ -358,7 +365,6 @@ pub fn on_symbol<F: FnMut(&str, &str) + Send + Sync + 'static>(mut user_provided
 ///     _ => unreachable!(),
 /// });
 ///
-/// libpd_rs::init();
 ///
 /// let foo_receiver_handle = start_listening_from("foo").unwrap();
 /// let bar_receiver_handle = start_listening_from("bar").unwrap();
@@ -407,6 +413,8 @@ pub fn on_list<F: FnMut(&str, &[Atom]) + Send + Sync + 'static>(mut user_provide
 /// use libpd_rs::receive::{on_message, start_listening_from};
 /// use libpd_rs::types::Atom;
 ///
+/// libpd_rs::init();
+///
 /// on_message(|source: &str, message: &str, values: &[Atom]| match source {
 ///     "foo" => {
 ///         println!("Received a message from foo, message is: {message}");
@@ -425,7 +433,6 @@ pub fn on_list<F: FnMut(&str, &[Atom]) + Send + Sync + 'static>(mut user_provide
 ///     _ => unreachable!(),
 /// });
 ///
-/// libpd_rs::init();
 ///
 /// let foo_receiver_handle = start_listening_from("foo").unwrap();
 /// ```
@@ -463,6 +470,8 @@ pub fn on_message<F: FnMut(&str, &str, &[Atom]) + Send + Sync + 'static>(
 /// # Example
 /// ```no_run
 /// use libpd_rs::receive::{start_listening_from, on_symbol, receive_messages_from_pd};
+///
+/// libpd_rs::init();
 ///
 /// on_symbol(|source: &str, value: &str| {
 ///   match source {
@@ -503,6 +512,8 @@ pub fn receive_messages_from_pd() {
 ///
 /// libpd_rs::init();
 ///
+/// libpd_rs::init();
+///
 /// on_midi_note_on(|channel: i32, pitch: i32, velocity: i32| {
 ///   println!("Note On: channel {channel}, pitch {pitch}, velocity {velocity}");
 /// });
@@ -537,6 +548,8 @@ pub fn on_midi_note_on<F: FnMut(i32, i32, i32) + Send + Sync + 'static>(
 /// # Example
 /// ```rust
 /// use libpd_rs::receive::{on_midi_control_change};
+///
+/// libpd_rs::init();
 ///
 /// libpd_rs::init();
 ///
@@ -578,6 +591,8 @@ pub fn on_midi_control_change<F: FnMut(i32, i32, i32) + Send + Sync + 'static>(
 ///
 /// libpd_rs::init();
 ///
+/// libpd_rs::init();
+///
 /// on_midi_program_change(|channel: i32, value: i32| {
 ///   println!("Program Change: channel {channel}, program number {value}");
 /// });
@@ -613,6 +628,8 @@ pub fn on_midi_program_change<F: FnMut(i32, i32) + Send + Sync + 'static>(
 /// # Example
 /// ```rust
 /// use libpd_rs::receive::{on_midi_pitch_bend};
+///
+/// libpd_rs::init();
 ///
 /// libpd_rs::init();
 ///
@@ -652,6 +669,8 @@ pub fn on_midi_pitch_bend<F: FnMut(i32, i32) + Send + Sync + 'static>(
 ///
 /// libpd_rs::init();
 ///
+/// libpd_rs::init();
+///
 /// on_midi_after_touch(|channel: i32, value: i32| {
 ///   println!("After Touch: channel {channel}, after touch amount {value}");
 /// });
@@ -685,6 +704,8 @@ pub fn on_midi_after_touch<F: FnMut(i32, i32) + Send + Sync + 'static>(
 /// # Example
 /// ```rust
 /// use libpd_rs::receive::{on_midi_poly_after_touch};
+///
+/// libpd_rs::init();
 ///
 /// libpd_rs::init();
 ///
@@ -723,6 +744,8 @@ pub fn on_midi_poly_after_touch<F: FnMut(i32, i32, i32) + Send + Sync + 'static>
 ///
 /// libpd_rs::init();
 ///
+/// libpd_rs::init();
+///
 /// on_midi_byte(|port: i32, byte: i32| {
 ///   println!("Raw MIDI Byte: port {port}, byte {byte}");
 /// });
@@ -748,6 +771,8 @@ pub fn on_midi_byte<F: FnMut(i32, i32) + Send + Sync + 'static>(mut user_provide
 /// # Example
 /// ```no_run
 /// use libpd_rs::receive::{on_midi_byte, receive_midi_messages_from_pd};
+///
+/// libpd_rs::init();
 ///
 /// on_midi_byte(|port: i32, byte: i32| {
 ///     println!("{port}, {byte}");

@@ -934,6 +934,7 @@ pub fn init() -> Result<(), InitializationError> {
     }
 }
 
+// TODO: This needs to be an internal function which frees the ring buffers with multiple instances support.
 /// Frees the internal queued ring buffers.
 ///
 /// Currently I don't see a necessity to call this function in any case.
@@ -1065,10 +1066,12 @@ pub fn open_patch<T: AsRef<Path>>(
             calculated_patch_path.to_string_lossy().to_string(),
         ));
     }
+
     // All good.
     unsafe {
         let name = CString::new(file_name).expect(C_STRING_FAILURE);
         let directory = CString::new(directory).expect(C_STRING_FAILURE);
+        dbg!(&name, &directory);
         let file_handle =
             libpd_sys::libpd_openfile(name.as_ptr(), directory.as_ptr()).cast::<std::ffi::c_void>();
         if file_handle.is_null() {
