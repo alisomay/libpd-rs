@@ -21,6 +21,13 @@ Now let's make some sound! 🔔
 
 ---
 
+To be able to buid `libpd-sys` install `cmake` and `llvm` if you don't have them already
+
+```
+brew install cmake
+brew install llvm
+```
+
 Add the following dependencies to your `Cargo.toml`:
 
 ```toml
