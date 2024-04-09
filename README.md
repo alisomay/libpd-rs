@@ -19,8 +19,6 @@ It is thoroughly [documented](https://docs.rs/libpd-rs/latest/libpd_rs/#), well 
 
 ## Now let's make some sound! 🔔
 
----
-
 ### Build dependencies
 
 To be able to buid `libpd` install `cmake` and `llvm` if you don't have them already.
