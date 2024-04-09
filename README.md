@@ -17,7 +17,7 @@ Though pd is designed as a desktop application, [libpd](https://github.com/libpd
 
 It is thoroughly [documented](https://docs.rs/libpd-rs/latest/libpd_rs/#), well [tested](/tests/) and enriched with various [examples](/examples/) to get you started right away.
 
-Now let's make some sound! 🔔
+## Now let's make some sound! 🔔
 
 ---
 
