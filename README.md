@@ -17,9 +17,45 @@ Though pd is designed as a desktop application, [libpd](https://github.com/libpd
 
 It is thoroughly [documented](https://docs.rs/libpd-rs/latest/libpd_rs/#), well [tested](/tests/) and enriched with various [examples](/examples/) to get you started right away.
 
-Now let's make some sound! 🔔
+## Now let's make some sound! 🔔
 
----
+### Build dependencies
+
+To be able to buid `libpd` install `cmake` and `llvm` if you don't have them already.
+See [building libpd](https://github.com/libpd/libpd/blob/master/README.md#building-libpd) for more details and options.
+
+#### Linux
+
+```
+sudo apt install cmake
+```
+Follow the llvm [installation instructions](https://apt.llvm.org/#llvmsh)
+
+
+#### windows
+
+With chocolately 
+
+```
+choco install cmake
+choco install llvm
+```
+
+With winget
+
+```
+winget install -e --id Kitware.CMake
+winget install -e --id LLVM.LLVM
+```
+
+#### macOS
+
+```
+brew install cmake
+brew install llvm
+```
+
+### Cargo dependencies
 
 Add the following dependencies to your `Cargo.toml`:
 
@@ -28,6 +64,8 @@ Add the following dependencies to your `Cargo.toml`:
 libpd-rs = "0.1"
 cpal = "0.15"
 ```
+
+### Example code
 
 Paste the code into your `main.rs`:
 
