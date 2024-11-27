@@ -1,10 +1,12 @@
 use std::sync::mpsc;
 
-use libpd_rs::{block_size, convenience::PdGlobal, process::process_float};
+use libpd_rs::functions::block_size;
+use libpd_rs::Pd;
 
 #[test]
 fn open_close_patch() {
-    let mut pd = PdGlobal::init_and_configure(0, 2, 44100).unwrap();
+    let mut pd = Pd::init_and_configure(0, 2, 44100).unwrap();
+    let mut ctx = pd.audio_context();
 
     assert!(pd.open_patch("tests/patches/sine.pd").is_ok());
 
@@ -43,6 +45,7 @@ fn open_close_patch() {
     let (tx, rx) = mpsc::channel::<()>();
 
     let sum_clone = sum.clone();
+
     let handle = std::thread::spawn(move || {
         // Mimic audio callback buffers.
         let input_buffer = [0.0f32; 512];
@@ -59,7 +62,7 @@ fn open_close_patch() {
             ));
 
             let ticks = output_buffer.len() as i32 / (block_size() * output_channels);
-            process_float(ticks, &input_buffer, &mut output_buffer);
+            ctx.process_float(ticks, &input_buffer, &mut output_buffer);
 
             // Collect samples to check if the patch runs later.
             sum_clone.store(

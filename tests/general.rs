@@ -1,11 +1,11 @@
 #![allow(clippy::restriction)]
 #![allow(clippy::unnecessary_cast)]
 
-use libpd_rs::{
+use libpd_rs::functions::{
     add_to_search_paths, block_size, clear_search_paths, close_patch, get_dollar_zero, init,
-    initialize_audio, open_patch, types::PatchFileHandle, verbose_print_state,
-    verbose_print_state_active,
+    initialize_audio, open_patch, verbose_print_state, verbose_print_state_active,
 };
+use libpd_rs::types::PatchFileHandle;
 
 #[test]
 fn all_main_functionality() {
@@ -13,7 +13,7 @@ fn all_main_functionality() {
     assert!(result.is_ok());
 
     let result = init();
-    assert!(result.is_err());
+    assert!(result.is_ok());
 
     let result = initialize_audio(0, 2, 44100);
     assert!(result.is_ok());

@@ -1,6 +1,6 @@
 [package]
 name = "libpd-rs"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["alisomay <alisomay@runbox.com>"]
 edition = "2021"
 license = "BSD-3-Clause"
@@ -17,10 +17,19 @@ exclude = [
     "assets/logo_*"
 ]
 
+[lib]
+name = "libpd_rs"
+path = "src/lib.rs"
+test = true
+doctest = true
+bench = false
+doc = true
+edition = "2021"
+crate-type = ["lib"]
+
 [dependencies]
-# libpd-sys = "0.2"
-libpd-sys = { path = "../libpd-sys" }
-thiserror = "1.0.30"
+libpd-sys = "0.3"
+thiserror = "2"
 libffi = "3.0.0"
 tempfile = "3.3.0"
 embed-doc-image = "0.1.4"
@@ -28,8 +37,8 @@ embed-doc-image = "0.1.4"
 [dev-dependencies]
 cpal = "0.15.2"
 sys-info = "0.9.1"
-nannou = "0.18"
-nannou_audio = "0.18"
+nannou = "0.19"
+nannou_audio = "0.19"
 rand = "0.8.5"
 
 # For local development,
@@ -40,15 +49,6 @@ rand = "0.8.5"
 # [patch."https://github.com/alisomay/libpd-sys"]
 # libpd-sys = { path = "../libpd-sys" }
 
-[lib]
-name = "libpd_rs"           # The name of the target.
-path = "src/lib.rs"    # The source file of the target.
-test = true            # Is tested by default.
-doctest = true         # Documentation examples are tested by default.
-bench = false           # Is benchmarked by default.
-doc = true             # Is documented by default.
-proc-macro = false     # Set to `true` for a proc-macro library.
-edition = "2021"       # The edition of the target.
-crate-type = ["lib"]   # The crate types to generate.
+
 
 

@@ -1,10 +1,10 @@
 use std::path::PathBuf;
 
-use libpd_rs::convenience::PdGlobal;
+use libpd_rs::Pd;
 
 #[test]
 fn search_paths() {
-    let mut pd = PdGlobal::init_and_configure(0, 2, 44100).unwrap();
+    let mut pd = Pd::init_and_configure(0, 2, 44100).unwrap();
 
     assert!(pd.add_path_to_search_paths("does not exist").is_err());
     assert!(pd

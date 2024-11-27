@@ -3,12 +3,11 @@
 use std::sync::{mpsc, Arc, Mutex};
 
 use libpd_rs::{
-    block_size, close_patch,
-    convenience::dsp_on,
-    init, initialize_audio, open_patch,
-    process::process_float,
-    receive::{on_midi_control_change, receive_midi_messages_from_pd},
-    send::send_control_change,
+    functions::{
+        block_size, close_patch, open_patch, receive::on_midi_control_change,
+        send::send_control_change, util::dsp_on,
+    },
+    Pd,
 };
 
 #[test]
@@ -19,8 +18,9 @@ fn send_and_receive_control_change() {
     let control_change_messages_received: Arc<Mutex<Vec<(i32, i32, i32)>>> =
         Arc::new(Mutex::new(vec![]));
 
-    init().unwrap();
-    initialize_audio(0, output_channels, sample_rate).unwrap();
+    let pd = Pd::init_and_configure(0, output_channels, sample_rate).unwrap();
+    let mut ctx = pd.audio_context();
+
     dsp_on().unwrap();
 
     let patch_handle = open_patch("tests/patches/echo.pd").unwrap();
@@ -49,9 +49,9 @@ fn send_and_receive_control_change() {
                 approximate_buffer_duration as u64,
             ));
 
-            receive_midi_messages_from_pd();
+            ctx.receive_midi_messages_from_pd();
             let ticks = output_buffer.len() as i32 / (block_size() * output_channels);
-            process_float(ticks, &input_buffer, &mut output_buffer);
+            ctx.process_float(ticks, &input_buffer, &mut output_buffer);
             match rx.try_recv() {
                 Ok(_) => break,
                 _ => continue,

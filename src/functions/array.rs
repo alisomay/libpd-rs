@@ -1,7 +1,4 @@
-use crate::{
-    error::{ArrayError, SizeError},
-    C_STRING_FAILURE,
-};
+use crate::error::{ArrayError, SizeError, StringConversionError};
 
 use std::ffi::CString;
 
@@ -9,7 +6,7 @@ use std::ffi::CString;
 ///
 /// # Example
 /// ```no_run
-/// use libpd_rs::array::array_size;
+/// use libpd_rs::functions::array::array_size;
 ///
 /// let size = array_size("my_array").unwrap();
 /// ```
@@ -18,9 +15,10 @@ use std::ffi::CString;
 ///
 /// A list of errors that can occur:
 /// - [`CouldNotDetermine`](crate::error::SizeError::CouldNotDetermine)
+/// - [`StringConversion`](crate::error::SizeError::StringConversion)
 pub fn array_size<T: AsRef<str>>(name: T) -> Result<i32, SizeError> {
     unsafe {
-        let name = CString::new(name.as_ref()).expect(C_STRING_FAILURE);
+        let name = CString::new(name.as_ref()).map_err(StringConversionError::from)?;
         // Returns size or negative error code if non-existent
         let result = libpd_sys::libpd_arraysize(name.as_ptr());
         if result >= 0 {
@@ -36,7 +34,7 @@ pub fn array_size<T: AsRef<str>>(name: T) -> Result<i32, SizeError> {
 ///
 /// # Example
 /// ```no_run
-/// use libpd_rs::array::{array_size, resize_array};
+/// use libpd_rs::functions::array::{array_size, resize_array};
 ///
 /// resize_array("my_array", 1024).unwrap();
 /// let size = array_size("my_array").unwrap();
@@ -51,6 +49,7 @@ pub fn array_size<T: AsRef<str>>(name: T) -> Result<i32, SizeError> {
 ///
 /// A list of errors that can occur:
 /// - [`CouldNotDetermine`](crate::error::SizeError::CouldNotDetermine)
+/// - [`StringConversion`](crate::error::SizeError::StringConversion)
 pub fn resize_array<T: AsRef<str>>(name: T, size: i32) -> Result<(), SizeError> {
     // The size argument is a `long` but bindgen interprets it as i64
     //
@@ -73,7 +72,7 @@ pub fn resize_array<T: AsRef<str>>(name: T, size: i32) -> Result<(), SizeError> 
     //
     // TODO: Find the right approach here. Low-priority
     unsafe {
-        let name = CString::new(name.as_ref()).expect(C_STRING_FAILURE);
+        let name = CString::new(name.as_ref()).map_err(StringConversionError::from)?;
         // returns 0 on success or negative error code if non-existent
         #[cfg(target_os = "macos")]
         match libpd_sys::libpd_resize_array(name.as_ptr(), i64::from(size)) {
@@ -100,7 +99,7 @@ pub fn resize_array<T: AsRef<str>>(name: T, size: i32) -> Result<(), SizeError> 
 ///
 /// # Example
 /// ```no_run
-/// use libpd_rs::array::read_float_array_from;
+/// use libpd_rs::functions::array::read_float_array_from;
 ///
 /// let mut destination = [0.0_f32; 64];
 /// read_float_array_from("my_array", 32, 32, &mut destination).unwrap();
@@ -114,6 +113,7 @@ pub fn resize_array<T: AsRef<str>>(name: T, size: i32) -> Result<(), SizeError> 
 /// A list of errors that can occur:
 /// - [`OutOfBounds`](crate::error::ArrayError::OutOfBounds)
 /// - [`FailedToFindArray`](crate::error::ArrayError::FailedToFindArray)
+/// - [`StringConversion`](crate::error::ArrayError::StringConversion)
 pub fn read_float_array_from<T: AsRef<str>>(
     source_name: T,
     source_read_offset: i32,
@@ -121,7 +121,7 @@ pub fn read_float_array_from<T: AsRef<str>>(
     destination: &mut [f32],
 ) -> Result<(), ArrayError> {
     unsafe {
-        let name = CString::new(source_name.as_ref()).expect(C_STRING_FAILURE);
+        let name = CString::new(source_name.as_ref()).map_err(StringConversionError::from)?;
         // Returns 0 on success or a negative error code if the array is non-existent
         // or offset + n exceeds range of array
 
@@ -151,7 +151,7 @@ pub fn read_float_array_from<T: AsRef<str>>(
 ///
 /// # Example
 /// ```no_run
-/// use libpd_rs::array::write_float_array_to;
+/// use libpd_rs::functions::array::write_float_array_to;
 ///
 /// let mut source = [1.0_f32; 64];
 /// write_float_array_to("my_array", 32, &source, 32).unwrap();
@@ -165,6 +165,7 @@ pub fn read_float_array_from<T: AsRef<str>>(
 /// A list of errors that can occur:
 /// - [`OutOfBounds`](crate::error::ArrayError::OutOfBounds)
 /// - [`FailedToFindArray`](crate::error::ArrayError::FailedToFindArray)
+/// - [`StringConversion`](crate::error::ArrayError::StringConversion)
 pub fn write_float_array_to<T: AsRef<str>>(
     destination_name: T,
     destination_write_offset: i32,
@@ -172,12 +173,14 @@ pub fn write_float_array_to<T: AsRef<str>>(
     source_read_amount: i32,
 ) -> Result<(), ArrayError> {
     unsafe {
-        let name = CString::new(destination_name.as_ref()).expect(C_STRING_FAILURE);
+        let name = CString::new(destination_name.as_ref()).map_err(StringConversionError::from)?;
         // Returns 0 on success or a negative error code if the array is non-existent
         // or offset + n exceeds range of array
 
-        // We check this manually in the predicate.
-        #[allow(clippy::cast_sign_loss)]
+        #[expect(
+            clippy::cast_sign_loss,
+            reason = "We check this manually in the predicate."
+        )]
         if destination_write_offset + source_read_amount
             > array_size(destination_name.as_ref()).map_err(|_| ArrayError::FailedToFindArray)?
             || source_read_amount < 0
@@ -205,7 +208,7 @@ pub fn write_float_array_to<T: AsRef<str>>(
 ///
 /// # Example
 /// ```no_run
-/// use libpd_rs::array::read_double_array_from;
+/// use libpd_rs::functions::array::read_double_array_from;
 ///
 /// let mut destination = [0.0_f64; 64];
 /// read_double_array_from("my_array", 32, 32, &mut destination).unwrap();
@@ -219,6 +222,7 @@ pub fn write_float_array_to<T: AsRef<str>>(
 /// A list of errors that can occur:
 /// - [`OutOfBounds`](crate::error::ArrayError::OutOfBounds)
 /// - [`FailedToFindArray`](crate::error::ArrayError::FailedToFindArray)
+/// - [`StringConversion`](crate::error::ArrayError::StringConversion)
 pub fn read_double_array_from<T: AsRef<str>>(
     source_name: T,
     source_read_offset: i32,
@@ -226,7 +230,7 @@ pub fn read_double_array_from<T: AsRef<str>>(
     destination: &mut [f64],
 ) -> Result<(), ArrayError> {
     unsafe {
-        let name = CString::new(source_name.as_ref()).expect(C_STRING_FAILURE);
+        let name = CString::new(source_name.as_ref()).map_err(StringConversionError::from)?;
         // Returns 0 on success or a negative error code if the array is non-existent
         // or offset + n exceeds range of array
 
@@ -256,7 +260,7 @@ pub fn read_double_array_from<T: AsRef<str>>(
 ///
 /// # Example
 /// ```no_run
-/// use libpd_rs::array::write_double_array_to;
+/// use libpd_rs::functions::array::write_double_array_to;
 ///
 /// let source = [1.0_f64; 64];
 /// write_double_array_to("my_array", 32, &source, 32).unwrap();
@@ -270,6 +274,7 @@ pub fn read_double_array_from<T: AsRef<str>>(
 /// A list of errors that can occur:
 /// - [`OutOfBounds`](crate::error::ArrayError::OutOfBounds)
 /// - [`FailedToFindArray`](crate::error::ArrayError::FailedToFindArray)
+/// - [`StringConversion`](crate::error::ArrayError::StringConversion)
 pub fn write_double_array_to<T: AsRef<str>>(
     destination_name: T,
     destination_write_offset: i32,
@@ -277,12 +282,15 @@ pub fn write_double_array_to<T: AsRef<str>>(
     source_read_amount: i32,
 ) -> Result<(), ArrayError> {
     unsafe {
-        let name = CString::new(destination_name.as_ref()).expect(C_STRING_FAILURE);
+        let name = CString::new(destination_name.as_ref()).map_err(StringConversionError::from)?;
         // Returns 0 on success or a negative error code if the array is non-existent
         // or offset + n exceeds range of array
 
         // We check this manually in the predicate.
-        #[allow(clippy::cast_sign_loss)]
+        #[expect(
+            clippy::cast_sign_loss,
+            reason = "We check this manually in the predicate."
+        )]
         if destination_write_offset + source_read_amount
             > array_size(destination_name.as_ref()).map_err(|_| ArrayError::FailedToFindArray)?
             || source_read_amount < 0

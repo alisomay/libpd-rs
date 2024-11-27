@@ -1,8 +1,7 @@
 use crate::{
-    error::{SendError, SizeError},
+    error::{SendError, SizeError, StringConversionError},
     helpers::make_t_atom_list_from_atom_list,
     types::Atom,
-    C_STRING_FAILURE,
 };
 
 use std::ffi::CString;
@@ -15,7 +14,7 @@ use std::ffi::CString;
 ///
 /// # Example
 /// ```no_run
-/// use libpd_rs::send::send_bang_to;
+/// use libpd_rs::functions::send::send_bang_to;
 ///
 /// // Handle the error if the receiver object is not found
 /// send_bang_to("foo").unwrap_or_else(|err| {
@@ -29,8 +28,9 @@ use std::ffi::CString;
 ///
 /// A list of errors that can occur:
 /// - [`MissingDestination`](crate::error::SendError::MissingDestination)
+/// - [`StringConversion`](crate::error::SendError::StringConversion)
 pub fn send_bang_to<T: AsRef<str>>(receiver: T) -> Result<(), SendError> {
-    let recv = CString::new(receiver.as_ref()).expect(C_STRING_FAILURE);
+    let recv = CString::new(receiver.as_ref()).map_err(StringConversionError::from)?;
     unsafe {
         match libpd_sys::libpd_bang(recv.as_ptr()) {
             0 => Ok(()),
@@ -47,7 +47,7 @@ pub fn send_bang_to<T: AsRef<str>>(receiver: T) -> Result<(), SendError> {
 ///
 /// # Example
 /// ```no_run
-/// use libpd_rs::send::send_float_to;
+/// use libpd_rs::functions::send::send_float_to;
 ///
 /// // Handle the error if the receiver object is not found
 /// send_float_to("foo", 1.0).unwrap_or_else(|err| {
@@ -61,8 +61,9 @@ pub fn send_bang_to<T: AsRef<str>>(receiver: T) -> Result<(), SendError> {
 ///
 /// A list of errors that can occur:
 /// - [`MissingDestination`](crate::error::SendError::MissingDestination)
+/// - [`StringConversion`](crate::error::SendError::StringConversion)
 pub fn send_float_to<T: AsRef<str>>(receiver: T, value: f32) -> Result<(), SendError> {
-    let recv = CString::new(receiver.as_ref()).expect(C_STRING_FAILURE);
+    let recv = CString::new(receiver.as_ref()).map_err(StringConversionError::from)?;
     unsafe {
         match libpd_sys::libpd_float(recv.as_ptr(), value) {
             0 => Ok(()),
@@ -79,7 +80,7 @@ pub fn send_float_to<T: AsRef<str>>(receiver: T, value: f32) -> Result<(), SendE
 ///
 /// # Example
 /// ```no_run
-/// use libpd_rs::send::send_double_to;
+/// use libpd_rs::functions::send::send_double_to;
 ///
 /// // Handle the error if the receiver object is not found
 /// send_double_to("foo", 1.0).unwrap_or_else(|err| {
@@ -93,8 +94,9 @@ pub fn send_float_to<T: AsRef<str>>(receiver: T, value: f32) -> Result<(), SendE
 ///
 /// A list of errors that can occur:
 /// - [`MissingDestination`](crate::error::SendError::MissingDestination)
+/// - [`StringConversion`](crate::error::SendError::StringConversion)
 pub fn send_double_to<T: AsRef<str>>(receiver: T, value: f64) -> Result<(), SendError> {
-    let recv = CString::new(receiver.as_ref()).expect(C_STRING_FAILURE);
+    let recv = CString::new(receiver.as_ref()).map_err(StringConversionError::from)?;
     unsafe {
         match libpd_sys::libpd_double(recv.as_ptr(), value) {
             0 => Ok(()),
@@ -111,7 +113,7 @@ pub fn send_double_to<T: AsRef<str>>(receiver: T, value: f64) -> Result<(), Send
 ///
 /// # Example
 /// ```no_run
-/// use libpd_rs::send::send_symbol_to;
+/// use libpd_rs::functions::send::send_symbol_to;
 ///
 /// // Handle the error if the receiver object is not found
 /// send_symbol_to("foo", "bar").unwrap_or_else(|err| {
@@ -125,12 +127,13 @@ pub fn send_double_to<T: AsRef<str>>(receiver: T, value: f64) -> Result<(), Send
 ///
 /// A list of errors that can occur:
 /// - [`MissingDestination`](crate::error::SendError::MissingDestination)
+/// - [`StringConversion`](crate::error::SendError::StringConversion)
 pub fn send_symbol_to<T: AsRef<str>, S: AsRef<str>>(
     receiver: T,
     value: S,
 ) -> Result<(), SendError> {
-    let recv = CString::new(receiver.as_ref()).expect(C_STRING_FAILURE);
-    let sym = CString::new(value.as_ref()).expect(C_STRING_FAILURE);
+    let recv = CString::new(receiver.as_ref()).map_err(StringConversionError::from)?;
+    let sym = CString::new(value.as_ref()).map_err(StringConversionError::from)?;
     unsafe {
         match libpd_sys::libpd_symbol(recv.as_ptr(), sym.as_ptr()) {
             0 => Ok(()),
@@ -147,9 +150,10 @@ pub fn send_symbol_to<T: AsRef<str>, S: AsRef<str>>(
 ///
 /// # Example
 /// ```rust
-/// use libpd_rs::send::{start_message};
+/// use libpd_rs::functions::send::{start_message};
+/// use libpd_rs::instance::PdInstance;
 ///
-/// libpd_rs::init();
+/// let _main_instance = PdInstance::new().unwrap();
 ///
 /// // Arbitrary length
 /// let message_length = 4;
@@ -175,9 +179,10 @@ pub fn start_message(length: i32) -> Result<(), SizeError> {
 ///
 /// # Example
 /// ```rust
-/// use libpd_rs::send::{start_message, add_float_to_started_message};
+/// use libpd_rs::functions::send::{start_message, add_float_to_started_message};
+/// use libpd_rs::instance::PdInstance;
 ///
-/// libpd_rs::init();
+/// let _main_instance = PdInstance::new().unwrap();
 ///
 /// // Arbitrary length
 /// let message_length = 4;
@@ -200,9 +205,10 @@ pub fn add_float_to_started_message(value: f32) {
 ///
 /// # Example
 /// ```rust
-/// use libpd_rs::send::{start_message, add_double_to_started_message};
+/// use libpd_rs::functions::send::{start_message, add_double_to_started_message};
+/// use libpd_rs::instance::PdInstance;
 ///
-/// libpd_rs::init();
+/// let _main_instance = PdInstance::new().unwrap();
 ///
 /// // Arbitrary length
 /// let message_length = 4;
@@ -225,9 +231,10 @@ pub fn add_double_to_started_message(value: f64) {
 ///
 /// # Example
 /// ```rust
-/// use libpd_rs::send::{start_message, add_symbol_to_started_message};
+/// use libpd_rs::functions::send::{start_message, add_symbol_to_started_message};
+/// use libpd_rs::instance::PdInstance;
 ///
-/// libpd_rs::init();
+/// let _main_instance = PdInstance::new().unwrap();
 ///
 /// // Arbitrary length
 /// let message_length = 4;
@@ -235,16 +242,21 @@ pub fn add_double_to_started_message(value: f64) {
 ///   add_symbol_to_started_message("foo");
 /// }
 /// ```
+/// # Errors
+///
+/// A list of errors that can occur:
+/// - [`StringConversion`](crate::error::SendError::StringConversion)
 ///
 /// # Panics
 /// To be honest I'd expect this to panic if you overflow a message buffer.
 ///
 /// Although I didn't check that, please create an [issue](https://github.com/alisomay/libpd-rs/issues).
-pub fn add_symbol_to_started_message<T: AsRef<str>>(value: T) {
-    let sym = CString::new(value.as_ref()).expect(C_STRING_FAILURE);
+pub fn add_symbol_to_started_message<T: AsRef<str>>(value: T) -> Result<(), SendError> {
+    let sym = CString::new(value.as_ref()).map_err(StringConversionError::from)?;
     unsafe {
         libpd_sys::libpd_add_symbol(sym.as_ptr());
     }
+    Ok(())
 }
 
 /// Finishes the current message and send as a list to a receiver in the loaded pd patch
@@ -255,9 +267,10 @@ pub fn add_symbol_to_started_message<T: AsRef<str>>(value: T) {
 ///
 /// # Example
 /// ```rust
-/// use libpd_rs::send::{start_message, add_symbol_to_started_message, add_float_to_started_message, finish_message_as_list_and_send_to};
+/// use libpd_rs::functions::send::{start_message, add_symbol_to_started_message, add_float_to_started_message, finish_message_as_list_and_send_to};
+/// use libpd_rs::instance::PdInstance;
 ///
-/// libpd_rs::init();
+/// let _main_instance = PdInstance::new().unwrap();
 ///
 /// // Arbitrary length
 /// let message_length = 2;
@@ -274,8 +287,9 @@ pub fn add_symbol_to_started_message<T: AsRef<str>>(value: T) {
 ///
 /// A list of errors that can occur:
 /// - [`MissingDestination`](crate::error::SendError::MissingDestination)
+/// - [`StringConversion`](crate::error::SendError::StringConversion)
 pub fn finish_message_as_list_and_send_to<T: AsRef<str>>(receiver: T) -> Result<(), SendError> {
-    let recv = CString::new(receiver.as_ref()).expect(C_STRING_FAILURE);
+    let recv = CString::new(receiver.as_ref()).map_err(StringConversionError::from)?;
     unsafe {
         match libpd_sys::libpd_finish_list(recv.as_ptr()) {
             0 => Ok(()),
@@ -294,9 +308,10 @@ pub fn finish_message_as_list_and_send_to<T: AsRef<str>>(receiver: T) -> Result<
 ///
 /// # Example
 /// ```rust
-/// use libpd_rs::send::{start_message, add_float_to_started_message, finish_message_as_typed_message_and_send_to};
+/// use libpd_rs::functions::send::{start_message, add_float_to_started_message, finish_message_as_typed_message_and_send_to};
+/// use libpd_rs::instance::PdInstance;
 ///
-/// libpd_rs::init();
+/// let _main_instance = PdInstance::new().unwrap();
 ///
 /// // Arbitrary length
 /// let message_length = 1;
@@ -312,12 +327,13 @@ pub fn finish_message_as_list_and_send_to<T: AsRef<str>>(receiver: T) -> Result<
 ///
 /// A list of errors that can occur:
 /// - [`MissingDestination`](crate::error::SendError::MissingDestination)
+/// - [`StringConversion`](crate::error::SendError::StringConversion)
 pub fn finish_message_as_typed_message_and_send_to<T: AsRef<str>, S: AsRef<str>>(
     receiver: T,
     message_header: S,
 ) -> Result<(), SendError> {
-    let recv = CString::new(receiver.as_ref()).expect(C_STRING_FAILURE);
-    let msg = CString::new(message_header.as_ref()).expect(C_STRING_FAILURE);
+    let recv = CString::new(receiver.as_ref()).map_err(StringConversionError::from)?;
+    let msg = CString::new(message_header.as_ref()).map_err(StringConversionError::from)?;
     unsafe {
         match libpd_sys::libpd_finish_message(recv.as_ptr(), msg.as_ptr()) {
             0 => Ok(()),
@@ -334,10 +350,11 @@ pub fn finish_message_as_typed_message_and_send_to<T: AsRef<str>, S: AsRef<str>>
 ///
 /// # Example
 /// ```rust
-/// use libpd_rs::send::{send_list_to};
+/// use libpd_rs::functions::send::{send_list_to};
 /// use libpd_rs::types::Atom;
+/// use libpd_rs::instance::PdInstance;
 ///
-/// libpd_rs::init();
+/// let _main_instance = PdInstance::new().unwrap();
 ///
 /// let list = vec![Atom::from(42.0), Atom::from("bar")];
 /// // Handle the error if the receiver object is not found
@@ -352,18 +369,21 @@ pub fn finish_message_as_typed_message_and_send_to<T: AsRef<str>, S: AsRef<str>>
 ///
 /// A list of errors that can occur:
 /// - [`MissingDestination`](crate::error::SendError::MissingDestination)
+/// - [`StringConversion`](crate::error::SendError::StringConversion)
 pub fn send_list_to<T: AsRef<str>>(receiver: T, list: &[Atom]) -> Result<(), SendError> {
-    let recv = CString::new(receiver.as_ref()).expect(C_STRING_FAILURE);
+    let recv = CString::new(receiver.as_ref()).map_err(StringConversionError::from)?;
 
     let mut atom_list: Vec<libpd_sys::t_atom> = make_t_atom_list_from_atom_list!(list);
     let atom_list_slice = atom_list.as_mut_slice();
 
     unsafe {
-        #[allow(clippy::cast_possible_wrap)]
-        #[allow(clippy::cast_possible_truncation)]
+        #[expect(
+            clippy::cast_possible_wrap,
+            clippy::cast_possible_truncation,
+            reason = "This is what the function wants (i32). The value is never going to be negative or huge."
+        )]
         match libpd_sys::libpd_list(
             recv.as_ptr(),
-            // This is fine since a list will not be millions of elements long and not negative for sure.
             list.len() as i32,
             atom_list_slice.as_mut_ptr(),
         ) {
@@ -381,10 +401,11 @@ pub fn send_list_to<T: AsRef<str>>(receiver: T, list: &[Atom]) -> Result<(), Sen
 ///
 /// # Example
 /// ```rust
-/// use libpd_rs::send::{send_message_to};
+/// use libpd_rs::functions::send::{send_message_to};
 /// use libpd_rs::types::Atom;
+/// use libpd_rs::instance::PdInstance;
 ///
-/// libpd_rs::init();
+/// let _main_instance = PdInstance::new().unwrap();
 ///
 /// let values = vec![Atom::from(1.0)];
 /// // Handle the error if the receiver object is not found
@@ -399,20 +420,24 @@ pub fn send_list_to<T: AsRef<str>>(receiver: T, list: &[Atom]) -> Result<(), Sen
 ///
 /// A list of errors that can occur:
 /// - [`MissingDestination`](crate::error::SendError::MissingDestination)
+/// - [`StringConversion`](crate::error::SendError::StringConversion)
 pub fn send_message_to<T: AsRef<str>>(
     receiver: T,
     message: T,
     list: &[Atom],
 ) -> Result<(), SendError> {
-    let recv = CString::new(receiver.as_ref()).expect(C_STRING_FAILURE);
-    let msg = CString::new(message.as_ref()).expect(C_STRING_FAILURE);
+    let recv = CString::new(receiver.as_ref()).map_err(StringConversionError::from)?;
+    let msg = CString::new(message.as_ref()).map_err(StringConversionError::from)?;
 
     let mut atom_list: Vec<libpd_sys::t_atom> = make_t_atom_list_from_atom_list!(list);
     let atom_list_slice = atom_list.as_mut_slice();
 
     unsafe {
-        #[allow(clippy::cast_possible_wrap)]
-        #[allow(clippy::cast_possible_truncation)]
+        #[expect(
+            clippy::cast_possible_wrap,
+            clippy::cast_possible_truncation,
+            reason = "This is what the function wants (i32). The value is never going to be negative or huge."
+        )]
         match libpd_sys::libpd_message(
             recv.as_ptr(),
             msg.as_ptr(),
@@ -436,9 +461,10 @@ pub fn send_message_to<T: AsRef<str>>(
 ///
 /// # Example
 /// ```rust
-/// use libpd_rs::send::{send_note_on};
+/// use libpd_rs::functions::send::{send_note_on};
+/// use libpd_rs::instance::PdInstance;
 ///
-/// libpd_rs::init();
+/// let _main_instance = PdInstance::new().unwrap();
 ///
 /// // Handle the error if the receiver object is not found
 /// send_note_on(0, 48, 64).unwrap_or_else(|err| {
@@ -470,9 +496,10 @@ pub fn send_note_on(channel: i32, pitch: i32, velocity: i32) -> Result<(), SendE
 ///
 /// # Example
 /// ```rust
-/// use libpd_rs::send::{send_control_change};
+/// use libpd_rs::functions::send::{send_control_change};
+/// use libpd_rs::instance::PdInstance;
 ///
-/// libpd_rs::init();
+/// let _main_instance = PdInstance::new().unwrap();
 ///
 /// // Handle the error if the receiver object is not found
 /// send_control_change(0, 0, 64).unwrap_or_else(|err| {
@@ -504,9 +531,10 @@ pub fn send_control_change(channel: i32, controller: i32, value: i32) -> Result<
 ///
 /// # Example
 /// ```rust
-/// use libpd_rs::send::{send_program_change};
+/// use libpd_rs::functions::send::{send_program_change};
+/// use libpd_rs::instance::PdInstance;
 ///
-/// libpd_rs::init();
+/// let _main_instance = PdInstance::new().unwrap();
 ///
 /// // Handle the error if the receiver object is not found
 /// send_program_change(0, 42).unwrap_or_else(|err| {
@@ -540,9 +568,10 @@ pub fn send_program_change(channel: i32, value: i32) -> Result<(), SendError> {
 ///
 /// # Example
 /// ```rust
-/// use libpd_rs::send::{send_pitch_bend};
+/// use libpd_rs::functions::send::{send_pitch_bend};
+/// use libpd_rs::instance::PdInstance;
 ///
-/// libpd_rs::init();
+/// let _main_instance = PdInstance::new().unwrap();
 ///
 /// // Handle the error if the receiver object is not found
 /// send_pitch_bend(0, 8192).unwrap_or_else(|err| {
@@ -574,9 +603,10 @@ pub fn send_pitch_bend(channel: i32, value: i32) -> Result<(), SendError> {
 ///
 /// # Example
 /// ```rust
-/// use libpd_rs::send::{send_after_touch};
+/// use libpd_rs::functions::send::{send_after_touch};
+/// use libpd_rs::instance::PdInstance;
 ///
-/// libpd_rs::init();
+/// let _main_instance = PdInstance::new().unwrap();
 ///
 /// // Handle the error if the receiver object is not found
 /// send_after_touch(0, 42).unwrap_or_else(|err| {
@@ -608,9 +638,10 @@ pub fn send_after_touch(channel: i32, value: i32) -> Result<(), SendError> {
 ///
 /// # Example
 /// ```rust
-/// use libpd_rs::send::{send_poly_after_touch};
+/// use libpd_rs::functions::send::{send_poly_after_touch};
+/// use libpd_rs::instance::PdInstance;
 ///
-/// libpd_rs::init();
+/// let _main_instance = PdInstance::new().unwrap();
 ///
 /// // Handle the error if the receiver object is not found
 /// send_poly_after_touch(0, 48, 64).unwrap_or_else(|err| {
@@ -640,9 +671,10 @@ pub fn send_poly_after_touch(channel: i32, pitch: i32, value: i32) -> Result<(),
 ///
 /// # Example
 /// ```rust
-/// use libpd_rs::send::{send_midi_byte};
+/// use libpd_rs::functions::send::{send_midi_byte};
+/// use libpd_rs::instance::PdInstance;
 ///
-/// libpd_rs::init();
+/// let _main_instance = PdInstance::new().unwrap();
 ///
 /// // Handle the error if the receiver object is not found
 /// send_midi_byte(0, 0xFF).unwrap_or_else(|err| {
@@ -672,9 +704,10 @@ pub fn send_midi_byte(port: i32, byte: i32) -> Result<(), SendError> {
 ///
 /// # Example
 /// ```rust
-/// use libpd_rs::send::{send_sysex};
+/// use libpd_rs::functions::send::{send_sysex};
+/// use libpd_rs::instance::PdInstance;
 ///
-/// libpd_rs::init();
+/// let _main_instance = PdInstance::new().unwrap();
 ///
 /// // Handle the error if the receiver object is not found
 /// send_sysex(0, 0x7F).unwrap_or_else(|err| {
@@ -704,9 +737,10 @@ pub fn send_sysex(port: i32, byte: i32) -> Result<(), SendError> {
 ///
 /// # Example
 /// ```rust
-/// use libpd_rs::send::{send_sys_realtime};
+/// use libpd_rs::functions::send::{send_sys_realtime};
+/// use libpd_rs::instance::PdInstance;
 ///
-/// libpd_rs::init();
+/// let _main_instance = PdInstance::new().unwrap();
 ///
 /// // Handle the error if the receiver object is not found
 /// send_sys_realtime(0, 0x7F).unwrap_or_else(|err| {

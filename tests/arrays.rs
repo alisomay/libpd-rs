@@ -1,6 +1,6 @@
 #![allow(clippy::restriction)]
 
-use libpd_rs::{
+use libpd_rs::functions::{
     array::{
         array_size, read_double_array_from, read_float_array_from, resize_array,
         write_double_array_to, write_float_array_to,
@@ -10,8 +10,9 @@ use libpd_rs::{
 
 #[test]
 fn apply_array_operations_in_a_row() {
-    libpd_rs::init().unwrap();
-    let handle = libpd_rs::open_patch("tests/patches/array_sketch_pad.pd").unwrap();
+    libpd_rs::functions::init().unwrap();
+
+    let handle = libpd_rs::functions::open_patch("tests/patches/array_sketch_pad.pd").unwrap();
 
     let bad_name = "not_exists";
     let sketch_pad = "sketch_pad";

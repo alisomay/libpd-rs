@@ -14,7 +14,7 @@ fn main() {
 
 // This data structure will be shared across nannou functions.
 pub struct Model {
-    pd: libpd_rs::convenience::PdGlobal,
+    pd: libpd_rs::Pd,
     output_stream: audio::Stream<()>,
     gravity: f32,
     bubbles: RefCell<Vec<Bubble>>,
@@ -62,19 +62,14 @@ fn model(app: &App) -> Model {
         .unwrap();
 
     // Listen for console messages from pd
-    libpd_rs::receive::on_print(|val| {
+    libpd_rs::functions::receive::on_print(|val| {
         println!("{}", val);
     });
 
     // This data structure will be shared across nannou functions.
     let mut model = Model {
         // Initialize pd
-        pd: libpd_rs::convenience::PdGlobal::init_and_configure(
-            0,
-            channels as i32,
-            sample_rate as i32,
-        )
-        .unwrap(),
+        pd: libpd_rs::Pd::init_and_configure(0, channels as i32, sample_rate as i32).unwrap(),
         output_stream,
         gravity: 0.8,
         bubbles: RefCell::new(vec![]),
@@ -95,7 +90,7 @@ fn model(app: &App) -> Model {
 
     // Initially pd needs to know how many bubbles we have.
     // Because it will create adequate amount of voices for them.
-    libpd_rs::send::send_float_to("bubble_count", model.bubble_count as f32).unwrap();
+    libpd_rs::functions::send::send_float_to("bubble_count", model.bubble_count as f32).unwrap();
 
     // Run pd!
     model.pd.activate_audio(true).unwrap();
@@ -145,14 +140,14 @@ impl Model {
 // We hand over all tasks to our pd patch!
 fn audio_callback(_: &mut (), buffer: &mut Buffer) {
     let ticks =
-        libpd_rs::convenience::calculate_ticks(buffer.channels() as i32, buffer.len() as i32);
-    libpd_rs::process::process_float(ticks, &[], buffer);
+        libpd_rs::functions::util::calculate_ticks(buffer.channels() as i32, buffer.len() as i32);
+    libpd_rs::functions::process::process_float(ticks, &[], buffer);
 }
 
 // This is where we draw repeatedly!
 fn view(app: &App, model: &Model, frame: Frame) {
     // Let's poll pd messages here, for every frame.
-    libpd_rs::receive::receive_messages_from_pd();
+    libpd_rs::functions::receive::receive_messages_from_pd();
 
     let background_color = nannou::color::srgb8(238, 108, 77);
 

@@ -2,9 +2,9 @@
 
 use std::any::type_name;
 
-use libpd_rs::{
+use libpd_rs::functions::{
     block_size, close_patch,
-    convenience::dsp_on,
+    util::dsp_on,
     init, initialize_audio, open_patch,
     process::{
         process_double, process_float, process_raw, process_raw_double, process_raw_short,

@@ -1,12 +1,12 @@
 #![allow(clippy::restriction)]
 #![allow(unused)]
 
-use libpd_rs::gui::{poll_gui, start_gui, stop_gui};
+use libpd_rs::functions::gui::{poll_gui, start_gui, stop_gui};
 use std::{env, path::PathBuf};
 
 #[test]
 fn start_poll_stop_gui() {
-    libpd_rs::init().unwrap();
+    libpd_rs::functions::init().unwrap();
 
     #[cfg(target_os = "macos")]
     {

@@ -11,7 +11,7 @@ macro_rules! make_t_atom_list_from_atom_list {
                         a_type: libpd_sys::t_atomtype_A_FLOAT,
                         a_w: libpd_sys::word { w_float: *value },
                     };
-                    let p = &t_atom as *const libpd_sys::t_atom as *mut libpd_sys::t_atom;
+                    let p = std::ptr::from_ref::<libpd_sys::t_atom>(&t_atom).cast_mut();
                     // Using a setter us crucial or else float values become 0s when sending a list.
                     unsafe {
                         libpd_sys::libpd_set_double(p, *value);
@@ -44,13 +44,13 @@ macro_rules! make_atom_list_from_t_atom_list {
             .map(|atom_type| match atom_type.a_type {
                 libpd_sys::t_atomtype_A_FLOAT => {
                     let ptr_to_inner =
-                        atom_type as *const libpd_sys::t_atom as *mut libpd_sys::t_atom;
+                        std::ptr::from_ref::<libpd_sys::t_atom>(atom_type).cast_mut();
                     let f: f64 = unsafe { libpd_sys::libpd_get_double(ptr_to_inner) };
                     Atom::Float(f)
                 }
                 libpd_sys::t_atomtype_A_SYMBOL => {
                     let ptr_to_inner =
-                        atom_type as *const libpd_sys::t_atom as *mut libpd_sys::t_atom;
+                        std::ptr::from_ref::<libpd_sys::t_atom>(atom_type).cast_mut();
                     let sym: *const std::os::raw::c_char =
                         unsafe { libpd_sys::libpd_get_symbol(ptr_to_inner) };
                     let result = unsafe { CStr::from_ptr(sym) };

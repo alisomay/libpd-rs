@@ -1,5 +1,5 @@
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
-use libpd_rs::convenience::PdGlobal;
+use libpd_rs::Pd;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize cpal
@@ -19,7 +19,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Initialize libpd with that configuration,
     // with no input channels since we're not going to use them.
-    let mut pd = PdGlobal::init_and_configure(0, output_channels, sample_rate)?;
+    let mut pd = Pd::init_and_configure(0, output_channels, sample_rate)?;
 
     // Let's evaluate a pd patch.
     // We could have opened a `.pd` file also.
@@ -43,12 +43,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         &config.into(),
         move |data: &mut [f32], _: &cpal::OutputCallbackInfo| {
             // Provide the ticks to advance per iteration for the internal scheduler.
-            let ticks = libpd_rs::convenience::calculate_ticks(output_channels, data.len() as i32);
+            let ticks =
+                libpd_rs::functions::util::calculate_ticks(output_channels, data.len() as i32);
 
             // Here if we had an input buffer we could have modified it to do pre-processing.
 
             // Process audio, advance internal scheduler.
-            libpd_rs::process::process_float(ticks, &[], data);
+            libpd_rs::functions::process::process_float(ticks, &[], data);
 
             // Here we could have done post processing after pd processed our output buffer in place.
         },

@@ -1,3 +1,6 @@
+use core::ffi;
+use std::fmt::{self, Display};
+
 /// A type to represent a pd Atom type in Rust side.
 ///
 /// Pd has floating point numbers and symbols as primitive types.
@@ -74,8 +77,8 @@ impl From<&char> for Atom {
     }
 }
 
-impl core::fmt::Display for Atom {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+impl Display for Atom {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), fmt::Error> {
         match self {
             Self::Float(float) => write!(f, "{float}"),
             Self::Symbol(s) => write!(f, "{s}"),
@@ -89,24 +92,20 @@ impl core::fmt::Display for Atom {
 ///
 /// This handle should be kept alive for the lifetime of the patch.
 #[derive(Debug)]
-pub struct PatchFileHandle(usize);
+pub struct PatchFileHandle(*mut ffi::c_void);
 impl PatchFileHandle {
-    pub(crate) const fn as_mut_ptr(&self) -> *mut std::ffi::c_void {
-        self.0 as *mut std::ffi::c_void
+    pub(crate) const fn as_mut_ptr(&self) -> *mut ffi::c_void {
+        self.0
+    }
+
+    pub const fn into_inner(self) -> *mut ffi::c_void {
+        self.0
     }
 }
 
-impl From<*mut std::ffi::c_void> for PatchFileHandle {
-    fn from(ptr: *mut std::ffi::c_void) -> Self {
-        Self(ptr as usize)
-    }
-}
-
-// Needed in this case.
-#[allow(clippy::from_over_into)]
-impl Into<*mut std::ffi::c_void> for PatchFileHandle {
-    fn into(self) -> *mut std::ffi::c_void {
-        self.0 as *mut std::ffi::c_void
+impl From<*mut ffi::c_void> for PatchFileHandle {
+    fn from(ptr: *mut ffi::c_void) -> Self {
+        Self(ptr)
     }
 }
 
@@ -116,19 +115,17 @@ impl Into<*mut std::ffi::c_void> for PatchFileHandle {
 ///
 /// This handle could be used later to unsubscribe from the sender.
 #[derive(Debug)]
-pub struct ReceiverHandle(usize);
+pub struct ReceiverHandle(*mut ffi::c_void);
 
-impl From<*mut std::ffi::c_void> for ReceiverHandle {
-    fn from(ptr: *mut std::ffi::c_void) -> Self {
-        Self(ptr as usize)
+impl ReceiverHandle {
+    pub const fn into_inner(self) -> *mut ffi::c_void {
+        self.0
     }
 }
 
-// Might be needed
-#[allow(clippy::from_over_into)]
-impl Into<*mut std::ffi::c_void> for ReceiverHandle {
-    fn into(self) -> *mut std::ffi::c_void {
-        self.0 as *mut std::ffi::c_void
+impl From<*mut ffi::c_void> for ReceiverHandle {
+    fn from(ptr: *mut ffi::c_void) -> Self {
+        Self(ptr)
     }
 }
 

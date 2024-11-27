@@ -3,17 +3,19 @@
 use std::sync::{mpsc, Arc, Mutex};
 
 use libpd_rs::{
-    block_size, close_patch,
-    convenience::dsp_on,
-    init, initialize_audio, open_patch,
-    process::process_float,
-    receive::{on_list, receive_messages_from_pd, start_listening_from, stop_listening_from},
-    send::{
-        add_double_to_started_message, add_symbol_to_started_message,
-        finish_message_as_list_and_send_to, send_list_to, start_message,
+    functions::{
+        block_size, close_patch, open_patch,
+        receive::{on_list, start_listening_from, stop_listening_from},
+        send::{
+            add_double_to_started_message, add_symbol_to_started_message,
+            finish_message_as_list_and_send_to, send_list_to, start_message,
+        },
+        util::dsp_on,
     },
-    types::Atom,
+    Pd,
 };
+
+use libpd_rs::types::Atom;
 
 #[test]
 fn send_and_receive_list() {
@@ -22,8 +24,9 @@ fn send_and_receive_list() {
 
     let list_received: Arc<Mutex<Vec<Atom>>> = Arc::new(Mutex::new(vec![]));
 
-    init().unwrap();
-    initialize_audio(0, output_channels, sample_rate).unwrap();
+    let pd = Pd::init_and_configure(0, output_channels, sample_rate).unwrap();
+    let mut ctx = pd.audio_context();
+
     dsp_on().unwrap();
 
     let patch_handle = open_patch("tests/patches/echo.pd").unwrap();
@@ -54,8 +57,8 @@ fn send_and_receive_list() {
             ));
 
             let ticks = output_buffer.len() as i32 / (block_size() * output_channels);
-            process_float(ticks, &input_buffer, &mut output_buffer);
-            receive_messages_from_pd();
+            ctx.process_float(ticks, &input_buffer, &mut output_buffer);
+            ctx.receive_messages_from_pd();
             match rx.try_recv() {
                 Ok(_) => break,
                 _ => continue,
@@ -89,10 +92,10 @@ fn send_and_receive_list() {
     send_list_to("list_from_rust", &list_to_send).unwrap();
 
     start_message(list_to_send.len() as i32).unwrap();
-    add_symbol_to_started_message("daisy");
+    add_symbol_to_started_message("daisy").unwrap();
     add_double_to_started_message(33.5_f64);
     add_double_to_started_message(42_f64);
-    add_symbol_to_started_message("bang");
+    add_symbol_to_started_message("bang").unwrap();
     add_double_to_started_message(12.0_f64);
     add_double_to_started_message(0.0_f64);
     finish_message_as_list_and_send_to("list_from_rust").unwrap();
