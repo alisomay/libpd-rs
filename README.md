@@ -6,6 +6,7 @@
 
 [![Build and Test Status](https://github.com/alisomay/libpd-rs/workflows/CI/badge.svg)](https://github.com/alisomay/libpd-rs/actions?query=workflow%3ACI)
 [![Code Coverage](https://codecov.io/gh/alisomay/libpd-rs/branch/main/graph/badge.svg?token=R25IX6EWRD)](https://codecov.io/gh/alisomay/libpd-rs)
+[![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD_3--Clause-green.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
 Safe rust abstractions over [libpd-sys](https://github.com/alisomay/libpd-sys).
 
