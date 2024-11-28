@@ -24,8 +24,7 @@ edition = "2021"
 crate-type = ["lib"]
 
 [dependencies]
-# libpd-sys = "0.3"
-libpd-sys = { git = "https://github.com/alisomay/libpd-sys.git", branch = "main" }
+libpd-sys = "0.3"
 thiserror = "2"
 libffi = "3.0.0"
 tempfile = "3.3.0"
