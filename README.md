@@ -29,12 +29,12 @@ See [building libpd](https://github.com/libpd/libpd/blob/master/README.md#buildi
 ```
 sudo apt install cmake
 ```
-Follow the llvm [installation instructions](https://apt.llvm.org/#llvmsh)
 
+Follow the llvm [installation instructions](https://apt.llvm.org/#llvmsh)
 
 #### windows
 
-With chocolately 
+With chocolatey
 
 ```
 choco install cmake
@@ -61,7 +61,7 @@ Add the following dependencies to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-libpd-rs = "0.1"
+libpd-rs = "0.3"
 cpal = "0.15"
 ```
 
@@ -95,6 +95,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize libpd with that configuration,
     // with no input channels since we're not going to use them.
     let mut pd = PdGlobal::init_and_configure(0, output_channels, sample_rate)?;
+    let ctx = pd.audio_context();
 
     // Let's evaluate a pd patch.
     // We could have opened a `.pd` file also.
@@ -123,7 +124,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             // Here if we had an input buffer we could have modified it to do pre-processing.
 
             // Process audio, advance internal scheduler.
-            libpd_rs::functions::process::process_float(ticks, &[], data);
+            ctx.process_float(ticks, &[], data);
 
             // Here we could have done post processing after pd processed our output buffer in place.
         },
@@ -206,8 +207,6 @@ Or if you would like to dive in to [documentation](https://docs.rs/libpd-rs/late
 
 ## Road map
 
-- [Multi hooks support](https://github.com/libpd/libpd/pull/282/files#diff-51ce01cd8a0f2a0249dc73e318ccfb430fbe0e341edfd69a8a83ccd81f58e29aR502)
-- [Multi instance support](https://github.com/libpd/libpd/blob/master/libpd_wrapper/z_libpd.h#L529)
 - Support for Android and IOS
 - Enrich [examples](/examples/) with nice patches and add also examples with [bevy](https://bevyengine.org/) and [nannou](https://github.com/nannou-org/nannou).
 
@@ -223,7 +222,7 @@ Or if you would like to dive in to [documentation](https://docs.rs/libpd-rs/late
   - windows:
     - msvc
       - `x86_64` ✅
-      - `aarch64` (not tested but should work)
+      - `aarch64` ✅
     - gnu
       - `x86_64` (not tested but should work)
       - `aarch64` (not tested but should work)
