@@ -1,13 +1,12 @@
 #![allow(clippy::restriction)]
 #![allow(clippy::unnecessary_cast)]
 
-use libpd_rs::{
-    close_patch,
-    convenience::dsp_on,
-    init, initialize_audio, open_patch,
+use libpd_rs::functions::{
+    close_patch, init, initialize_audio, open_patch,
     receive::{source_to_listen_from_exists, start_listening_from, stop_listening_from},
-    types::ReceiverHandle,
+    util::dsp_on,
 };
+use libpd_rs::types::ReceiverHandle;
 
 #[test]
 fn listening() {
@@ -35,8 +34,8 @@ fn listening() {
     let handle: ReceiverHandle = (std::ptr::null_mut() as *mut std::ffi::c_void).into();
     stop_listening_from(handle);
 
-    assert!(source_to_listen_from_exists("list_from_pd"));
-    assert!(!source_to_listen_from_exists("endpoint_not_created"));
+    assert!(source_to_listen_from_exists("list_from_pd").unwrap());
+    assert!(!source_to_listen_from_exists("endpoint_not_created").unwrap());
 
     close_patch(patch_handle).unwrap();
 }

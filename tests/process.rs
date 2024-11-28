@@ -2,14 +2,13 @@
 
 use std::any::type_name;
 
-use libpd_rs::{
-    block_size, close_patch,
-    convenience::dsp_on,
-    init, initialize_audio, open_patch,
+use libpd_rs::functions::{
+    block_size, close_patch, init, initialize_audio, open_patch,
     process::{
         process_double, process_float, process_raw, process_raw_double, process_raw_short,
         process_short,
     },
+    util::dsp_on,
 };
 
 fn type_of<T>(_: T) -> &'static str {

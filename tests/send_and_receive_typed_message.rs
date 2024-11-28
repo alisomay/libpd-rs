@@ -3,13 +3,14 @@
 use std::sync::{mpsc, Arc, Mutex};
 
 use libpd_rs::{
-    block_size, close_patch,
-    convenience::dsp_on,
-    init, initialize_audio, open_patch,
-    process::process_float,
-    receive::{on_message, receive_messages_from_pd, start_listening_from, stop_listening_from},
-    send::{finish_message_as_typed_message_and_send_to, send_message_to, start_message},
-    verbose_print_state,
+    functions::{
+        block_size, close_patch, open_patch,
+        receive::{on_message, start_listening_from, stop_listening_from},
+        send::{finish_message_as_typed_message_and_send_to, send_message_to, start_message},
+        util::dsp_on,
+        verbose_print_state,
+    },
+    Pd,
 };
 
 #[test]
@@ -17,9 +18,11 @@ fn send_and_receive_typed_message() {
     let sample_rate = 44100;
     let output_channels = 2;
 
-    init().unwrap();
-    initialize_audio(0, output_channels, sample_rate).unwrap();
+    let pd = Pd::init_and_configure(0, output_channels, sample_rate).unwrap();
+    let ctx = pd.audio_context();
+
     dsp_on().unwrap();
+
     verbose_print_state(true);
 
     let patch_handle = open_patch("tests/patches/echo.pd").unwrap();
@@ -50,8 +53,8 @@ fn send_and_receive_typed_message() {
             ));
 
             let ticks = output_buffer.len() as i32 / (block_size() * output_channels);
-            process_float(ticks, &input_buffer, &mut output_buffer);
-            receive_messages_from_pd();
+            ctx.process_float(ticks, &input_buffer, &mut output_buffer);
+            ctx.receive_messages_from_pd();
             match rx.try_recv() {
                 Ok(_) => break,
                 _ => continue,

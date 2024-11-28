@@ -14,6 +14,14 @@ This one is the exact same program which is provided in the main `README.md` fil
 cargo run --example simple
 ```
 
+## `communicate`
+
+This one is the exact same program which is provided in the docs as the second example.
+
+```sh
+cargo run --example communicate
+```
+
 ## `with_nannou`
 
 [nannou](https://github.com/nannou-org/nannou) is a fantastic creative coding framework for Rust.

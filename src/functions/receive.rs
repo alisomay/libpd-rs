@@ -1,8 +1,14 @@
+#![expect(
+    clippy::expect_used,
+    clippy::missing_panics_doc,
+    reason = "In closure implementations, there are CStr conversions. 
+    The use of expect there is ok because those strings are coming from Pd and pd uses C strings."
+)]
+
 use crate::{
-    error::SubscriptionError,
-    helpers::make_atom_list_from_t_atom_list,
-    types::{Atom, ReceiverHandle},
-    C_STRING_FAILURE, C_STR_FAILURE,
+    atom::{make_atom_list_from_t_atom_list, Atom},
+    error::{StringConversionError, SubscriptionError, C_STR_FAILURE},
+    types::ReceiverHandle,
 };
 
 use libffi::high::{
@@ -14,7 +20,10 @@ use libpd_sys::{
     t_libpd_noteonhook, t_libpd_pitchbendhook, t_libpd_polyaftertouchhook, t_libpd_printhook,
     t_libpd_programchangehook, t_libpd_symbolhook,
 };
-use std::ffi::{CStr, CString};
+use std::{
+    ffi::{CStr, CString},
+    mem, os, slice,
+};
 
 type PrintHookCodePtr = *const FnPtr1<'static, *const i8, ()>;
 type BangHookCodePtr = *const FnPtr1<'static, *const i8, ()>;
@@ -41,10 +50,11 @@ type MidiByteCodePtr = *const FnPtr2<'static, i32, i32, ()>;
 /// # Example
 /// ```rust
 /// use std::collections::HashMap;
-/// use libpd_rs::receive::{start_listening_from};
+/// use libpd_rs::functions::receive::{start_listening_from};
 /// use libpd_rs::types::ReceiverHandle;
+/// use libpd_rs::instance::PdInstance;
 ///
-/// libpd_rs::init();
+/// let _main_instance = PdInstance::new().unwrap();
 ///
 /// let sources = vec!["foo", "bar"];
 /// // Maybe you would like to use the receiver handles later so you may store them..
@@ -64,8 +74,9 @@ type MidiByteCodePtr = *const FnPtr2<'static, i32, i32, ()>;
 ///
 /// A list of errors that can occur:
 /// - [`FailedToSubscribeToSender`](crate::error::SubscriptionError::FailedToSubscribeToSender)
+/// - [`StringConversion`](crate::error::SubscriptionError::StringConversion)
 pub fn start_listening_from<T: AsRef<str>>(sender: T) -> Result<ReceiverHandle, SubscriptionError> {
-    let send = CString::new(sender.as_ref()).expect(C_STRING_FAILURE);
+    let send = CString::new(sender.as_ref()).map_err(StringConversionError::from)?;
 
     unsafe {
         let handle = libpd_sys::libpd_bind(send.as_ptr());
@@ -87,15 +98,16 @@ pub fn start_listening_from<T: AsRef<str>>(sender: T) -> Result<ReceiverHandle, 
 ///
 /// # Example
 /// ```rust
-/// use libpd_rs::receive::{start_listening_from, stop_listening_from};
+/// use libpd_rs::functions::receive::{start_listening_from, stop_listening_from};
+/// use libpd_rs::instance::PdInstance;
 ///
-/// libpd_rs::init();
+/// let _main_instance = PdInstance::new().unwrap();
 ///
 /// let receiver_handle = start_listening_from("foo").unwrap();
 /// stop_listening_from(receiver_handle);
 /// ```
 pub fn stop_listening_from(source: ReceiverHandle) {
-    let handle: *mut std::ffi::c_void = source.into();
+    let handle = source.into_inner();
     if handle.is_null() {
         return;
     }
@@ -108,19 +120,24 @@ pub fn stop_listening_from(source: ReceiverHandle) {
 ///
 /// # Example
 /// ```rust
-/// use libpd_rs::receive::{source_to_listen_from_exists, start_listening_from};
+/// use libpd_rs::functions::receive::{source_to_listen_from_exists, start_listening_from};
+/// use libpd_rs::instance::PdInstance;
 ///
-/// libpd_rs::init();
+/// let _main_instance = PdInstance::new().unwrap();
 ///
-/// if source_to_listen_from_exists("foo") {
+/// if source_to_listen_from_exists("foo").unwrap() {
 ///   if let Ok(receiver_handle) = start_listening_from("foo") {
 ///     // Do something with the handle..
 ///   }
 /// }
 /// ```
-pub fn source_to_listen_from_exists<T: AsRef<str>>(sender: T) -> bool {
-    let send = CString::new(sender.as_ref()).expect(C_STRING_FAILURE);
-    unsafe { matches!(libpd_sys::libpd_exists(send.as_ptr()), 1) }
+/// # Errors
+///
+/// A list of errors that can occur:
+/// - [`StringConversion`](crate::error::SubscriptionError::StringConversion)
+pub fn source_to_listen_from_exists<T: AsRef<str>>(sender: T) -> Result<bool, SubscriptionError> {
+    let send = CString::new(sender.as_ref()).map_err(StringConversionError::from)?;
+    unsafe { Ok(matches!(libpd_sys::libpd_exists(send.as_ptr()), 1)) }
 }
 
 /// Sets a closure to be called when a message is written to the pd console.
@@ -131,23 +148,25 @@ pub fn source_to_listen_from_exists<T: AsRef<str>>(sender: T) -> bool {
 ///
 /// # Example
 /// ```rust
-/// use libpd_rs::receive::{on_print};
+/// use libpd_rs::functions::receive::{on_print};
+/// use libpd_rs::instance::PdInstance;
+///
+/// let _main_instance = PdInstance::new().unwrap();
 ///
 /// on_print(|msg: &str| {
 ///  println!("pd is printing: {msg}");
 /// });
 ///
-/// libpd_rs::init();
 /// ```
 pub fn on_print<F: FnMut(&str) + Send + Sync + 'static>(mut user_provided_closure: F) {
-    let closure: &'static mut _ = Box::leak(Box::new(move |out: *const std::os::raw::c_char| {
+    let closure: &'static mut _ = Box::leak(Box::new(move |out: *const os::raw::c_char| {
         let out = unsafe { CStr::from_ptr(out).to_str().expect(C_STR_FAILURE) };
         user_provided_closure(out);
     }));
     let callback = ClosureMut1::new(closure);
     let code = callback.code_ptr() as PrintHookCodePtr;
     let ptr = unsafe { *code.cast::<t_libpd_printhook>() };
-    std::mem::forget(callback);
+    mem::forget(callback);
 
     unsafe {
         libpd_sys::libpd_set_queued_printhook(Some(libpd_sys::libpd_print_concatenator));
@@ -165,7 +184,10 @@ pub fn on_print<F: FnMut(&str) + Send + Sync + 'static>(mut user_provided_closur
 ///
 /// # Example
 /// ```rust
-/// use libpd_rs::receive::{on_bang, start_listening_from};
+/// use libpd_rs::functions::receive::{on_bang, start_listening_from};
+/// use libpd_rs::instance::PdInstance;
+///
+/// let _main_instance = PdInstance::new().unwrap();
 ///
 /// on_bang(|source: &str| {
 ///   match source {
@@ -175,21 +197,19 @@ pub fn on_print<F: FnMut(&str) + Send + Sync + 'static>(mut user_provided_closur
 ///   }
 /// });
 ///
-/// libpd_rs::init();
 ///
 /// let foo_receiver_handle = start_listening_from("foo").unwrap();
 /// let bar_receiver_handle = start_listening_from("bar").unwrap();
 /// ```
 pub fn on_bang<F: FnMut(&str) + Send + Sync + 'static>(mut user_provided_closure: F) {
-    let closure: &'static mut _ =
-        Box::leak(Box::new(move |source: *const std::os::raw::c_char| {
-            let source = unsafe { CStr::from_ptr(source).to_str().expect(C_STR_FAILURE) };
-            user_provided_closure(source);
-        }));
+    let closure: &'static mut _ = Box::leak(Box::new(move |source: *const os::raw::c_char| {
+        let source = unsafe { CStr::from_ptr(source).to_str().expect(C_STR_FAILURE) };
+        user_provided_closure(source);
+    }));
     let callback = ClosureMut1::new(closure);
     let code = callback.code_ptr() as BangHookCodePtr;
     let ptr = unsafe { *code.cast::<t_libpd_banghook>() };
-    std::mem::forget(callback);
+    mem::forget(callback);
 
     unsafe {
         libpd_sys::libpd_set_queued_banghook(ptr);
@@ -206,7 +226,10 @@ pub fn on_bang<F: FnMut(&str) + Send + Sync + 'static>(mut user_provided_closure
 ///
 /// # Example
 /// ```rust
-/// use libpd_rs::receive::{on_float, start_listening_from};
+/// use libpd_rs::functions::receive::{on_float, start_listening_from};
+/// use libpd_rs::instance::PdInstance;
+///
+/// let _main_instance = PdInstance::new().unwrap();
 ///
 /// on_float(|source: &str, value: f32| {
 ///   match source {
@@ -216,14 +239,13 @@ pub fn on_bang<F: FnMut(&str) + Send + Sync + 'static>(mut user_provided_closure
 ///   }
 /// });
 ///
-/// libpd_rs::init();
 ///
 /// let foo_receiver_handle = start_listening_from("foo").unwrap();
 /// let bar_receiver_handle = start_listening_from("bar").unwrap();
 /// ```
 pub fn on_float<F: FnMut(&str, f32) + Send + Sync + 'static>(mut user_provided_closure: F) {
     let closure: &'static mut _ = Box::leak(Box::new(
-        move |source: *const std::os::raw::c_char, float: f32| {
+        move |source: *const os::raw::c_char, float: f32| {
             let source = unsafe { CStr::from_ptr(source).to_str().expect(C_STR_FAILURE) };
             user_provided_closure(source, float);
         },
@@ -231,7 +253,7 @@ pub fn on_float<F: FnMut(&str, f32) + Send + Sync + 'static>(mut user_provided_c
     let callback = ClosureMut2::new(closure);
     let code = callback.code_ptr() as FloatHookCodePtr;
     let ptr = unsafe { *code.cast::<t_libpd_floathook>() };
-    std::mem::forget(callback);
+    mem::forget(callback);
 
     unsafe {
         libpd_sys::libpd_set_queued_floathook(ptr);
@@ -248,7 +270,10 @@ pub fn on_float<F: FnMut(&str, f32) + Send + Sync + 'static>(mut user_provided_c
 ///
 /// # Example
 /// ```rust
-/// use libpd_rs::receive::{on_double, start_listening_from};
+/// use libpd_rs::functions::receive::{on_double, start_listening_from};
+/// use libpd_rs::instance::PdInstance;
+///
+/// let _main_instance = PdInstance::new().unwrap();
 ///
 /// on_double(|source: &str, value: f64| {
 ///   match source {
@@ -258,14 +283,13 @@ pub fn on_float<F: FnMut(&str, f32) + Send + Sync + 'static>(mut user_provided_c
 ///   }
 /// });
 ///
-/// libpd_rs::init();
 ///
 /// let foo_receiver_handle = start_listening_from("foo").unwrap();
 /// let bar_receiver_handle = start_listening_from("bar").unwrap();
 /// ```
 pub fn on_double<F: FnMut(&str, f64) + Send + Sync + 'static>(mut user_provided_closure: F) {
     let closure: &'static mut _ = Box::leak(Box::new(
-        move |source: *const std::os::raw::c_char, double: f64| {
+        move |source: *const os::raw::c_char, double: f64| {
             let source = unsafe { CStr::from_ptr(source).to_str().expect(C_STR_FAILURE) };
             user_provided_closure(source, double);
         },
@@ -273,7 +297,7 @@ pub fn on_double<F: FnMut(&str, f64) + Send + Sync + 'static>(mut user_provided_
     let callback = ClosureMut2::new(closure);
     let code = callback.code_ptr() as DoubleHookCodePtr;
     let ptr = unsafe { *code.cast::<t_libpd_doublehook>() };
-    std::mem::forget(callback);
+    mem::forget(callback);
 
     unsafe {
         libpd_sys::libpd_set_queued_doublehook(ptr);
@@ -286,7 +310,10 @@ pub fn on_double<F: FnMut(&str, f64) + Send + Sync + 'static>(mut user_provided_
 ///
 /// # Example
 /// ```rust
-/// use libpd_rs::receive::{on_symbol, start_listening_from};
+/// use libpd_rs::functions::receive::{on_symbol, start_listening_from};
+/// use libpd_rs::instance::PdInstance;
+///
+/// let _main_instance = PdInstance::new().unwrap();
 ///
 /// on_symbol(|source: &str, symbol: &str| {
 ///   match source {
@@ -296,14 +323,13 @@ pub fn on_double<F: FnMut(&str, f64) + Send + Sync + 'static>(mut user_provided_
 ///   }
 /// });
 ///
-/// libpd_rs::init();
 ///
 /// let foo_receiver_handle = start_listening_from("foo").unwrap();
 /// let bar_receiver_handle = start_listening_from("bar").unwrap();
 /// ```
 pub fn on_symbol<F: FnMut(&str, &str) + Send + Sync + 'static>(mut user_provided_closure: F) {
     let closure: &'static mut _ = Box::leak(Box::new(
-        move |source: *const std::os::raw::c_char, symbol: *const std::os::raw::c_char| {
+        move |source: *const os::raw::c_char, symbol: *const os::raw::c_char| {
             let source = unsafe { CStr::from_ptr(source).to_str().expect(C_STR_FAILURE) };
             let symbol = unsafe { CStr::from_ptr(symbol).to_str().expect(C_STR_FAILURE) };
             user_provided_closure(source, symbol);
@@ -313,7 +339,7 @@ pub fn on_symbol<F: FnMut(&str, &str) + Send + Sync + 'static>(mut user_provided
     let code = callback.code_ptr() as SymbolHookCodePtr;
     let ptr = unsafe { *code.cast::<t_libpd_symbolhook>() };
 
-    std::mem::forget(callback);
+    mem::forget(callback);
     unsafe {
         libpd_sys::libpd_set_queued_symbolhook(ptr);
     };
@@ -325,8 +351,11 @@ pub fn on_symbol<F: FnMut(&str, &str) + Send + Sync + 'static>(mut user_provided
 ///
 /// # Example
 /// ```rust
-/// use libpd_rs::receive::{on_list, start_listening_from};
-/// use libpd_rs::types::Atom;
+/// use libpd_rs::functions::receive::{on_list, start_listening_from};
+/// use libpd_rs::Atom;
+/// use libpd_rs::instance::PdInstance;
+///
+/// let _main_instance = PdInstance::new().unwrap();
 ///
 /// on_list(|source: &str, list: &[Atom]| match source {
 ///     "foo" => {
@@ -358,28 +387,30 @@ pub fn on_symbol<F: FnMut(&str, &str) + Send + Sync + 'static>(mut user_provided
 ///     _ => unreachable!(),
 /// });
 ///
-/// libpd_rs::init();
 ///
 /// let foo_receiver_handle = start_listening_from("foo").unwrap();
 /// let bar_receiver_handle = start_listening_from("bar").unwrap();
 /// ```
 pub fn on_list<F: FnMut(&str, &[Atom]) + Send + Sync + 'static>(mut user_provided_closure: F) {
     let closure: &'static mut _ = Box::leak(Box::new(
-        move |source: *const std::os::raw::c_char,
+        move |source: *const os::raw::c_char,
               list_length: i32,
               atom_list: *mut libpd_sys::t_atom| {
             let source = unsafe { CStr::from_ptr(source).to_str().expect(C_STR_FAILURE) };
-            // It is practically impossible that this list will have a negative size or a size of millions so this is safe.
-            #[allow(clippy::cast_sign_loss)]
-            let atom_list = unsafe { std::slice::from_raw_parts(atom_list, list_length as usize) };
-            let atoms = make_atom_list_from_t_atom_list!(atom_list);
+
+            #[expect(
+                clippy::cast_sign_loss,
+                reason = "We're trusting Pd to not send a negative list length. I think this is sane enough."
+            )]
+            let atom_list = unsafe { slice::from_raw_parts(atom_list, list_length as usize) };
+            let atoms = make_atom_list_from_t_atom_list(atom_list);
             user_provided_closure(source, &atoms);
         },
     ));
     let callback = ClosureMut3::new(closure);
     let code = callback.code_ptr() as ListHookCodePtr;
     let ptr = unsafe { *code.cast::<t_libpd_listhook>() };
-    std::mem::forget(callback);
+    mem::forget(callback);
 
     unsafe {
         libpd_sys::libpd_set_queued_listhook(ptr);
@@ -404,8 +435,11 @@ pub fn on_list<F: FnMut(&str, &[Atom]) + Send + Sync + 'static>(mut user_provide
 ///
 /// # Example
 /// ```rust
-/// use libpd_rs::receive::{on_message, start_listening_from};
-/// use libpd_rs::types::Atom;
+/// use libpd_rs::functions::receive::{on_message, start_listening_from};
+/// use libpd_rs::Atom;
+/// use libpd_rs::instance::PdInstance;
+///
+/// let _main_instance = PdInstance::new().unwrap();
 ///
 /// on_message(|source: &str, message: &str, values: &[Atom]| match source {
 ///     "foo" => {
@@ -425,7 +459,6 @@ pub fn on_list<F: FnMut(&str, &[Atom]) + Send + Sync + 'static>(mut user_provide
 ///     _ => unreachable!(),
 /// });
 ///
-/// libpd_rs::init();
 ///
 /// let foo_receiver_handle = start_listening_from("foo").unwrap();
 /// ```
@@ -433,23 +466,26 @@ pub fn on_message<F: FnMut(&str, &str, &[Atom]) + Send + Sync + 'static>(
     mut user_provided_closure: F,
 ) {
     let closure: &'static mut _ = Box::leak(Box::new(
-        move |source: *const std::os::raw::c_char,
-              message: *const std::os::raw::c_char,
+        move |source: *const os::raw::c_char,
+              message: *const os::raw::c_char,
               list_length: i32,
               atom_list: *mut libpd_sys::t_atom| {
             let source = unsafe { CStr::from_ptr(source).to_str().expect(C_STR_FAILURE) };
             let message = unsafe { CStr::from_ptr(message).to_str().expect(C_STR_FAILURE) };
-            // It is practically impossible that this list will have a negative size or a size of millions so this is safe.
-            #[allow(clippy::cast_sign_loss)]
-            let atom_list = unsafe { std::slice::from_raw_parts(atom_list, list_length as usize) };
-            let atoms = make_atom_list_from_t_atom_list!(atom_list);
+
+            #[expect(
+                clippy::cast_sign_loss,
+                reason = "We're trusting Pd to not send a negative list length. I think this is sane enough."
+            )]
+            let atom_list = unsafe { slice::from_raw_parts(atom_list, list_length as usize) };
+            let atoms = make_atom_list_from_t_atom_list(atom_list);
             user_provided_closure(source, message, &atoms);
         },
     ));
     let callback = ClosureMut4::new(closure);
     let code = callback.code_ptr() as MessageHookCodePtr;
     let ptr = unsafe { *code.cast::<t_libpd_messagehook>() };
-    std::mem::forget(callback);
+    mem::forget(callback);
 
     unsafe {
         libpd_sys::libpd_set_queued_messagehook(ptr);
@@ -462,7 +498,10 @@ pub fn on_message<F: FnMut(&str, &str, &[Atom]) + Send + Sync + 'static>(
 ///
 /// # Example
 /// ```no_run
-/// use libpd_rs::receive::{start_listening_from, on_symbol, receive_messages_from_pd};
+/// use libpd_rs::functions::receive::{start_listening_from, on_symbol, receive_messages_from_pd};
+/// use libpd_rs::instance::PdInstance;
+///
+/// let _main_instance = PdInstance::new().unwrap();
 ///
 /// on_symbol(|source: &str, value: &str| {
 ///   match source {
@@ -499,9 +538,12 @@ pub fn receive_messages_from_pd() {
 ///
 /// # Example
 /// ```rust
-/// use libpd_rs::receive::{on_midi_note_on};
+/// use libpd_rs::functions::receive::{on_midi_note_on};
+/// use libpd_rs::instance::PdInstance;
 ///
-/// libpd_rs::init();
+/// let _main_instance = PdInstance::new().unwrap();
+///
+/// libpd_rs::functions::init();
 ///
 /// on_midi_note_on(|channel: i32, pitch: i32, velocity: i32| {
 ///   println!("Note On: channel {channel}, pitch {pitch}, velocity {velocity}");
@@ -517,7 +559,7 @@ pub fn on_midi_note_on<F: FnMut(i32, i32, i32) + Send + Sync + 'static>(
     let callback = ClosureMut3::new(closure);
     let code = callback.code_ptr() as MidiNoteOnCodePtr;
     let ptr = unsafe { *code.cast::<t_libpd_noteonhook>() };
-    std::mem::forget(callback);
+    mem::forget(callback);
 
     unsafe {
         libpd_sys::libpd_set_queued_noteonhook(ptr);
@@ -536,9 +578,10 @@ pub fn on_midi_note_on<F: FnMut(i32, i32, i32) + Send + Sync + 'static>(
 ///
 /// # Example
 /// ```rust
-/// use libpd_rs::receive::{on_midi_control_change};
+/// use libpd_rs::functions::receive::{on_midi_control_change};
+/// use libpd_rs::instance::PdInstance;
 ///
-/// libpd_rs::init();
+/// let _main_instance = PdInstance::new().unwrap();
 ///
 /// on_midi_control_change(|channel: i32, controller: i32, value: i32| {
 ///   println!("Control Change: channel {channel}, controller number {controller}, value {value}");
@@ -555,7 +598,7 @@ pub fn on_midi_control_change<F: FnMut(i32, i32, i32) + Send + Sync + 'static>(
     let callback = ClosureMut3::new(closure);
     let code = callback.code_ptr() as MidiControlChangeCodePtr;
     let ptr = unsafe { *code.cast::<t_libpd_controlchangehook>() };
-    std::mem::forget(callback);
+    mem::forget(callback);
 
     unsafe {
         libpd_sys::libpd_set_queued_controlchangehook(ptr);
@@ -574,9 +617,10 @@ pub fn on_midi_control_change<F: FnMut(i32, i32, i32) + Send + Sync + 'static>(
 ///
 /// # Example
 /// ```rust
-/// use libpd_rs::receive::{on_midi_program_change};
+/// use libpd_rs::functions::receive::{on_midi_program_change};
+/// use libpd_rs::instance::PdInstance;
 ///
-/// libpd_rs::init();
+/// let _main_instance = PdInstance::new().unwrap();
 ///
 /// on_midi_program_change(|channel: i32, value: i32| {
 ///   println!("Program Change: channel {channel}, program number {value}");
@@ -591,7 +635,7 @@ pub fn on_midi_program_change<F: FnMut(i32, i32) + Send + Sync + 'static>(
     let callback = ClosureMut2::new(closure);
     let code = callback.code_ptr() as MidiProgramChangeCodePtr;
     let ptr = unsafe { *code.cast::<t_libpd_programchangehook>() };
-    std::mem::forget(callback);
+    mem::forget(callback);
 
     unsafe {
         libpd_sys::libpd_set_queued_programchangehook(ptr);
@@ -612,9 +656,10 @@ pub fn on_midi_program_change<F: FnMut(i32, i32) + Send + Sync + 'static>(
 ///
 /// # Example
 /// ```rust
-/// use libpd_rs::receive::{on_midi_pitch_bend};
+/// use libpd_rs::functions::receive::{on_midi_pitch_bend};
+/// use libpd_rs::instance::PdInstance;
 ///
-/// libpd_rs::init();
+/// let _main_instance = PdInstance::new().unwrap();
 ///
 /// on_midi_pitch_bend(|channel: i32, value: i32| {
 ///   println!("Pitch Bend: channel {channel}, bend amount {value}");
@@ -629,7 +674,7 @@ pub fn on_midi_pitch_bend<F: FnMut(i32, i32) + Send + Sync + 'static>(
     let callback = ClosureMut2::new(closure);
     let code = callback.code_ptr() as MidiPitchBendCodePtr;
     let ptr = unsafe { *code.cast::<t_libpd_pitchbendhook>() };
-    std::mem::forget(callback);
+    mem::forget(callback);
 
     unsafe {
         libpd_sys::libpd_set_queued_pitchbendhook(ptr);
@@ -648,9 +693,10 @@ pub fn on_midi_pitch_bend<F: FnMut(i32, i32) + Send + Sync + 'static>(
 ///
 /// # Example
 /// ```rust
-/// use libpd_rs::receive::{on_midi_after_touch};
+/// use libpd_rs::functions::receive::{on_midi_after_touch};
+/// use libpd_rs::instance::PdInstance;
 ///
-/// libpd_rs::init();
+/// let _main_instance = PdInstance::new().unwrap();
 ///
 /// on_midi_after_touch(|channel: i32, value: i32| {
 ///   println!("After Touch: channel {channel}, after touch amount {value}");
@@ -665,7 +711,7 @@ pub fn on_midi_after_touch<F: FnMut(i32, i32) + Send + Sync + 'static>(
     let callback = ClosureMut2::new(closure);
     let code = callback.code_ptr() as MidiAfterTouchCodePtr;
     let ptr = unsafe { *code.cast::<t_libpd_aftertouchhook>() };
-    std::mem::forget(callback);
+    mem::forget(callback);
 
     unsafe {
         libpd_sys::libpd_set_queued_aftertouchhook(ptr);
@@ -684,9 +730,10 @@ pub fn on_midi_after_touch<F: FnMut(i32, i32) + Send + Sync + 'static>(
 ///
 /// # Example
 /// ```rust
-/// use libpd_rs::receive::{on_midi_poly_after_touch};
+/// use libpd_rs::functions::receive::{on_midi_poly_after_touch};
+/// use libpd_rs::instance::PdInstance;
 ///
-/// libpd_rs::init();
+/// let _main_instance = PdInstance::new().unwrap();
 ///
 /// on_midi_poly_after_touch(|channel: i32, pitch: i32, value: i32| {
 ///   println!("Poly After Touch: channel {channel}, pitch {pitch}, after touch amount {value}");
@@ -702,7 +749,7 @@ pub fn on_midi_poly_after_touch<F: FnMut(i32, i32, i32) + Send + Sync + 'static>
     let callback = ClosureMut3::new(closure);
     let code = callback.code_ptr() as MidiPolyAfterTouchCodePtr;
     let ptr = unsafe { *code.cast::<t_libpd_polyaftertouchhook>() };
-    std::mem::forget(callback);
+    mem::forget(callback);
 
     unsafe {
         libpd_sys::libpd_set_queued_polyaftertouchhook(ptr);
@@ -719,9 +766,10 @@ pub fn on_midi_poly_after_touch<F: FnMut(i32, i32, i32) + Send + Sync + 'static>
 ///
 /// # Example
 /// ```rust
-/// use libpd_rs::receive::{on_midi_byte};
+/// use libpd_rs::functions::receive::{on_midi_byte};
+/// use libpd_rs::instance::PdInstance;
 ///
-/// libpd_rs::init();
+/// let _main_instance = PdInstance::new().unwrap();
 ///
 /// on_midi_byte(|port: i32, byte: i32| {
 ///   println!("Raw MIDI Byte: port {port}, byte {byte}");
@@ -734,7 +782,7 @@ pub fn on_midi_byte<F: FnMut(i32, i32) + Send + Sync + 'static>(mut user_provide
     let callback = ClosureMut2::new(closure);
     let code = callback.code_ptr() as MidiByteCodePtr;
     let ptr = unsafe { *code.cast::<t_libpd_midibytehook>() };
-    std::mem::forget(callback);
+    mem::forget(callback);
 
     unsafe {
         libpd_sys::libpd_set_queued_midibytehook(ptr);
@@ -747,7 +795,10 @@ pub fn on_midi_byte<F: FnMut(i32, i32) + Send + Sync + 'static>(mut user_provide
 ///
 /// # Example
 /// ```no_run
-/// use libpd_rs::receive::{on_midi_byte, receive_midi_messages_from_pd};
+/// use libpd_rs::functions::receive::{on_midi_byte, receive_midi_messages_from_pd};
+/// use libpd_rs::instance::PdInstance;
+///
+/// let _main_instance = PdInstance::new().unwrap();
 ///
 /// on_midi_byte(|port: i32, byte: i32| {
 ///     println!("{port}, {byte}");

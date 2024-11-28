@@ -1,13 +1,12 @@
 #![allow(clippy::restriction)]
 
-use libpd_rs::{
-    close_patch,
-    convenience::dsp_on,
-    init, initialize_audio, open_patch,
+use libpd_rs::functions::{
+    close_patch, init, initialize_audio, open_patch,
     send::{
         add_double_to_started_message, finish_message_as_list_and_send_to,
         finish_message_as_typed_message_and_send_to, start_message,
     },
+    util::dsp_on,
 };
 
 #[test]

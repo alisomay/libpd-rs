@@ -1,4 +1,5 @@
-use crate::{error::GuiLifeCycleError, C_STRING_FAILURE};
+use crate::error::GuiLifeCycleError;
+use crate::error::StringConversionError;
 
 use std::ffi::CString;
 use std::path::Path;
@@ -11,7 +12,7 @@ use std::path::Path;
 ///
 /// # Examples
 /// ```no_run
-/// use libpd_rs::gui::start_gui;
+/// use libpd_rs::functions::gui::start_gui;
 /// use std::path::PathBuf;
 ///
 /// // In mac os probably it would look something like this,
@@ -24,10 +25,11 @@ use std::path::Path;
 ///
 /// A list of errors that can occur:
 /// - [`FailedToOpenGui`](crate::error::GuiLifeCycleError::FailedToOpenGui)
+/// - [`StringConversion`](crate::error::GuiLifeCycleError::StringConversion)
 pub fn start_gui<T: AsRef<Path>>(path_to_pd: T) -> Result<(), GuiLifeCycleError> {
     if path_to_pd.as_ref().exists() {
         let path_to_pd = path_to_pd.as_ref().to_string_lossy();
-        let path_to_pd = CString::new(path_to_pd.as_ref()).expect(C_STRING_FAILURE);
+        let path_to_pd = CString::new(path_to_pd.as_ref()).map_err(StringConversionError::from)?;
         unsafe {
             match libpd_sys::libpd_start_gui(path_to_pd.as_ptr()) {
                 0 => return Ok(()),
@@ -55,9 +57,9 @@ pub fn stop_gui() {
 ///
 /// # Examples
 /// ```no_run
-/// use libpd_rs::gui::poll_gui;
+/// use libpd_rs::functions::gui::poll_gui;
 ///
-/// libpd_rs::init();
+/// libpd_rs::functions::init();
 ///
 /// loop {
 ///     while let Some(_) = poll_gui() {
@@ -65,7 +67,6 @@ pub fn stop_gui() {
 ///     }
 /// }
 /// ```
-#[must_use]
 pub fn poll_gui() -> Option<()> {
     unsafe {
         match libpd_sys::libpd_poll_gui() {

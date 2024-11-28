@@ -140,7 +140,7 @@ impl Bubble {
     }
 
     /// Transforms the voice message of the bubble to send to pure data.
-    pub fn pack_message(&self) -> Vec<libpd_rs::types::Atom> {
+    pub fn pack_message(&self) -> Vec<libpd_rs::atom::Atom> {
         self.state
             .message
             .into_iter()
@@ -212,8 +212,10 @@ impl Bubble {
 
         // Collision with the floor!
         if distance_to_floor < self.properties.r * 2.0 {
+            model.pd.set_as_current();
             // On collision we tell the right voice to play with the right parameters in pd.
-            libpd_rs::send::send_list_to("bubble_collision", &self.pack_message()).unwrap();
+            libpd_rs::functions::send::send_list_to("bubble_collision", &self.pack_message())
+                .unwrap();
 
             // Physics
             self.properties.dy = -self.properties.dy;

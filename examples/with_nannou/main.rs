@@ -2,6 +2,7 @@
 mod bubble;
 
 use bubble::Bubble;
+use libpd_rs::PdAudioContext;
 use nannou::prelude::*;
 use nannou_audio as audio;
 use nannou_audio::Buffer;
@@ -14,8 +15,8 @@ fn main() {
 
 // This data structure will be shared across nannou functions.
 pub struct Model {
-    pd: libpd_rs::convenience::PdGlobal,
-    output_stream: audio::Stream<()>,
+    pd: libpd_rs::Pd,
+    output_stream: audio::Stream<PdAudioContext>,
     gravity: f32,
     bubbles: RefCell<Vec<Bubble>>,
     bubble_count: usize,
@@ -50,9 +51,13 @@ fn model(app: &App) -> Model {
     //     .into_iter()
     //     .find(|d| d.name().unwrap() == "BlackHole 16ch");
 
+    let pd = libpd_rs::Pd::init_and_configure(0, channels as i32, sample_rate as i32).unwrap();
+    pd.set_as_current();
+    let audio_ctx = pd.audio_context();
+
     // Start the stream registering our audio callback.
     let output_stream = audio_host
-        .new_output_stream(())
+        .new_output_stream(audio_ctx)
         // Uncomment to pick another audio device.
         // .device(device.unwrap())
         .channels(channels)
@@ -62,19 +67,14 @@ fn model(app: &App) -> Model {
         .unwrap();
 
     // Listen for console messages from pd
-    libpd_rs::receive::on_print(|val| {
+    libpd_rs::functions::receive::on_print(|val| {
         println!("{}", val);
     });
 
     // This data structure will be shared across nannou functions.
     let mut model = Model {
         // Initialize pd
-        pd: libpd_rs::convenience::PdGlobal::init_and_configure(
-            0,
-            channels as i32,
-            sample_rate as i32,
-        )
-        .unwrap(),
+        pd,
         output_stream,
         gravity: 0.8,
         bubbles: RefCell::new(vec![]),
@@ -95,7 +95,7 @@ fn model(app: &App) -> Model {
 
     // Initially pd needs to know how many bubbles we have.
     // Because it will create adequate amount of voices for them.
-    libpd_rs::send::send_float_to("bubble_count", model.bubble_count as f32).unwrap();
+    libpd_rs::functions::send::send_float_to("bubble_count", model.bubble_count as f32).unwrap();
 
     // Run pd!
     model.pd.activate_audio(true).unwrap();
@@ -143,16 +143,17 @@ impl Model {
 
 // This is where we process audio.
 // We hand over all tasks to our pd patch!
-fn audio_callback(_: &mut (), buffer: &mut Buffer) {
+fn audio_callback(pd_audio_context: &mut PdAudioContext, buffer: &mut Buffer) {
     let ticks =
-        libpd_rs::convenience::calculate_ticks(buffer.channels() as i32, buffer.len() as i32);
-    libpd_rs::process::process_float(ticks, &[], buffer);
+        libpd_rs::functions::util::calculate_ticks(buffer.channels() as i32, buffer.len() as i32);
+    pd_audio_context.process_float(ticks, &[], buffer);
 }
 
 // This is where we draw repeatedly!
 fn view(app: &App, model: &Model, frame: Frame) {
     // Let's poll pd messages here, for every frame.
-    libpd_rs::receive::receive_messages_from_pd();
+    model.pd.set_as_current();
+    libpd_rs::functions::receive::receive_messages_from_pd();
 
     let background_color = nannou::color::srgb8(238, 108, 77);
 

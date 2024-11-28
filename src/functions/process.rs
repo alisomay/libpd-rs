@@ -6,8 +6,8 @@
 ///
 /// # Examples
 /// ```no_run
-/// use libpd_rs::process::process_float;
-/// use libpd_rs::block_size;
+/// use libpd_rs::functions::process::process_float;
+/// use libpd_rs::functions::block_size;
 ///
 /// let output_channels = 2;
 /// // ...
@@ -30,6 +30,10 @@
 /// This function may panic for multiple reasons,
 /// first of all there is a mutex lock used internally and also it processes buffers in place so there are possibilities of segfaults.
 /// Use with care.
+///
+/// To name a few
+/// - If the pd instance is not initialized or set for the thread.
+/// - If input and output buffer sizes are wrong.
 pub fn process_float(ticks: i32, input_buffer: &[f32], output_buffer: &mut [f32]) {
     unsafe {
         libpd_sys::libpd_process_float(ticks, input_buffer.as_ptr(), output_buffer.as_mut_ptr());
@@ -49,8 +53,8 @@ pub fn process_float(ticks: i32, input_buffer: &[f32], output_buffer: &mut [f32]
 ///
 /// # Examples
 /// ```no_run
-/// use libpd_rs::process::process_short;
-/// use libpd_rs::block_size;
+/// use libpd_rs::functions::process::process_short;
+/// use libpd_rs::functions::block_size;
 ///
 /// let output_channels = 2;
 /// // ...
@@ -73,7 +77,10 @@ pub fn process_float(ticks: i32, input_buffer: &[f32], output_buffer: &mut [f32]
 /// This function may panic for multiple reasons,
 /// first of all there is a mutex lock used internally and also it processes buffers in place so there are possibilities of segfaults.
 /// Use with care.
-
+///
+/// To name a few
+/// - If the pd instance is not initialized or set for the thread.
+/// - If input and output buffer sizes are wrong.
 pub fn process_short(ticks: i32, input_buffer: &[i16], output_buffer: &mut [i16]) {
     unsafe {
         libpd_sys::libpd_process_short(ticks, input_buffer.as_ptr(), output_buffer.as_mut_ptr());
@@ -88,8 +95,8 @@ pub fn process_short(ticks: i32, input_buffer: &[i16], output_buffer: &mut [i16]
 ///
 /// # Examples
 /// ```no_run
-/// use libpd_rs::process::process_double;
-/// use libpd_rs::block_size;
+/// use libpd_rs::functions::process::process_double;
+/// use libpd_rs::functions::block_size;
 ///
 /// let output_channels = 2;
 /// // ...
@@ -112,6 +119,10 @@ pub fn process_short(ticks: i32, input_buffer: &[i16], output_buffer: &mut [i16]
 /// This function may panic for multiple reasons,
 /// first of all there is a mutex lock used internally and also it processes buffers in place so there are possibilities of segfaults.
 /// Use with care.
+///
+/// To name a few
+/// - If the pd instance is not initialized or set for the thread.
+/// - If input and output buffer sizes are wrong.
 pub fn process_double(ticks: i32, input_buffer: &[f64], output_buffer: &mut [f64]) {
     unsafe {
         libpd_sys::libpd_process_double(ticks, input_buffer.as_ptr(), output_buffer.as_mut_ptr());
@@ -128,7 +139,7 @@ pub fn process_double(ticks: i32, input_buffer: &[f64], output_buffer: &mut [f64
 ///
 /// # Examples
 /// ```no_run
-/// use libpd_rs::process::process_raw;
+/// use libpd_rs::functions::process::process_raw;
 ///
 /// // After initializing audio and opening a patch file then in the audio callback..
 ///
@@ -146,6 +157,10 @@ pub fn process_double(ticks: i32, input_buffer: &[f64], output_buffer: &mut [f64
 /// This function may panic for multiple reasons,
 /// first of all there is a mutex lock used internally and also it processes buffers in place so there are possibilities of segfaults.
 /// Use with care.
+///
+/// To name a few
+/// - If the pd instance is not initialized or set for the thread.
+/// - If input and output buffer sizes are wrong.
 pub fn process_raw(input_buffer: &[f32], output_buffer: &mut [f32]) {
     unsafe {
         libpd_sys::libpd_process_raw(input_buffer.as_ptr(), output_buffer.as_mut_ptr());
@@ -167,7 +182,7 @@ pub fn process_raw(input_buffer: &[f32], output_buffer: &mut [f32]) {
 ///
 /// # Examples
 /// ```no_run
-/// use libpd_rs::process::process_raw_short;
+/// use libpd_rs::functions::process::process_raw_short;
 ///
 /// // After initializing audio and opening a patch file then in the audio callback..
 ///
@@ -185,7 +200,10 @@ pub fn process_raw(input_buffer: &[f32], output_buffer: &mut [f32]) {
 /// This function may panic for multiple reasons,
 /// first of all there is a mutex lock used internally and also it processes buffers in place so there are possibilities of segfaults.
 /// Use with care.
-
+///
+/// To name a few
+/// - If the pd instance is not initialized or set for the thread.
+/// - If input and output buffer sizes are wrong.
 pub fn process_raw_short(input_buffer: &[i16], output_buffer: &mut [i16]) {
     unsafe {
         libpd_sys::libpd_process_raw_short(input_buffer.as_ptr(), output_buffer.as_mut_ptr());
@@ -202,7 +220,7 @@ pub fn process_raw_short(input_buffer: &[i16], output_buffer: &mut [i16]) {
 ///
 /// # Examples
 /// ```no_run
-/// use libpd_rs::process::process_raw_double;
+/// use libpd_rs::functions::process::process_raw_double;
 ///
 /// // After initializing audio and opening a patch file then in the audio callback..
 ///
@@ -220,6 +238,10 @@ pub fn process_raw_short(input_buffer: &[i16], output_buffer: &mut [i16]) {
 /// This function may panic for multiple reasons,
 /// first of all there is a mutex lock used internally and also it processes buffers in place so there are possibilities of segfaults.
 /// Use with care.
+///
+/// To name a few
+/// - If the pd instance is not initialized or set for the thread.
+/// - If input and output buffer sizes are wrong.
 pub fn process_raw_double(input_buffer: &[f64], output_buffer: &mut [f64]) {
     unsafe {
         libpd_sys::libpd_process_raw_double(input_buffer.as_ptr(), output_buffer.as_mut_ptr());

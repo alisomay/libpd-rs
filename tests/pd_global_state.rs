@@ -1,8 +1,8 @@
-use libpd_rs::convenience::PdGlobal;
+use libpd_rs::Pd;
 
 #[test]
 fn state() {
-    let mut pd = PdGlobal::init_and_configure(0, 2, 44100).unwrap();
+    let mut pd = Pd::init_and_configure(0, 2, 44100).unwrap();
     pd.open_patch("tests/patches/sine.pd").unwrap();
     assert!(!pd.audio_active());
     pd.activate_audio(true).unwrap();

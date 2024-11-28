@@ -123,7 +123,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             // Here if we had an input buffer we could have modified it to do pre-processing.
 
             // Process audio, advance internal scheduler.
-            libpd_rs::process::process_float(ticks, &[], data);
+            libpd_rs::functions::process::process_float(ticks, &[], data);
 
             // Here we could have done post processing after pd processed our output buffer in place.
         },
