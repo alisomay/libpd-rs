@@ -150,6 +150,7 @@ doc = ::embed_doc_image::embed_image!("phasor_patch", "assets/phasor_patch.png")
 //!     // Initialize libpd with that configuration,
 //!     // with no input channels since we're not going to use them.
 //!     let mut pd = Pd::init_and_configure(0, output_channels, sample_rate)?;
+//!     let ctx = pd.audio_context();
 //!
 //!     // Let's evaluate a pd patch.
 //!     // We could have opened a `.pd` file also.
@@ -179,7 +180,7 @@ doc = ::embed_doc_image::embed_image!("phasor_patch", "assets/phasor_patch.png")
 //!             // we could have modified it to do pre-processing.
 //!
 //!             // Process audio, advance internal scheduler.
-//!             libpd_rs::functions::process::process_float(ticks, &[], data);
+//!             ctx.process_float(ticks, &[], data);
 //!
 //!             // Here we could have done post processing
 //!             // after pd processed our output buffer in place.
@@ -239,7 +240,7 @@ doc = ::embed_doc_image::embed_image!("phasor_patch", "assets/phasor_patch.png")
 //! ```no_run
 //! use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 //! use libpd_rs::{
-//!    Pd, functions::{util::calculate_ticks, receive::on_float, receive::receive_messages_from_pd, send::send_list_to}
+//!    Pd, functions::{util::calculate_ticks, receive::on_float, send::send_list_to}
 //! };
 //! use sys_info::loadavg;
 //!
@@ -262,6 +263,7 @@ doc = ::embed_doc_image::embed_image!("phasor_patch", "assets/phasor_patch.png")
 //!     // Initialize libpd with that configuration,
 //!     // with no input channels since we're not going to use them.
 //!     let mut pd = Pd::init_and_configure(0, output_channels, sample_rate)?;
+//!     let ctx = pd.audio_context();
 //!
 //!     // Let's evaluate another pd patch.
 //!     // We could have opened a `.pd` file also.
@@ -340,10 +342,10 @@ doc = ::embed_doc_image::embed_image!("phasor_patch", "assets/phasor_patch.png")
 //!             // To receive messages from the pd patch we need to read the ring buffers
 //!             // filled by the pd patch repeatedly to check if there are messages there.
 //!             // Audio callback is a nice place to do that.
-//!             receive_messages_from_pd();
+//!             ctx.receive_messages_from_pd();
 //!
 //!             // Process audio, advance internal scheduler.
-//!             libpd_rs::functions::process::process_float(ticks, &[], data);
+//!             ctx.process_float(ticks, &[], data);
 //!
 //!             // Here we could have done post processing after
 //!             // pd processed our output buffer in place.
@@ -456,11 +458,7 @@ doc = ::embed_doc_image::embed_image!("phasor_patch", "assets/phasor_patch.png")
 //!
 //! Low level and mid level layers can be used together since one is just a safe wrapper over the other.
 //!
-//! Mixed usage of mid and the high level layer requires significant understanding of the library and [libpd](https://github.com/libpd).
-//!
-//! So if you don't know what you're doing, it's advised to stick with the high level layer and not mix it with the others.
-//!
-//! The library tries to make this as convenient as possible.
+//! Mixed usage of mid and the high level layer requires significant understanding of the library and [libpd](https://github.com/libpd) for some functions.
 //!
 //! ## Plans and Support
 //!
@@ -490,10 +488,26 @@ doc = ::embed_doc_image::embed_image!("phasor_patch", "assets/phasor_patch.png")
 //! [BSD-3-Clause](https://opensource.org/licenses/BSD-3-Clause).
 //! See [LICENSE](https://raw.githubusercontent.com/alisomay/libpd-rs/main/LICENCE) file.
 
-/// TODO:
+/// This module exposes [`PdInstance`](crate::instance::PdInstance) struct which covers all the functionality related to pd instances.
+///
+/// Instances of pd are stored in a thread local way and there can be only one instance at a time could be active per thread.
+///
+/// The active instance for the thread can be set by calling `set_as_current` method on the instance.
+///
+/// [`PdInstance`](crate::instance::PdInstance) also has a `Drop` implementation which frees the resources of the instance when it goes out of scope.
 pub mod instance;
 
-/// TODO:
+/// The functions module could be considered as the mid level layer of the library.
+///
+/// The exhaustive list of functions here reflect the ones exist in [libpd](https://github.com/libpd) directly.
+///
+/// Since mutating the state of the active instance can also be done through these functions, mixing the high level layer with this layer is not advised.
+///
+/// If you're familiar with the inner workings of [libpd](https://github.com/libpd) and the library itself, you can use this layer to create your own abstractions.
+///
+/// There are some functions exposed here which can be safely mixed with the high level layer and some needs more understanding of the internals.
+///
+/// As long as you know what you're doing though, you can mix the high level layer with this layer when necessary.
 pub mod functions;
 
 /// Types for working with pd
@@ -511,7 +525,8 @@ pub mod types;
 /// This module contains all the errors which can be returned by the library.
 pub mod error;
 
-pub(crate) mod helpers;
+/// The atom module contains the Atom enum which is used to represent pd's atom type in Rust.
+pub mod atom;
 
 use error::PdError;
 use libpd_sys::_pdinstance;
@@ -526,12 +541,19 @@ use crate::{
     types::{PatchFileHandle, ReceiverHandle},
 };
 
+pub use atom::Atom;
 /// Re-exports of the libpd-sys crate.
 pub use libpd_sys;
 
 /// An abstraction provided for convenience to express a pure data instance, track the state and execute some common functions.
 ///
 /// This struct represents a single instance of pd.
+///
+/// You may create as many instances you like but only one of them can be active at a time.
+///
+/// **It is strongly advised to keep the very first instance alive through the lifetime of the application.**
+///
+/// See [`PdInstance`](crate::instance::PdInstance) for more details about this topic.
 ///
 /// After created and registered internally the instance lives in libpd's memory.
 /// Dropping this struct will free the resources of the instance.
@@ -586,51 +608,11 @@ pub struct Pd {
 }
 
 impl Pd {
-    // TODO: Document these functions maybe even add other impls exposing other functions through the instance.
-
-    pub const fn inner(&self) -> &PdInstance {
-        &self.inner
-    }
-
-    pub fn inner_mut(&mut self) -> &mut PdInstance {
-        &mut self.inner
-    }
-
-    pub fn audio_context(&self) -> PdAudioContext {
-        PdAudioContext {
-            instance: self.inner.clone(),
-        }
-    }
-
-    pub fn set_as_current(&mut self) {
-        self.inner.set_as_current();
-    }
-
-    pub const fn instance_number(&self) -> i32 {
-        self.inner.number()
-    }
-
-    pub fn is_main_instance(&self) -> bool {
-        self.inner.is_main_instance()
-    }
-
-    pub fn is_current_instance(&self) -> bool {
-        self.inner.is_current_instance()
-    }
-
-    pub(crate) fn set_as_active_instance(&mut self) -> ActiveInstanceGuard {
-        if self.inner.is_current_instance() {
-            // This would render the guard useless and as a no-op on drop which is what we want.
-            return ActiveInstanceGuard::wrap(ptr::null_mut::<_pdinstance>());
-        }
-        let previous_instance = unsafe { libpd_sys::libpd_this_instance() };
-        self.inner.set_as_current();
-        ActiveInstanceGuard::wrap(previous_instance)
-    }
-
     /// Initializes a pd instance.
     ///
     /// It calls [`PdInstance::new`](crate::instance::PdInstance::new) and [`initialize_audio`](crate::initialize_audio) with the provided arguments and returns an instance where a user can keep simple state and call some convenience methods.
+    ///
+    /// This method will not set the newly created instance as the active instance for the thread.
     ///
     /// You may crate any number of instances of [`Pd`] but only one of them can be active at a time.
     /// Many of the methods in this struct would set it as the active instance before operating and reset it to the last set active after.
@@ -671,6 +653,60 @@ impl Pd {
             subscriptions: HashMap::default(),
             search_paths: vec![],
         })
+    }
+
+    /// Returns a reference to the inner pd instance.
+    pub const fn inner(&self) -> &PdInstance {
+        &self.inner
+    }
+
+    /// Returns a mutable reference to the inner pd instance.
+    pub fn inner_mut(&mut self) -> &mut PdInstance {
+        &mut self.inner
+    }
+
+    /// Creates an audio context for this instance to be easily passed in to the audio thread.
+    pub fn audio_context(&self) -> PdAudioContext {
+        PdAudioContext {
+            instance: self.inner.clone(),
+        }
+    }
+
+    /// Set this instance as the current active instance for the thread.
+    pub fn set_as_current(&self) {
+        self.inner.set_as_current();
+    }
+
+    /// Returns the number of the instance.
+    pub const fn instance_number(&self) -> i32 {
+        self.inner.number()
+    }
+
+    /// Checks if this instance is the main instance.
+    ///
+    /// The main instance is always valid.
+    pub fn is_main_instance(&self) -> bool {
+        self.inner.is_main_instance()
+    }
+
+    /// Checks if this instance is the current active instance for the thread.
+    pub fn is_current_instance(&self) -> bool {
+        self.inner.is_current_instance()
+    }
+
+    /// Sets this instance as the active instance for the thread until the returned guard is dropped.
+    ///
+    /// If the guard is dropped, the previously active instance will be set as the active instance.
+    ///
+    /// If the previous instance is null this guard will set the main instance as the active instance since that is always valid.
+    pub(crate) fn set_as_active_instance(&self) -> ActiveInstanceGuard {
+        if self.inner.is_current_instance() {
+            // This would render the guard useless and as a no-op on drop which is what we want.
+            return ActiveInstanceGuard::wrap(ptr::null_mut::<_pdinstance>());
+        }
+        let previous_instance = unsafe { libpd_sys::libpd_this_instance() };
+        self.inner.set_as_current();
+        ActiveInstanceGuard::wrap(previous_instance)
     }
 
     /// Adds a path to the list of paths where this instance searches in.
@@ -1041,54 +1077,69 @@ impl Pd {
     }
 }
 
-/// TODO: Document
+/// This struct encapsulates a clone of the [`PdInstance`](crate::instance::PdInstance) to be used in the audio thread.
+///
+/// Since the instances are thread local, this is just a convenience struct to ensure that the instance is set as the current one before calling any functions.
+///
+/// If you don't set at least one instance as the current one, the functions in the library will panic.
 #[derive(Debug, Clone)]
 pub struct PdAudioContext {
     instance: PdInstance,
 }
 
 impl PdAudioContext {
-    pub fn receive_messages_from_pd(&mut self) {
+    /// Sets the instance as the current one and calls [`receive_messages_from_pd`](crate::functions::receive::receive_messages_from_pd).
+    pub fn receive_messages_from_pd(&self) {
         self.instance.set_as_current();
         functions::receive::receive_messages_from_pd();
     }
 
-    pub fn receive_midi_messages_from_pd(&mut self) {
+    /// Sets the instance as the current one and calls [`receive_midi_messages_from_pd`](crate::functions::receive::receive_midi_messages_from_pd).
+    pub fn receive_midi_messages_from_pd(&self) {
         self.instance.set_as_current();
         functions::receive::receive_midi_messages_from_pd();
     }
 
-    pub fn process_float(&mut self, ticks: i32, input: &[f32], output: &mut [f32]) {
+    /// Sets the instance as the current one and calls [`process_float`](crate::functions::process::process_float).
+    pub fn process_float(&self, ticks: i32, input: &[f32], output: &mut [f32]) {
         self.instance.set_as_current();
         functions::process::process_float(ticks, input, output);
     }
 
-    pub fn process_double(&mut self, ticks: i32, input: &[f64], output: &mut [f64]) {
+    /// Sets the instance as the current one and calls [`process_double`](crate::functions::process::process_double).
+    pub fn process_double(&self, ticks: i32, input: &[f64], output: &mut [f64]) {
         self.instance.set_as_current();
         functions::process::process_double(ticks, input, output);
     }
 
-    pub fn process_short(&mut self, ticks: i32, input: &[i16], output: &mut [i16]) {
+    /// Sets the instance as the current one and calls [`process_short`](crate::functions::process::process_short).
+    pub fn process_short(&self, ticks: i32, input: &[i16], output: &mut [i16]) {
         self.instance.set_as_current();
         functions::process::process_short(ticks, input, output);
     }
 
-    pub fn process_raw(&mut self, input: &[f32], output: &mut [f32]) {
+    /// Sets the instance as the current one and calls [`process_raw`](crate::functions::process::process_raw).
+    pub fn process_raw(&self, input: &[f32], output: &mut [f32]) {
         self.instance.set_as_current();
         functions::process::process_raw(input, output);
     }
 
-    pub fn process_raw_short(&mut self, input: &[i16], output: &mut [i16]) {
+    /// Sets the instance as the current one and calls [`process_raw_short`](crate::functions::process::process_raw_short).
+    pub fn process_raw_short(&self, input: &[i16], output: &mut [i16]) {
         self.instance.set_as_current();
         functions::process::process_raw_short(input, output);
     }
 
-    pub fn process_raw_double(&mut self, input: &[f64], output: &mut [f64]) {
+    /// Sets the instance as the current one and calls [`process_raw_double`](crate::functions::process::process_raw_double).
+    pub fn process_raw_double(&self, input: &[f64], output: &mut [f64]) {
         self.instance.set_as_current();
         functions::process::process_raw_double(input, output);
     }
 }
 
+/// When an instance is set as the active instance for the thread, this guard is returned.
+///
+/// When the guard is dropped, the previously active instance will be set as the active instance.
 struct ActiveInstanceGuard {
     previous_instance: *mut _pdinstance,
 }
@@ -1102,10 +1153,13 @@ impl ActiveInstanceGuard {
 impl Drop for ActiveInstanceGuard {
     fn drop(&mut self) {
         if self.previous_instance.is_null() {
-            // TODO: Maybe inform the user about this?
+            // Main instance is always valid.
+            let main_instance = unsafe { libpd_sys::libpd_main_instance() };
+            unsafe {
+                libpd_sys::libpd_set_instance(main_instance);
+            }
             return;
         }
-
         unsafe {
             libpd_sys::libpd_set_instance(self.previous_instance);
         }

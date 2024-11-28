@@ -15,7 +15,7 @@ use libpd_rs::{
     Pd,
 };
 
-use libpd_rs::types::Atom;
+use libpd_rs::Atom;
 
 #[test]
 fn send_and_receive_list() {
@@ -25,7 +25,7 @@ fn send_and_receive_list() {
     let list_received: Arc<Mutex<Vec<Atom>>> = Arc::new(Mutex::new(vec![]));
 
     let pd = Pd::init_and_configure(0, output_channels, sample_rate).unwrap();
-    let mut ctx = pd.audio_context();
+    let ctx = pd.audio_context();
 
     dsp_on().unwrap();
 

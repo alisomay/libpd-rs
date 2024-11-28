@@ -55,18 +55,26 @@ impl PdInstance {
     /// If this is the first instance created, it will be the main instance.
     /// The main instance is always valid.
     ///
-    /// If this is not the first instance created, it will be a new instance.
+    /// - If this is not the first instance created, it will be a new instance.
+    /// - All instances created come initialized.
+    /// - Dropping an instance will free its resources properly.
     ///
-    /// All instances created come initialized.
+    /// # The main instance
     ///
-    /// Dropping an instance will free its resources properly.
+    /// The main instance is the first instance created and it is sort of special.
+    /// Libpd will not let you free the main instance it has guards for it in the source code.
+    ///
+    /// So if you drop this struct and if it was pointing to the main instance you'll have a dangling main instance and will not be able to access it.
+    ///
+    /// **The advice is to keep the main instance alive until the application lives.**
     ///
     /// # Errors
     ///
     /// A list of errors that can occur:
     /// - [`InstanceFailedToCreate`](crate::error::InstanceError::InstanceFailedToCreate)
     pub fn new() -> Result<Self, InstanceError> {
-        // First instance as the main instance.
+        // This means that libpd has not been initialized yet and the main instance is not created.
+        // We create it then.
         if instance_count() == 0 {
             functions::init()
                 .map_err(|err| InstanceError::InstanceFailedToCreate(err.to_string()))?;
@@ -87,7 +95,7 @@ impl PdInstance {
         let currently_set_instance_ptr = unsafe { libpd_this_instance() };
         let new_instance_ptr = unsafe { libpd_new_instance() };
 
-        if currently_set_instance_ptr.is_null() || new_instance_ptr.is_null() {
+        if new_instance_ptr.is_null() {
             return Err(InstanceError::InstanceFailedToCreate(
                 "Returned instance pointer is null.".to_owned(),
             ));
@@ -101,9 +109,16 @@ impl PdInstance {
         // TODO: Learn why it is required to be called after each instance creation and returns like the global init. (low priority)
         functions::init().map_err(|err| InstanceError::InstanceFailedToCreate(err.to_string()))?;
 
-        // Set the current instance back to the previous instance.
-        unsafe {
-            libpd_set_instance(currently_set_instance_ptr);
+        // Set the current instance back to the previous instance or if not to main instance which should be always valid.
+        if currently_set_instance_ptr.is_null() {
+            let main_instance_ptr = unsafe { libpd_main_instance() };
+            unsafe {
+                libpd_set_instance(main_instance_ptr);
+            }
+        } else {
+            unsafe {
+                libpd_set_instance(currently_set_instance_ptr);
+            }
         }
 
         Ok(Self {
@@ -130,7 +145,7 @@ impl PdInstance {
     /// Makes this instance the current instance.
     ///
     /// So that all subsequent calls to libpd functions will be made on this instance.
-    pub fn set_as_current(&mut self) {
+    pub fn set_as_current(&self) {
         unsafe { libpd_set_instance(self.inner) }
     }
 
@@ -242,10 +257,14 @@ impl PdInstance {
 
 impl Drop for PdInstance {
     fn drop(&mut self) {
-        if self.inner.is_null() {
+        // Libpd will not let you free the main instance it has guards for it in the source code.
+        // Once it is created so it lives until the application lives!
+        // This is why we don't mess with it here.
+        if self.inner.is_null() || self.is_main_instance() {
             return;
         }
 
+        // For all the others:
         // The advice below can be found in z_queued.h:
 
         // free the queued ringbuffers
@@ -265,6 +284,8 @@ impl Drop for PdInstance {
     reason = "The instance count can not be negative."
 )]
 /// Gets the number of instances of Pd registered.
+///
+/// Since the main instance can not be freed after creation, the count will always be at least 1 after the creation of main instance.
 pub fn instance_count() -> usize {
     unsafe { libpd_num_instances() as usize }
 }

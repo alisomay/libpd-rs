@@ -1,7 +1,6 @@
 use crate::{
-    error::{SendError, SizeError, StringConversionError},
-    helpers::make_t_atom_list_from_atom_list,
-    types::Atom,
+    atom::{make_t_atom_list_from_atom_list, Atom},
+    error::{PdError, SendError, SizeError, StringConversionError},
 };
 
 use std::ffi::CString;
@@ -351,7 +350,7 @@ pub fn finish_message_as_typed_message_and_send_to<T: AsRef<str>, S: AsRef<str>>
 /// # Example
 /// ```rust
 /// use libpd_rs::functions::send::{send_list_to};
-/// use libpd_rs::types::Atom;
+/// use libpd_rs::Atom;
 /// use libpd_rs::instance::PdInstance;
 ///
 /// let _main_instance = PdInstance::new().unwrap();
@@ -368,12 +367,17 @@ pub fn finish_message_as_typed_message_and_send_to<T: AsRef<str>, S: AsRef<str>>
 /// # Errors
 ///
 /// A list of errors that can occur:
-/// - [`MissingDestination`](crate::error::SendError::MissingDestination)
-/// - [`StringConversion`](crate::error::SendError::StringConversion)
-pub fn send_list_to<T: AsRef<str>>(receiver: T, list: &[Atom]) -> Result<(), SendError> {
+/// - [`SendError`](crate::error::SendError)
+///    - [`MissingDestination`](crate::error::SendError::MissingDestination)
+///    - [`StringConversion`](crate::error::SendError::StringConversion)
+/// - [`InstanceError`](crate::error::InstanceError)
+///    - [`NoCurrentInstanceSet`](crate::error::InstanceError::NoCurrentInstanceSet)
+/// - [`PdError`](crate::error::PdError)
+///    - [`StringConversion`](crate::error::PdError::StringConversion)
+pub fn send_list_to<T: AsRef<str>>(receiver: T, list: &[Atom]) -> Result<(), PdError> {
     let recv = CString::new(receiver.as_ref()).map_err(StringConversionError::from)?;
 
-    let mut atom_list: Vec<libpd_sys::t_atom> = make_t_atom_list_from_atom_list!(list);
+    let mut atom_list: Vec<libpd_sys::t_atom> = make_t_atom_list_from_atom_list(list)?;
     let atom_list_slice = atom_list.as_mut_slice();
 
     unsafe {
@@ -388,7 +392,7 @@ pub fn send_list_to<T: AsRef<str>>(receiver: T, list: &[Atom]) -> Result<(), Sen
             atom_list_slice.as_mut_ptr(),
         ) {
             0 => Ok(()),
-            _ => Err(SendError::MissingDestination(receiver.as_ref().to_owned())),
+            _ => Err(SendError::MissingDestination(receiver.as_ref().to_owned()).into()),
         }
     }
 }
@@ -402,7 +406,7 @@ pub fn send_list_to<T: AsRef<str>>(receiver: T, list: &[Atom]) -> Result<(), Sen
 /// # Example
 /// ```rust
 /// use libpd_rs::functions::send::{send_message_to};
-/// use libpd_rs::types::Atom;
+/// use libpd_rs::Atom;
 /// use libpd_rs::instance::PdInstance;
 ///
 /// let _main_instance = PdInstance::new().unwrap();
@@ -419,17 +423,22 @@ pub fn send_list_to<T: AsRef<str>>(receiver: T, list: &[Atom]) -> Result<(), Sen
 /// # Errors
 ///
 /// A list of errors that can occur:
-/// - [`MissingDestination`](crate::error::SendError::MissingDestination)
-/// - [`StringConversion`](crate::error::SendError::StringConversion)
+/// - [`SendError`](crate::error::SendError)
+///    - [`MissingDestination`](crate::error::SendError::MissingDestination)
+///    - [`StringConversion`](crate::error::SendError::StringConversion)
+/// - [`InstanceError`](crate::error::InstanceError)
+///    - [`NoCurrentInstanceSet`](crate::error::InstanceError::NoCurrentInstanceSet)
+/// - [`PdError`](crate::error::PdError)
+///    - [`StringConversion`](crate::error::PdError::StringConversion)
 pub fn send_message_to<T: AsRef<str>>(
     receiver: T,
     message: T,
     list: &[Atom],
-) -> Result<(), SendError> {
+) -> Result<(), PdError> {
     let recv = CString::new(receiver.as_ref()).map_err(StringConversionError::from)?;
     let msg = CString::new(message.as_ref()).map_err(StringConversionError::from)?;
 
-    let mut atom_list: Vec<libpd_sys::t_atom> = make_t_atom_list_from_atom_list!(list);
+    let mut atom_list: Vec<libpd_sys::t_atom> = make_t_atom_list_from_atom_list(list)?;
     let atom_list_slice = atom_list.as_mut_slice();
 
     unsafe {
@@ -446,7 +455,7 @@ pub fn send_message_to<T: AsRef<str>>(
             atom_list_slice.as_mut_ptr(),
         ) {
             0 => Ok(()),
-            _ => Err(SendError::MissingDestination(receiver.as_ref().to_owned())),
+            _ => Err(SendError::MissingDestination(receiver.as_ref().to_owned()).into()),
         }
     }
 }

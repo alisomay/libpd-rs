@@ -18,7 +18,7 @@ fn send_and_receive_midi_byte() {
     let midi_byte_messages_received: Arc<Mutex<Vec<(i32, i32)>>> = Arc::new(Mutex::new(vec![]));
 
     let pd = Pd::init_and_configure(0, output_channels, sample_rate).unwrap();
-    let mut ctx = pd.audio_context();
+    let ctx = pd.audio_context();
 
     dsp_on().unwrap();
 

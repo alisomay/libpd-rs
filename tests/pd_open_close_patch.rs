@@ -6,7 +6,7 @@ use libpd_rs::Pd;
 #[test]
 fn open_close_patch() {
     let mut pd = Pd::init_and_configure(0, 2, 44100).unwrap();
-    let mut ctx = pd.audio_context();
+    let ctx = pd.audio_context();
 
     assert!(pd.open_patch("tests/patches/sine.pd").is_ok());
 

@@ -45,7 +45,7 @@ pub enum PdError {
     ///
     /// `CString` or `CStr` conversion error.
     #[error(transparent)]
-    StringConversionError(#[from] StringConversionError),
+    StringConversion(#[from] StringConversionError),
 }
 
 /// Errors related to initialization.
@@ -206,6 +206,9 @@ pub enum InstanceError {
     /// The instance which is being tried to be accessed does not exist.
     #[error("The instance failed to create. Error: {0}")]
     InstanceFailedToCreate(String),
+    /// There is no pd instance set for the current thread.
+    #[error("There is no pd instance set for the current thread.")]
+    NoCurrentInstanceSet,
 }
 
 /// Errors related to string conversion.

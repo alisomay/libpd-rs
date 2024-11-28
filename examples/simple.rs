@@ -20,6 +20,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize libpd with that configuration,
     // with no input channels since we're not going to use them.
     let mut pd = Pd::init_and_configure(0, output_channels, sample_rate)?;
+    let ctx = pd.audio_context();
 
     // Let's evaluate a pd patch.
     // We could have opened a `.pd` file also.
@@ -49,7 +50,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             // Here if we had an input buffer we could have modified it to do pre-processing.
 
             // Process audio, advance internal scheduler.
-            libpd_rs::functions::process::process_float(ticks, &[], data);
+            ctx.process_float(ticks, &[], data);
 
             // Here we could have done post processing after pd processed our output buffer in place.
         },

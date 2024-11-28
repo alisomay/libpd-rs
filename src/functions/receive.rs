@@ -6,9 +6,9 @@
 )]
 
 use crate::{
+    atom::{make_atom_list_from_t_atom_list, Atom},
     error::{StringConversionError, SubscriptionError, C_STR_FAILURE},
-    helpers::make_atom_list_from_t_atom_list,
-    types::{Atom, ReceiverHandle},
+    types::ReceiverHandle,
 };
 
 use libffi::high::{
@@ -352,7 +352,7 @@ pub fn on_symbol<F: FnMut(&str, &str) + Send + Sync + 'static>(mut user_provided
 /// # Example
 /// ```rust
 /// use libpd_rs::functions::receive::{on_list, start_listening_from};
-/// use libpd_rs::types::Atom;
+/// use libpd_rs::Atom;
 /// use libpd_rs::instance::PdInstance;
 ///
 /// let _main_instance = PdInstance::new().unwrap();
@@ -403,7 +403,7 @@ pub fn on_list<F: FnMut(&str, &[Atom]) + Send + Sync + 'static>(mut user_provide
                 reason = "We're trusting Pd to not send a negative list length. I think this is sane enough."
             )]
             let atom_list = unsafe { slice::from_raw_parts(atom_list, list_length as usize) };
-            let atoms = make_atom_list_from_t_atom_list!(atom_list);
+            let atoms = make_atom_list_from_t_atom_list(atom_list);
             user_provided_closure(source, &atoms);
         },
     ));
@@ -436,7 +436,7 @@ pub fn on_list<F: FnMut(&str, &[Atom]) + Send + Sync + 'static>(mut user_provide
 /// # Example
 /// ```rust
 /// use libpd_rs::functions::receive::{on_message, start_listening_from};
-/// use libpd_rs::types::Atom;
+/// use libpd_rs::Atom;
 /// use libpd_rs::instance::PdInstance;
 ///
 /// let _main_instance = PdInstance::new().unwrap();
@@ -478,7 +478,7 @@ pub fn on_message<F: FnMut(&str, &str, &[Atom]) + Send + Sync + 'static>(
                 reason = "We're trusting Pd to not send a negative list length. I think this is sane enough."
             )]
             let atom_list = unsafe { slice::from_raw_parts(atom_list, list_length as usize) };
-            let atoms = make_atom_list_from_t_atom_list!(atom_list);
+            let atoms = make_atom_list_from_t_atom_list(atom_list);
             user_provided_closure(source, message, &atoms);
         },
     ));
